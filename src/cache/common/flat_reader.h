@@ -1,0 +1,39 @@
+// vim:set noet cinoptions= sw=4 ts=4:
+// This file is part of the coreq project and distributed under the
+// terms of the GNU General Public License v2.
+//
+// Copyright (c)
+//   Wolfgang Frisch <xororand@users.sourceforge.net>
+//   Emil Beinroth <emilbeinroth@gmx.net>
+//   Martin Väth <martin@mvath.de>
+
+#ifndef SRC_CACHE_COMMON_FLAT_READER_H_
+#define SRC_CACHE_COMMON_FLAT_READER_H_ 1
+
+#include <config.h>  // IWYU pragma: keep
+
+#include <fstream>
+#include <string>
+
+#include "cache/common/reader.h"
+#include "coreqTk/attribute.h"
+#include "coreqTk/dialect.h"
+#include "coreqTk/coreqint.h"
+
+class BasicCache;
+class Depend;
+class Package;
+
+class FlatReader : public BasicReader {
+	public:
+		explicit FlatReader(BasicCache *cache) : BasicReader(cache) {
+		}
+
+		ATTRIBUTE_NONNULL_ void get_keywords_slot_iuse_restrict(const std::string& filename, std::string *eapi, std::string *keywords, std::string *slotname, std::string *iuse, std::string *required_use, std::string *restr, std::string *props, Depend *dep, std::string *src_uri) OVERRIDE;
+		ATTRIBUTE_NONNULL_ void read_file(const std::string& filename, Package *pkg) OVERRIDE;
+
+	private:
+		ATTRIBUTE_NONNULL_ bool skip_lines(const coreq::TinyUnsigned nr, std::ifstream *is, const std::string& filename) const;
+};
+
+#endif  // SRC_CACHE_COMMON_FLAT_READER_H_

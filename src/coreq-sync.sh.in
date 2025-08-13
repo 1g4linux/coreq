@@ -1,0 +1,733 @@
+#!/usr/bin/env sh
+# This script is part of the coreq project and distributed under the
+# terms of the GNU General Public License v2.
+#
+# Authors and Copyright (c):
+#   Emil Beinroth <emilbeinroth@gmx.net> (original)
+#   Martin V\"ath <martin@mvath.de> (complete rewrite)
+#
+# This script calls emerge --sync and shows the differences.
+# See the coreq manpage for details. (@PACKAGE_STRING@).
+set -u
+
+time_begin=`date '+%s' 2>/dev/null` || time_begin=
+COREQ_SYNC_RUNNING=true
+export COREQ_SYNC_RUNNING
+
+if coreq_funcs=`./coreq-functions.sh.in 2>/dev/null`
+then	eval "$coreq_funcs"
+else	echo "${0##*/}: cannot find coreq-functions.sh" >&2
+	exit 1
+fi
+ReadFunctions
+
+ReadVar local_varcache EPREFIX_COREPKG_CACHE
+ReadVar coreqcache COREQ_CACHEFILE
+ReadVar coreqprevious COREQ_PREVIOUS
+ReadVar local_corepkg_configroot COREPKG_CONFIGROOT
+coreqsyncconf=$local_corepkg_configroot/etc/coreq-sync.conf
+
+Usage() {
+	n=${0##*/}
+	p='@PACKAGE_STRING@'
+	eval_pgettext 'coreq-sync' 'Usage: ${n} [options]
+Call emerge --sync/--metadata and show updates. (${p})
+
+Unless the -t option is used, the old database will be saved to
+    ${coreqprevious}.
+
+The file ${coreqsyncconf} and the coreq (environment) variable COREQ_SYNC_CONF
+(which defaults to delayed substitution of COREQ_SYNC_OPTS) determine for
+which overlays layman is called, which default options are used, and they
+can contain various hooks - "man coreq" for details.
+
+Be aware that e.g. the default COREQ_SYNC_OPTS are evaluated so be sure to
+quote them correctly and care about security risks.
+Moreover, "--" in the default options will forbid command line options.
+The following options are available:
+
+-i   Ignore all previous options except -n
+     (useful to ignore ${coreqsyncconf} options).
+-a   Always assume that some tree/overlay changes
+     (set have_changed=: in a !-hook to force this)
+-s [USER@]SERVER[:DIR] Sync via rsync from SERVER.
+     USER defaults to current user and DIR defaults to PORTDIR.
+     An empty SERVER cancels this option. This option implies -0
+-0   No coreq --sync. This implies -a
+-2 [USER@]CLIENT[:DIR] Sync via rsync *to* CLIENT after successful syncing;
+     you should later call coreq-sync -u locally on CLIENT.
+     If you already have synced you might want to combine this option with -uU.
+-U   Do not touch the database and omit the hooks after coreq-update (@ entries)
+     and do not show differences. This option implies -R
+-u   Update database only and show differences. This is equivalent to -0l@As ""
+-F   Make layman or failed hooks (! !! ~ @ @@ entries) fatal. This can be
+     forced/overridden in hooks by (un)setting FATAL_HOOKS or calling die.
+-l   Do not call layman (and the !commands in ${coreqsyncconf}).
+     However, the !! lines and postponed hooks (@ and @@ entries)
+     will be executed anyway.
+-A   Do not call coreq-remote add1/add2
+-@   Do not execute the hooks (@ and @@ entries) of ${coreqsyncconf}.
+-S   Do not execute the hooks after emerge --sync (@ entries).
+-M   Run emerge --metadata.  You might need this when you use the cache method
+     "sqlite", "sqlite*", or "flat" for PORTDIR or in a synced overlay.
+     This option is the default if PORTDIR_CACHE_METHOD is one of these.
+-N   Do not run emerge --metadata. Usually, this is the default, see -M.
+-t   Use temporary file to save the current database (excluding coreq-diff later)
+-T   Do not measure time
+-q   Be quiet (close stdout)
+-w   Run emerge-webrsync instead of emerge --sync.
+-W   Run emerge-delta-webrsync instead of emerge --sync.
+-c CMD Run CMD instead of emerge --sync.
+-C OPT Add OPT to the emerge --sync command (or whatever is used instead).
+       This option can be used accumulatively.
+-o OPT Add OPT to each coreq-update command.
+       This option can be used accumulatively.
+-L OPT Add OPT to each call of layman.
+       This option can be used accumulatively.
+-r   Clear /var/cache/edb/dep/* before syncing. This is only useful when you
+     use e.g. PORTDIR_CACHE_METHOD=flat and FEATURES=metadata-transfer
+     is active. (This option is not default anymore).
+-R   Cancel previous -r (e.g. if it was used in ${coreqsyncconf}).
+-v   Verbose: output of executed commands.
+-n   Dry run. You might want to combine this with -v. This implies -aHT
+-H   Suppress status line update.
+-h   Show this text and exit.'
+	echo
+	exitcode=${1:-1}
+	Exit $exitcode
+}
+
+WarnOrDie() {
+	[ -z "${FATAL_HOOKS:++}" ] || die "$@"
+	ewarn "$@"
+}
+
+PrintCmd() {
+	Echo "# $*"
+}
+
+DoExecute() {
+	for curr_cmd
+	do	set +f
+		! $printcmd || PrintCmd "$curr_cmd"
+		$dryrun || eval "$curr_cmd" || WarnOrDie \
+			"`eval_pgettext 'coreq-sync' \
+				'Something went wrong with ${curr_cmd}'`"
+	done
+}
+
+ConfigHooksInfo() {
+	StatusInfo "`pgettext 'coreq-sync' 'Running !!-hooks'`" \
+		"`pgettext 'Statusline coreq-sync' 'Running !!-hooks'`"
+	ConfigHooksInfo() {
+:
+}
+}
+
+LaymanHooksInfo() {
+	StatusInfo "`pgettext 'coreq-sync' 'Running !-hooks'`" \
+		 "`pgettext 'Statusline coreq-sync' 'Running !-hooks'`"
+	LaymanHooksInfo() {
+:
+}
+}
+
+CheckAdd() {
+	$remoteadd || return 0
+	case $1 in
+	'coreq-remote'*'add'*|'coreq-remote'*'update'*)
+		PerLineArg "`pgettext 'coreq-sync' \
+'Your coreq-sync configuration contains an obsolete hook
+\"coreq-remote*add*\" or \"coreq-remote*update*\"
+Since coreq-0.29.0, \"coreq-remote add*\" is called automatically by coreq-sync
+if appropriate, so this is usually not needed and probably a mistake.
+Remove this hook from COREQ_SYNC_CONF or /etc/coreq-sync.conf to proceed.
+If you know what you are doing you can suppress this error by using
+a different syntax like quoting coreq-remote.'`" eerror
+		Exit 1;;
+	esac
+}
+
+ParseConfigLine() {
+	j=$2
+	while :
+	do	case $j in
+		' '*|'	'*)
+			j=${j#?};;
+		*' '|*'	')
+			j=${j%?};;
+		''|'#'*)
+			return;;
+		*)
+			break;;
+		esac
+	done
+	case $j in
+	'!!'*)
+		j=${j#??}
+		if [ x"$1" = x'opts' ]
+		then	ConfigHooksInfo
+			CheckAdd "$j"
+			DoExecute "$j"
+		fi
+		return;;
+	'!'*)
+		j=${j#?}
+		CheckAdd "$j"
+		mycmd='!';;
+	'@@'*)
+		j=${j#??}
+		CheckAdd "$j"
+		mycmd='@@';;
+	'@'*)
+		j=${j#?}
+		CheckAdd "$j"
+		mycmd='@';;
+	'~'*)
+		j=${j#?}
+		CheckAdd "$j"
+		mycmd='~';;
+	'-'*)
+		config_opts="$config_opts $j"
+		return;;
+	*)
+		mycmd='layman';;
+	esac
+	[ x"$1" = x'opts' ] && return
+	case $mycmd in
+	'@@')
+		Push after_update "$j"
+		return;;
+	'@')
+		Push after_sync "$j"
+		return;;
+	'~')
+		Push before_rsync "$j"
+		return;;
+	'!')
+		if ! $nolayman
+		then	LaymanHooksInfo
+			DoExecute "$j"
+		fi
+		return;;
+	esac
+	$nolayman && return
+	case $- in
+	*f*)
+		eval "set -- a $layman_opt";;
+	*)
+		set -f
+		eval "set -- a $layman_opt"
+		set +f;;
+	esac
+	shift
+	if [ x"$j" = x'*' ]
+	then	StatusInfo "`pgettext 'coreq-sync' \
+				'Syncing all corepkg overlays'`" \
+			"`pgettext 'Statusline coreq-sync' \
+				'Syncing all corepkg overlays'`"
+		MyRun "$mycmd" -S ${1+"$@"} \
+			|| WarnOrDie "`eval_pgettext 'coreq-sync' \
+				'${mycmd} -S failed'`"
+		return
+	fi
+	StatusInfo "`eval_pgettext 'coreq-sync' \
+			'Syncing corepkg overlay ${j}'`" \
+		"`eval_pgettext 'Statusline coreq-sync' \
+			'Syncing corepkg overlay ${j}'`"
+	MyRun "$mycmd" -s "$j" ${1+"$@"} \
+		|| WarnOrDie "`eval_pgettext 'coreq-sync' \
+			'${mycmd} -s ${j} failed'`"
+}
+
+Calc_coreqsyncconf() {
+	ReadVar coreq_sync_conf COREQ_SYNC_CONF
+	! test -r "$coreqsyncconf" || coreq_sync_conf=`cat -- "$coreqsyncconf"`'
+'${coreq_sync_conf-}
+Calc_coreqsyncconf() {
+	:
+}
+}
+
+ExecuteConfig() {
+	after_sync=
+	after_update=
+	before_rsync=
+	config_opts=
+	rsync_opts=
+	Calc_coreqsyncconf
+	case $- in
+	*f*)
+		setfori=:;;
+	*)
+		set -f
+		setfori='set +f';;
+	esac
+	IFSori=$IFS
+	IFS='
+'
+	for confline in ${coreq_sync_conf-}
+	do	IFS=$IFSori
+		$setfori
+		ParseConfigLine "$1" "$confline"
+	done
+	IFS=$IFSori
+	$setfori
+}
+
+
+# Get options from cli
+
+DefaultOpts() {
+	Push -c emergecmd 'emerge' '--sync'
+	Push -c updatecmd 'coreq-update'
+	Push -c layman_opt
+	have_changed=false
+	clearcache=false
+	nolayman=false
+	nohooks=false
+	quiet=false
+	usetemp=false
+	printcmd=false
+	measure_time=:
+	metadata=
+	skip_sync=false
+	server=
+	client=
+	doupdate=:
+	synchooks=:
+	remoteadd=:
+	FATAL_HOOKS=
+}
+
+dryrun=false
+DefaultOpts
+ExecuteConfig 'opts'
+set -f
+eval "Push -c opt $config_opts"
+Push opt ${1+"$@"}
+eval "set -- a $opt"
+shift
+set +f
+OPTIND=1
+while getopts 'ias:02:UuFlA@SMNtTqwWL:c:C:o:rRHvnh' opt
+do	case $opt in
+	i)	DefaultOpts;;
+	a)	have_changed=:;;
+	s)	server=$OPTARG;;
+	0)	skip_sync=:;;
+	2)	client=$OPTARG;;
+	U)	doupdate=false;;
+	u)	nolayman=:
+		nohooks=:
+		skip_sync=:
+		remoteadd=false
+		server=;;
+	F)	FATAL_HOOKS=':';;
+	l)	nolayman=:;;
+	A)	remoteadd=false;;
+	'@')	nohooks=:;;
+	S)	synchooks=false;;
+	M)	metadata=:;;
+	N)	metadata=false;;
+	t)	usetemp=:;;
+	T)	measure_time=false;;
+	q)	quiet=:;;
+	L)	Push layman_opt "$OPTARG";;
+	w)	Push -c emergecmd 'emerge-webrsync';;
+	W)	Push -c emergecmd 'emerge-delta-webrsync';;
+	c)	Push -c emergecmd "$OPTARG";;
+	C)	Push emergecmd "$OPTARG";;
+	o)	Push updatecmd "$OPTARG";;
+	r)	clearcache=:;;
+	R)	clearcache=false;;
+	H)	statusline=false;;
+	v)	printcmd=:;;
+	n)	dryrun=:;;
+	'?')	exitcode=1; Exit 1;;
+	*)	Usage 0;;
+	esac
+done
+[ $OPTIND -le 1 ] || shift `Expr $OPTIND - 1`
+unset opt
+if $dryrun
+then	have_changed=:
+	statusline=false
+	measure_time=false
+fi
+[ -z "${server:++}" ] || skip_sync=:
+$skip_sync && have_changed=:
+$statusline || {
+	NOSTATUSLINE=true
+	export NOSTATUSLINE
+}
+
+if [ -z "${metadata:++}" ]
+then	metadata=false
+	ReadVar cache_method PORTDIR_CACHE_METHOD || cache_method=
+	case $cache_method in
+	sqlite*|flat)
+		metadata=:
+	esac
+fi
+
+$measure_time || time_begin=
+measure_time=false
+
+IsNumber() (
+	unset LC_ALL
+	LC_COLLATE=C
+	case $1 in
+	*[!0-9]*)	false;;
+	esac
+)
+
+IsNumber "${time_begin:-x}" && [ "$time_begin" -gt 99 ] && {
+	t=`Expr "$time_begin" - 99 2>/dev/null` || t=0
+	[ "$t" -gt 0 ] && [ "$time_begin" -gt "$t" ]
+} >/dev/null 2>&1 && measure_time=:
+
+MyRunning() {
+	if $printcmd
+	then	Push -c myrun "$@"
+		PrintCmd "$myrun"
+	fi
+	$dryrun && return
+	"$@"
+}
+
+MyRun() {
+	if [ x"$1" = x'-t' ]
+	then	if $measure_time
+		then	timevar=time_$2
+			shift 2
+			begt=`date '+%s' 2>/dev/null` || measure_time=false
+			MyRunning "$@"
+			runstat=$?
+			$measure_time && endt=`date +%s 2>/dev/null` \
+				|| measure_time=false
+			$measure_time && \
+				eval $timevar'=`Expr "$endt" - "$begt"`'
+			return $runstat
+		fi
+		shift 2
+	fi
+	MyRunning "$@"
+}
+
+MyRunCommand() {
+	StatusInfo "$1"
+	shift
+	MyRun "$@"
+}
+
+DoHook() {
+	$nohooks || [ -z "${1:++}" ] && return
+	if [ $# -ge 3 ]
+	then	StatusInfo "$2" "$3"
+	elif [ $# -eq 2 ]
+	then	StatusInfo "$2"
+	fi
+	case $- in
+	*f*)
+		eval "set -- a $1";;
+	*)
+		set -f
+		eval "set -- a $1"
+		set +f;;
+	esac
+	shift
+	DoExecute "$@"
+}
+
+MyVarCommand() {
+	myvarcmdvar=$1
+	shift
+	myvarcmdargs=$*
+	case $- in
+	*f*)
+		eval "set -- a $myvarcmdvar";;
+	*)
+		set -f
+		eval "set -- a $myvarcmdvar"
+		set +f;;
+	esac
+	shift
+	myvarcmd=$*
+	StatusInfo "`eval_pgettext 'coreq-sync' 'Running ${myvarcmd}'`" \
+		 "`eval_pgettext 'Statusline coreq-sync' 'Running ${myvarcmd}'`"
+	MyRun $myvarcmdargs ${1+"$@"} \
+		|| die "`eval_pgettext 'coreq-sync' '${myvarcmd} failed'`"
+}
+
+time_iupdate=
+time_sync=
+time_client=
+time_metadata=
+time_update=
+time_diff=
+PrintingTimes() {
+	[ -n "${1:++}" ] && [ "$1" -gt 0 ] && \
+		printf "`pgettext 'coreq-sync times' \
+			'%6d seconds for %s\n'`" "$1" "$2"
+}
+PrintTimes() {
+	$measure_time || return 0
+	measure_time=false
+	einfo "`pgettext 'coreq-sync times' 'Time statistics:'`"
+	PrintingTimes "$time_iupdate" \
+		"`pgettext 'coreq-sync times' 'initial coreq-update'`"
+	PrintingTimes "$time_sync" \
+		"`pgettext 'coreq-sync times' 'syncing'`"
+	PrintingTimes "$time_client" \
+		"`pgettext 'coreq-sync times' 'client syncing'`"
+	PrintingTimes "$time_metadata" \
+		"`pgettext 'coreq-sync times' 'metadata update'`"
+	PrintingTimes "$time_update" \
+		"`pgettext 'coreq-sync times' 'coreq-update'`"
+	PrintingTimes "$time_diff" \
+		"`pgettext 'coreq-sync times' 'coreq-diff'`"
+	ftime=`date '+%s' 2>/dev/null` || return
+	ftime=`Expr "$ftime" - "$time_begin" 2>/dev/null` && \
+		printf "`pgettext 'coreq-sync times' \
+		'%6d seconds total\n'`" "$ftime"
+}
+
+tmpfile=
+exitcode=0
+ExitAll() {
+	trap : EXIT HUP INT TERM
+	[ -z "${tmpfile:++}" ] || rm -f -- "$tmpfile"
+	tmpfile=
+	trap - EXIT HUP INT TERM
+	PrintTimes
+	Exit $exitcode
+}
+$measure_time && trap ExitAll EXIT HUP INT TERM
+
+MakeTempFile() {
+	AssignTemp tmpfile
+	trap ExitAll EXIT HUP INT TERM
+}
+
+preprsync=false
+PrepRsync() {
+	GetPortdir
+	hostdir=${1#*:}
+	if [ -n "${hostdir:++}" ] && [ x"$hostdir" != x"$1" ]
+	then	hostdir=$1
+	else	hostdir=${1%%:*}:$local_portdir
+	fi
+	hostdir=${hostdir%/}/
+	$preprsync || [ -n "${rsync_opts:++}" ] && return
+	ReadVar corepkg_rsync_opts COREPKG_RSYNC_OPTS || \
+		corepkg_rsync_opts='--recursive --links --safe-links --perms --times --compress --force --whole-file --delete --stats --timeout=180 --exclude=/distfiles --exclude=/local --exclude=/packages'
+	ReadVar corepkg_rsync_extra_opts COREPKG_RSYNC_EXTRA_OPTS
+	case $- in
+	*f*)
+		eval "set -- a $before_rsync";;
+	*)
+		set -f
+		eval "set -- a $before_rsync"
+		set +f;;
+	esac
+	shift
+	[ $# -eq 0 ] || StatusInfo "`pgettext 'coreq-sync' 'Running ~-hooks'`" \
+		"`pgettext 'Statusline coreq-sync' 'Running ~-hooks'`"
+	for curr_cmd
+	do	! $printcmd || PrintCmd 'eval "$(eval "'"$curr_cmd"'")"'
+		$dryrun && continue
+		if c=`eval "$curr_cmd"`
+		then	eval "$c" || WarnOrDie "`eval_pgettext 'coreq-sync' \
+				'${c} (output of ${curr_cmd}) failed'`"
+		else	WarnOrDie "`eval_pgettext 'coreq-sync' \
+				'${curr_cmd} failed'`"
+		fi
+	done
+	rsync_opts="$corepkg_rsync_opts $corepkg_rsync_extra_opts --exclude=/.unionfs"
+	preprsync=:
+}
+
+ClearCache() {
+	$clearcache || return 0
+	# Cleaning old cache
+	# corepkg 2.1_pre1 doesn't do this anymore, so *we* need to do it.
+	case $- in
+	*f*)
+		set +f
+		set -- a "$local_varcache"/var/cache/edb/dep/*
+		set -f;;
+	*)
+		set -- a "$local_varcache"/var/cache/edb/dep/*;;
+	esac
+	shift
+	StatusInfo "`eval_pgettext 'coreq-sync' \
+	'Removing old corepkg-cache in ${local_varcache}/var/cache/edb/dep'`" \
+	"`eval_pgettext 'Statusline coreq-sync' \
+	'Removing old corepkg-cache in ${local_varcache}/var/cache/edb/dep'`" \
+	MyRun rm -rf -- "$@" || WarnOrDie "`eval_pgettext 'coreq-sync' \
+		'rm -rf ${local_varcache}/var/cache/edb/dep/* failed'`"
+}
+
+CallEmergeSync() {
+	if [ -n "${server:++}" ]
+	then	PrepRsync "$server"
+		StatusInfo "`eval_pgettext 'coreq-sync' \
+				'rsyncing from ${hostdir}'`" \
+			"`eval_pgettext 'Statusline coreq-sync' \
+				'rsyncing from ${hostdir}'`"
+		MyRun -t sync \
+			rsync $rsync_opts -- "$hostdir" "$local_portdir" || \
+			die "`eval_pgettext 'coreq-sync' \
+				'Could not rsync from ${hostdir}'`"
+		return
+	fi
+	$skip_sync && return
+	MyVarCommand "$emergecmd" -t sync
+}
+
+CallSyncClient() {
+	[ -z "${client:++}" ] && return
+	PrepRsync "$client"
+	StatusInfo "`eval_pgettext 'coreq-sync' 'rsyncing to ${hostdir}'`" \
+		 "`eval_pgettext 'Statusline coreq-sync' \
+			'rsyncing to ${hostdir}'`"
+	MyRun -t client rsync $rsync_opts -- "$local_portdir" "$hostdir" || \
+			die "`eval_pgettext 'coreq-sync' \
+				'Could not rsync to ${hostdir}'`"
+}
+
+CallEmergeMetadata() {
+	$doupdate && $metadata || return 0
+	MyVarCommand 'emerge --metadata' -t metadata
+}
+
+CondUpdate() {
+	if test ! -f "$coreqcache"
+	then	einfo "`pgettext 'coreq-sync' 'coreq-cache does not exist'`"
+	else	headerver=`coreq-header -s '' -f "$coreqcache" -qC` && \
+			IsNumber "${headerver:-x}" && [ $headerver -ge 37 ] \
+			&& return
+		einfo "`pgettext 'coreq-sync' 'coreq-cache format has changed'`"
+	fi
+	MyVarCommand "$updatecmd" -t iupdate
+}
+
+CopyToTemp() {
+	StatusInfo "`eval_pgettext 'coreq-sync' \
+		'Copying old ${coreqcache} cache to temporary file'`" \
+		"`eval_pgettext 'Statusline coreq-sync' \
+		'Copying old ${coreqcache} cache to temporary file'`"
+	MakeTempFile
+	chmod a+r -- "$tmpfile"
+	MyRun cp -p -- "$coreqcache" "$tmpfile" || die \
+		"`eval_pgettext 'coreq-sync' \
+		'Could not copy database to temporary file ${tmpfile}'`"
+}
+
+CopyToPrevious() {
+	StatusInfo "`eval_pgettext 'coreq-sync' \
+			'Copying old database to ${coreqprevious}'`" \
+		"`eval_pgettext 'Statusline coreq-sync' \
+		'Copying old database to ${coreqprevious}'`"
+	MyRun cp -p -- "$coreqcache" "$coreqprevious" || \
+		die "`eval_pgettext 'coreq-sync' \
+			'Could not copy database to ${coreqprevious}'`"
+}
+
+CopyPrevious() {
+	$doupdate || return 0
+	if $usetemp
+	then	CopyToTemp
+	else	CopyToPrevious
+	fi
+}
+
+RemoteAdd() {
+	$remoteadd || return 0
+	for remote_num in 1 2
+	do	ReadVar archive$remote_num COREQ_REMOTEARCHIVE$remote_num
+		eval archive=\${archive$remote_num}
+		[ -n "$archive" ] && test -r "$archive" || continue
+		[ -n "$coreqcache" ] && test -r "$coreqcache" || continue
+		ReadVar coreqremote$remote_num COREQ_REMOTE$remote_num
+		eval coreqremote=\${coreqremote$remote_num}
+		[ -z "$coreqremote" ] && continue
+		[ x"$coreqremote" = x"$coreqcache" ] && continue
+		test -r "$coreqremote" || continue
+		! $dryrun && {
+			test "$coreqremote" -nt "$coreqcache" && \
+			test "$coreqremote" -nt "$archive"
+		} >/dev/null 2>&1 && continue
+		StatusInfo "`eval_pgettext 'coreq-sync' \
+				'coreq-remote add${remote_num}'`" \
+			 "`eval_pgettext 'Statusline coreq-sync' \
+				 'coreq-remote add${remote_num}'`"
+		MyRun coreq-remote add$remote_num || WarnOrDie \
+			"`eval_pgettext 'coreq-sync' \
+				'coreq-remote add${remote_num} failed'`"
+	done
+	return 0
+}
+
+UpdateDiff() {
+	$doupdate || return 0
+	if $usetemp
+	then	d=$tmpfile
+	else	d=$coreqprevious
+	fi
+	if ! $dryrun && test "$coreqcache" -nt "$d" >/dev/null 2>&1
+	then	einfo "`pgettext 'coreq-sync' \
+			'coreq-update was apparently already called in a hook'`"
+	else	MyVarCommand "$updatecmd" -t update
+	fi
+	DoHook "$after_update" "`pgettext 'coreq-sync' 'Running @@-hooks'`" \
+		"`pgettext 'Statusline coreq-sync' 'Running @@-hooks'`"
+	RemoteAdd
+	StatusInfo "`pgettext 'coreq-sync' 'Calling coreq-diff'`" \
+		"`pgettext 'Statusline coreq-sync' 'Calling coreq-diff'`"
+	MyRun -t diff coreq-diff -- "$d" || \
+		die "`pgettext 'coreq-sync' \
+			'failed to diff against current cache'`"
+	PrintTimes
+}
+
+ReadTimeStamp() {
+	eval $1=
+	$have_changed && return
+	GetPortdir
+	{
+		eval "read -r $1 <\"\${local_portdir%/}/metadata/timestamp.chk\""
+	} 2>/dev/null && eval "[ -n \"\$$1\" ]" || have_changed=:
+}
+
+NotChanged() {
+	PerLineArg "`pgettext 'coreq-sync' \
+'Main gentoo tree does not appear to have changed: exiting
+Use -a or set have_changed=: in a ! hook to override this check'`" eerror
+	Exit 3
+}
+
+MainSync() {
+	CondUpdate
+	ClearCache
+	ExecuteConfig 'sync'
+	ReadTimeStamp previous_timestamp
+	CallEmergeSync
+	ReadTimeStamp current_timestamp
+	[ x"$previous_timestamp" != x"$current_timestamp" ] && have_changed=:
+	$have_changed || NotChanged
+	$synchooks && DoHook "$after_sync" \
+		"`pgettext 'coreq-sync' 'Running @-hooks'`" \
+		"`pgettext 'Statusline coreq-sync' 'Running @-hooks'`"
+	CallSyncClient
+	CallEmergeMetadata
+	CopyPrevious
+	UpdateDiff
+}
+
+$quiet && exec >/dev/null
+
+MainSync
+
+Exit 0

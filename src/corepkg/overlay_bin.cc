@@ -1,0 +1,211 @@
+// vim:set noet cinoptions= sw=4 ts=4:
+// This file is part of the coreq project and distributed under the
+// terms of the GNU General Public License v2.
+//
+// Copyright (c)
+//   Wolfgang Frisch <xororand@users.sourceforge.net>
+//   Emil Beinroth <emilbeinroth@gmx.net>
+//   Martin Väth <martin@mvath.de>
+
+#include "corepkg/overlay.h"
+#include <config.h>  // IWYU pragma: keep
+
+#include <algorithm>
+#include <string>
+
+#include "coreqTk/assert.h"
+#include "coreqTk/diagnostics.h"
+#include "coreqTk/coreqint.h"
+#include "coreqTk/filenames.h"
+#include "coreqTk/likely.h"
+#include "coreqTk/null.h"
+#include "coreqTk/stringtypes.h"
+#include "coreqTk/utils.h"
+#include "coreqTk/varsreader.h"
+
+using std::string;
+
+static WordUnorderedMap *path_label_hash = NULLPTR;
+
+void OverlayIdent::init_static() {
+	coreq_assert_static(path_label_hash == NULLPTR);
+	path_label_hash = new WordUnorderedMap;
+}
+
+coreq::SignedBool OverlayIdent::compare(const OverlayIdent& left, const OverlayIdent& right) {
+WZERO_AS_NULL_POINTER_CONSTANT_OFF
+	if(left.priority < right.priority) {
+		return -1;
+	}
+	if(left.priority > right.priority) {
+		return 1;
+	}
+	if(left.label < right.label) {
+		return -1;
+	}
+	if(left.label > right.label) {
+		return 1;
+	}
+	if(left.path < right.path) {
+		return -1;
+	}
+	if(left.path > right.path) {
+		return 1;
+	}
+WZERO_AS_NULL_POINTER_CONSTANT_ON
+	return 0;
+}
+
+void OverlayIdent::readLabel_internal(const char *patharg) {
+	know_label = true;
+	LineVec lines;
+	string my_path;
+	if(patharg == NULLPTR) {
+		if(!know_path) {
+			label.clear();
+			return;
+		}
+		my_path = path;
+	} else {
+		my_path = patharg;
+	}
+	coreq_assert_static(path_label_hash != NULLPTR);
+	WordUnorderedMap::const_iterator f(path_label_hash->find(my_path));
+	if(f != path_label_hash->end()) {
+		label = f->second;
+		return;
+	}
+	label.clear();
+	VarsReader layout_conf(VarsReader::SUBST_VARS|VarsReader::COREPKG_SECTIONS|VarsReader::RECURSE);
+	if(likely(layout_conf.read((my_path + "/metadata/layout.conf").c_str(), NULLPTR, true))) {
+		const string *name(layout_conf.find("repo-name"));
+		if(name != NULLPTR) {
+			label.assign(*name);
+		}
+	}
+	if(label.empty()) {
+		pushback_lines((my_path + "/profiles/repo_name").c_str(), &lines, false, false);
+		for(LineVec::const_iterator i(lines.begin()); likely(i != lines.end()); ++i) {
+			label = *i;
+			break;
+		}
+	}
+	(*path_label_hash)[my_path] = label;
+}
+
+string OverlayIdent::human_readable() const {
+	if(label.empty()) {
+		return path;
+	}
+	return string("\"") + label + "\" " + path;
+}
+
+string OverlayIdent::name() const {
+	if(label.empty()) {
+		return path;
+	}
+	return label;
+}
+
+const char *RepoList::get_path(const string& label) {
+	WordUnorderedMap::iterator f(cache.find(label));
+	if(likely(f != cache.end())) {
+		return f->second.c_str();
+	}
+	if(trust_cache) {
+		return NULLPTR;
+	}
+	for(iterator it(begin()); likely(it != end()); ++it) {
+		if(unlikely(!it->know_path)) {
+			continue;
+		}
+		it->readLabel();
+		if(unlikely(!it->know_label)) {
+			continue;
+		}
+		const string& l(it->label);
+		const string& p(it->path);
+		cache[l] = p;
+		if(unlikely(l == label)) {
+			return p.c_str();
+		}
+	}
+	trust_cache = true;
+	return NULLPTR;
+}
+
+RepoList::iterator RepoList::find_filename(const char *search, bool parent_ok, bool resolve_mask) {
+	string mask;
+	const char *s(search);
+	if(resolve_mask) {
+		mask = normalize_path(search, true, parent_ok);
+		s = mask.c_str();
+	}
+	RepoList::iterator ret(end());
+	for(iterator ov(begin()); likely(ov != end()); ++ov) {
+		if(likely(ov->know_path)) {
+			if(parent_ok) {
+				if(unlikely(filename_starts_with(ov->path.c_str(), s, false))) {
+					// Do as corepkg: The longest path is the return value
+					if((ret == end()) || (ov->path.size() >= ret->path.size())) {
+						ret = ov;
+					}
+				}
+				continue;
+			}
+			if(unlikely(same_filenames(ov->path.c_str(), s, false, false))) {
+				return ov;
+			}
+		}
+	}
+	return ret;
+}
+
+void RepoList::set_priority(OverlayIdent *overlay) {
+	const char *path(NULLPTR);
+	if(likely(overlay->know_label)) {
+		path = get_path(overlay->label);
+	}
+	if(unlikely(path == NULLPTR)) {
+		if(likely(overlay->know_path)) {
+			path = overlay->path.c_str();
+		} else {
+			return;
+		}
+	}
+	iterator it(find_filename(path, false, true));
+	if(likely(it != end())) {
+		overlay->priority = it->priority;
+	}
+}
+
+void RepoList::push_back(const OverlayIdent& s, bool no_path_dupes) {
+	if(likely(no_path_dupes)) {
+		RepoList::iterator it(find_filename(s.path.c_str()));
+		if(it != end()) {
+			it->priority = s.priority;
+			if((!it->know_label) && s.know_label) {
+				it->setLabel(s.label);
+				trust_cache = false;
+			}
+			return;
+		}
+	}
+	trust_cache = false;
+	super::push_back(s);
+}
+
+void RepoList::clear() {
+	trust_cache = true;
+	super::clear();
+	cache.clear();
+}
+
+void RepoList::sort() {
+	OverlayVec::iterator it(super::begin());
+	if(unlikely(it == super::end())) {
+		return;
+	}
+	++it;
+	std::sort(it, super::end());
+}

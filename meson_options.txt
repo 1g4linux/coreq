@@ -1,0 +1,88 @@
+option('jumbo-build', type : 'boolean', value : true,
+	description : 'use jumbo build')
+option('new-dialect', type : 'boolean', value : false,
+	description : 'enable most current C++ dialect; provides optimizations')
+option('dead-code', type : 'boolean', value : true,
+	description : 'use dead-code elimination options; disable this only if compilation fails')
+option('debugging', type : 'boolean', value : false,
+	description : 'activate paranoic asserts and flags for debugging')
+option('debug-format', type : 'boolean', value : true,
+	description : 'activate string format runtime tests')
+option('paranoic-asserts', type : 'boolean', value : false,
+	description : 'activate paranoic asserts')
+option('security', type : 'boolean', value : false,
+	description : 'append security relevant options to flags')
+option('strong-security', type : 'boolean', value : false,
+	description : 'append paranoic security options to flags; slowdown')
+option('nopie-security', type : 'boolean', value : false,
+	description : 'as strong-security but avoid pie to make sanitizer work')
+option('normal-optimization', type : 'boolean', value : false,
+	description : 'append optimization flags')
+option('strong-optimization', type : 'boolean', value : false,
+	description : 'use also optimization flags which might not work on broken compilers')
+option('warnings', type : 'boolean', value : false,
+	description : 'append warning/testing flags; might produce worse code')
+option('strong-warnings', type : 'boolean', value : false,
+	description : 'append flags to get lots of mostly unimportant warnings')
+option('separate-binaries', type : 'boolean', value : false,
+	description : 'create a separate binary for each of coreq, coreq-update, coreq-diff')
+option('separate-update', type : 'boolean', value : false,
+	description : 'create a separate coreq-update binary')
+option('separate-tools', type : 'boolean', value : false,
+	description : 'create separate binaries for versionsort, coreq-drop-permissions')
+option('pure-for-const-virtuals', type : 'boolean', value : true,
+	description : 'use __attribute__((pure)) for const virtuals')
+option('const-for-const-virtuals', type : 'boolean', value : false,
+	description : 'use __attribute__((const)) for const virtuals')
+option('swap-remote', type : 'boolean', value : false,
+	description : 'swap the remote paths')
+option('extra-doc', type : 'boolean', value : false,
+	description : 'install developer documentation. Might need rst2html.py from docutils')
+option('sse2', type : 'combo', choices : [ 'auto', 'true', 'false' ],
+	description : 'Compile in support for sse2')
+option('sqlite', type : 'combo', choices : [ 'auto', 'true', 'false' ],
+	description : 'Compile in support for cache method sqlite', value : 'true')
+option('protobuf', type : 'combo', choices : [ 'auto', 'true', 'false' ],
+	description : 'Compile in support for protobuf output', value : 'false')
+option('dev-null', type : 'string', value : '/dev/null',
+	description : 'null device of the system, usually /dev/null')
+option('sh-shebang', type : 'string', value : 'auto',
+	description : 'use argument as sh script shebang. Pass auto for autodetection')
+option('portdir-cache-method', type : 'string', value : 'metadata-md5-or-flat',
+	description : 'default PORTDIR_CACHE_METHOD')
+option('portdir-default', type : 'string', value : '/var/db/repos/gentoo',
+	description : 'default PORTDIR')
+option('eprefix-default', type : 'string', value : 'auto',
+	description : 'default EPREFIX. Pass auto for autodetection')
+option('coreq-prefix-default', type : 'string', value : '',
+	description : 'default COREQ_PREFIX')
+option('root-default', type : 'string', value : '',
+	description : 'default ROOT')
+option('corepkg-rootpath', type : 'string', value : '',
+	description : 'default COREPKG_ROOTPATH')
+option('default-arch', type : 'string', value : '',
+	description : 'default DEFAULT_ARCH')
+option('coreq-user', type : 'string', value : 'corepkg',
+	description : 'default COREQ_USER')
+option('coreq-uid', type : 'string', value : '250',
+	description : 'default COREQ_UID')
+option('coreq-group', type : 'string', value : '%{COREQ_USER}',
+	description : 'default COREQ_GROUP')
+option('coreq-gid', type : 'string', value : '%{COREQ_UID}',
+	description : 'default COREQ_GID')
+option('always-accept-keywords', type : 'boolean', value : false,
+	description : 'default ALWAYS_ACCEPT_KEYWORDS')
+option('dep-default', type : 'boolean', value : true,
+	description : 'default DEP')
+option('src-uri-default', type : 'boolean', value : true,
+	description : 'default SRC_URI')
+option('required-use-default', type : 'boolean', value : true,
+	description : 'default REQUIRED_USE')
+option('remote-file1', type : 'string', value : 'http://gpo.zugaina.org/coreq_cache/coreq-cache.tbz2',
+	description : 'default remote path 1 for coreq-remote')
+option('remote-file2', type : 'string', value : 'http://dev.gentooexperimental.org/coreq_cache/coreq-caches.tbz2',
+	description : 'default remote path 2 for coreq-remote')
+option('docdir', type : 'string',
+	description : 'directory for docs. If empty default to $datadir/doc/coreq')
+option('htmldir', type : 'string',
+	description : 'directory for html files. If empty default to $docdir/html')

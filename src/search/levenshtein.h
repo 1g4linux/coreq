@@ -1,0 +1,29 @@
+// vim:set noet cinoptions= sw=4 ts=4:
+// This file is part of the coreq project and distributed under the
+// terms of the GNU General Public License v2.
+//
+// Copyright (c)
+//   Wolfgang Frisch <xororand@users.sourceforge.net>
+//   Martin Väth <martin@mvath.de>
+
+#ifndef SRC_SEARCH_LEVENSHTEIN_H_
+#define SRC_SEARCH_LEVENSHTEIN_H_ 1
+
+#include <config.h>  // IWYU pragma: keep
+
+#include <sys/types.h>
+
+#include "coreqTk/attribute.h"
+
+typedef size_t Levenshtein;
+
+/**
+Calculates the Levenshtein distance of two strings.
+Reference: http://www.merriampark.com/ld.htm
+@param str_a string a
+@param str_b string b
+@return Levenshtein distance of strings a and b
+**/
+ATTRIBUTE_NONNULL_ ATTRIBUTE_PURE Levenshtein get_levenshtein_distance(const char *str_a, const char *str_b);
+
+#endif  // SRC_SEARCH_LEVENSHTEIN_H_

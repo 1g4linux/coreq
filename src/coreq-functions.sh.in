@@ -1,0 +1,618 @@
+#!/usr/bin/env cat
+# This script is part of the coreq project and distributed under the
+# terms of the GNU General Public License v2.
+#
+# Author and Copyright (c):
+#   Martin V\"ath <martin@mvath.de>
+#
+# Evaluating the output of this script defines helper functions for coreq-remote
+# and perhaps similar local scripts. (@PACKAGE_STRING@).
+
+ReadFunctions() {
+	InitTmpdir
+	ReadGettext
+ReadFunctions() {
+	:
+}
+}
+
+: ${read_var_prg:=coreq-update}
+ReadVar() {
+	if [ $# -lt 2 ] || [ x"$1" = x"$2" ]
+	then	eval "[ -z \"\${$1++}\" ]" || return 0
+	else	eval unset $1
+	fi
+	coreqf_read=`PRINT_APPEND=X "${3:-$read_var_prg}" --print "${2:-$1}"` || return
+	eval $1=\${coreqf_read%X}
+}
+
+yesno() {
+	case ${1:-n} in
+	[nNfF]*|[oO][fF]*|0|-)
+		return 1;;
+	esac
+	:
+}
+
+ReadBoolean() {
+	eval "[ -n \"\${$1++}\" ] && eifx_read=\$$1" || \
+		coreqf_read=`PRINT_APPEND=n "${2:-$read_var_prg}" --print "$1"`
+	yesno "$coreqf_read"
+}
+
+coreqf_good=
+coreqf_warn=
+coreqf_bad=
+coreqf_normal=
+SetColors() {
+	if ! ReadBoolean NOCOLORS && {
+		test -t 1 || ReadBoolean FORCE_USECOLORS
+	}
+	then	coreqf_good='\033[32;01m'
+		coreqf_warn='\033[33;01m'
+		coreqf_bad='\033[31;01m'
+		coreqf_normal='\033[0m'
+	fi
+SetColors() {
+	:
+}
+}
+
+StartInList() (
+	ReadVar startlist $2 || return
+	for start in $startlist
+	do	case $1 in
+		"$start"*)
+			return 0;;
+		esac
+	done
+	return 1
+)
+
+# Admissible statusline values are '' (check at first call), false or : (true)
+statusline=
+coreqf_statusline=false
+coreqf_statusmode=CoreqfStatusmode
+CoreqfStatusmode() {
+	if [ -z "${statusline:++}" ]
+	then	! ReadBoolean NOSTATUSLINE && {
+			test -t 1 && ReadVar TERM && \
+				StartInList "$TERM" TERM_STATUSLINE \
+			|| ReadBoolean FORCE_STATUSLINE
+		}
+	else	$statusline
+	fi && coreqf_statusline=: \
+	&& if ReadVar TERM && \
+		StartInList "$TERM" TERM_SOFTSTATUSLINE
+	then	coreqf_softstatus=:
+	else	coreqf_softstatus=false
+	fi
+	coreqf_statusmode=$coreqf_statusline
+	$coreqf_statusmode
+}
+
+StatuslinePlain() {
+	$coreqf_statusmode || return 0
+	! $coreqf_softstatus || printf '\033k%s\033\\' "$*"
+	printf '\033]0;%s\007' "$*"
+}
+
+Statusline() {
+	StatuslinePlain "${0##*/}: $*"
+}
+
+verbose=:
+StatusInfo() {
+	if [ $# -ge 2 ]
+	then	Statusline "$2"
+	else	Statusline "$1"
+	fi
+	! $verbose || einfo "$1"
+}
+
+Exit() {
+	coreqf_exit=${1:-$?}
+	$coreqf_statusline || exit $coreqf_exit
+	ReadVar EXIT_STATUSLINE
+	if [ -n "${EXIT_STATUSLINE:++}" ]
+	then	StatuslinePlain "${EXIT_STATUSLINE# }"
+	elif [ $coreqf_exit -eq 0 ]
+	then	Statusline "`pgettext 'Statusline coreq-functions' 'Finished'`"
+	else	Statusline "`pgettext 'Statusline coreq-functions' 'Failure'`"
+	fi
+	exit $coreqf_exit
+}
+
+Echo() {
+	printf '%s\n' "$@"
+}
+
+eerror() {
+	coreqf_eerror=$?
+	SetColors
+	printf " $coreqf_bad%s$coreqf_normal %s\n" '*' "$*" >&2
+	return $coreqf_eerror
+}
+
+einfo() {
+	SetColors
+	printf " $coreqf_good%s$coreqf_normal %s\n" '*' "$*"
+}
+
+ewarn() {
+	SetColors
+	printf " $coreqf_warn%s$coreqf_normal %s\n" '*' "$*" >&2
+}
+
+ebegin() {
+	SetColors
+	printf " $coreqf_good%s$coreqf_normal %s%s\n" '*' "$*" '...'
+}
+
+eend() {
+	[ $1 -eq 0 ] && return
+	coreqf_eerror=$1
+	shift
+	SetColors
+	printf " $coreqf_bad%s$coreqf_normal %s\n" '*' "$*" >&2
+	return $coreqf_eerror
+}
+
+die() {
+	[ $# -eq 0 ] || eerror "$*"
+	exitcode=2
+	Exit $exitcode
+}
+
+PerLine() {
+	while IFS='
+' read -r coreqf_line
+	do	"$@" "$coreqf_line"
+	done
+}
+
+PerLineArg() {
+	coreqf_perline=$1
+	shift
+	case $- in
+	*f*)
+		coreqf_setf=:;;
+	*)
+		set -f
+		coreqf_setf='set +f';;
+	esac
+	coreqf_ifs=$IFS
+	IFS='
+'
+	for coreqf_line in $coreqf_perline
+	do	IFS=$coreqf_ifs
+		$coreqf_setf
+		"$@" "$coreqf_line"
+	done
+	IFS=$coreqf_ifs
+	$coreqf_setf
+}
+
+unset local_portdir
+GetPortdir() {
+	[ -n "${local_portdir++}" ] || ReadVar local_portdir PORTDIR
+}
+
+verbose=:
+RunCommand() {
+	if [ x"$1" = x'=' ]
+	then	Statusline "$2"
+	else	Statusline "$1"
+	fi
+	shift
+	if $verbose
+	then	einfo "$1"
+		shift
+		"$@"
+		return $?
+	fi
+	ebegin "$1"
+	shift
+	"$@" >/dev/null
+	coreqf_ret=$?
+	coreqf_cmd=$*
+	eend $coreqf_ret "`eval_gettext 'Problems running ${coreqf_cmd}'`"
+	return $coreqf_ret
+}
+
+if ( eval '[ "$(( 0 + 1 ))" = 1 ]' ) >/dev/null 2>&1
+then	eval 'Expr() {
+	printf "%s" "$(( $1 $2 $3 ))"
+}'
+else	Expr() {
+	expr "$@"
+}
+fi
+
+# Usage: Replace [-g] VAR Search Replace
+# Option -g means: Replace all occurrences
+# Exit status is 0 if at least one replacement took place, and
+# $replace_count contains a string of length(number of replacements) x'en.
+# $replace_tail is the string after the last replacement (or the whole string)
+Replace() {
+	coreqf_repla=
+	coreqf_replc='break'
+	case $1 in
+	-*)
+		coreqf_replc=
+		shift;;
+	esac
+	replace_count=
+	eval replace_tail=\$$1
+	while {
+		coreqf_replb=${replace_tail%%"$2"*}
+		[ x"$coreqf_replb" != x"$replace_tail" ]
+	}
+	do	coreqf_repla=$coreqf_repla$coreqf_replb$3
+		replace_tail=${replace_tail#*"$2"}
+		replace_count=${replace_count}x
+		$coreqf_replc
+	done
+	eval $1=\$coreqf_repla\$replace_tail
+	[ -n "${replace_count:++}" ]
+}
+
+SourcePush() {
+	coreqf_source=`push.sh 2>/dev/null` || die \
+"`gettext 'push.sh from https://github.com/vaeth/push/ is needed'`"
+	eval "$coreqf_source"
+}
+
+Push() {
+	SourcePush
+	Push "$@"
+}
+
+CheckQuoter() {
+	command -v quoter >/dev/null 2>&1 || die \
+"`gettext 'Installation of https://github.com/vaeth/quoter/ is needed'`"
+}
+
+SourceQuoterPiper() {
+	coreqf_source=`quoter_pipe.sh 2>/dev/null` || die \
+"`gettext 'quoter_pipe.sh from https://github.com/vaeth/quoter/ is needed'`"
+	eval "$coreqf_source"
+}
+
+quoter_pipe() {
+	SourceQuoterPiper
+	quoter_pipe ${1+"$@"}
+}
+
+# PushEscaped [-c] VAR Arg [name of IFS type variable]
+# Similarly as Push, but splits Arg before at *unescaped* symbols of $IFS.
+# The name IFS can be changed if a third (resp. fourth) argument is given.
+PushEscaped() {
+	case $1 in
+	-*)
+		shift
+		eval $1=;;
+	esac
+	if [ $# -lt 3 ] || [ -z "${3:++}" ]
+	then	coreqf_pes='IFS'
+	else	coreqf_pes=$3
+	fi
+	coreqf_pea=$2
+	coreqf_pew=
+	while [ -n "${coreqf_pea:++}" ]
+	do	eval "coreqf_pex=\${coreqf_pea%%[\$$coreqf_pes]*}"
+		if [ x"$coreqf_pex" != x"$coreqf_pea" ]
+		then	coreqf_pec=${coreqf_pea#"$coreqf_pex"}
+			coreqf_pea=${coreqf_pec#?}
+			coreqf_pec=${coreqf_pec%"$coreqf_pea"}
+		else	coreqf_pea=
+			coreqf_pec='\'
+		fi
+		Replace -g coreqf_pex '\\' '\'
+		[ -n "${replace_tail:++}" ] && case $coreqf_pex in
+		*\\)
+			coreqf_pew=$coreqf_pew${coreqf_pex%?}$coreqf_pec
+			continue;;
+		esac
+		coreqf_pew=$coreqf_pew$coreqf_pex
+		[ -n "${coreqf_pew:++}" ] && Push $1 "$coreqf_pew"
+		coreqf_pew=
+	done
+	[ -n "${coreqf_pew:++}" ] && Push $1 "$coreqf_pew"
+}
+
+AddUpdateArgs() {
+	Push update_args ${1+"$@"}
+}
+
+AddUpdateQuoting() {
+	coreqf_aq=$1
+	shift
+	Replace -g coreqf_aq '\' '\\'
+	Replace -g coreqf_aq '?' '\?'
+	Replace -g coreqf_aq '*' '\*'
+	Replace -g coreqf_aq '[' '\['
+	AddUpdateArgs "$coreqf_aq" ${1+"$@"}
+}
+
+AddMethod() {
+	AddUpdateArgs '-m'
+	AddUpdateQuoting "$1" "$2"
+}
+
+AddRepoName() {
+	AddUpdateArgs '-r' "$1" "$2"
+}
+
+AddOverlays() {
+	for coreqf_ao
+	do	AddUpdateArgs '-a' "$coreqf_ao"
+	done
+}
+
+AddExcludes() {
+	for coreqf_ax
+	do	AddUpdateArgs '-x'
+		AddUpdateQuoting "$coreqf_ax"
+	done
+}
+
+ClearUpdateArgs() {
+	update_args=
+}
+
+: ${die_on_update_failure=:}
+CallUpdate() {
+	case $- in
+	*f*)
+		eval "set -- a $update_args";;
+	*)
+		set -f
+		eval "set -- a $update_args"
+		set +f;;
+	esac
+	shift
+	RunCommand "`pgettext 'Statusline coreq-functions' 'Calling coreq-update'`" \
+		 "`gettext 'Calling coreq-update'`" coreq-update ${1+"$@"} && return
+	$die_on_update_failure && die "`gettext 'coreq-update failed'`"
+}
+
+InitPortdirOverlay() {
+	ReadVar PORTDIR_OVERLAY
+}
+
+AddLocalMethods() {
+	GetPortdir
+	AddMethod "$local_portdir" "coreq"
+	InitPortdirOverlay
+	PushEscaped -c coreqf_alm "$PORTDIR_OVERLAY"
+	ReadVar coreqf_al ADD_OVERLAY
+	PushEscaped coreqf_alm "$coreqf_al"
+	case $- in
+	*f*)
+		eval "set -- a $coreqf_alm";;
+	*)
+		set -f
+		eval "set -- a $coreqf_alm"
+		set +f;;
+	esac
+	shift
+	for coreqf_alm
+	do	coreqf_al=$coreqf_alm
+		Replace -g coreqf_al '\' '\\'
+		Replace -g coreqf_al ':' '\:'
+		AddMethod "$coreqf_alm" "coreq::$coreqf_al"
+	done
+}
+
+# Remove optional trailing newline from all variables (arguments).
+# This is necessary as some shells won't take ${Var%"[newline]"}
+Chomp() {
+	for coreqf_chompa
+	do	eval coreqf_chompb=\$$coreqf_chompa
+		case $coreqf_chompb in
+		*'
+')
+			coreqf_chompb=${coreqf_chompb%?}
+			eval $coreqf_chompa=\$coreqf_chompb;;
+		esac
+	done
+}
+
+# Consider variables (arguments) as commands and expand them to full path.
+# Dies if a command cannot be found.
+
+Pathify() {
+	for coreqf_pathc
+	do	eval coreqf_patha=\$$coreqf_pathc
+		coreqf_pathb=`command -v "$coreqf_patha" && printf A` && \
+			coreqf_pathb=${coreqf_pathb%A} && Chomp coreqf_pathb && \
+			[ -n "${coreqf_pathb:++}" ] && test -x "$coreqf_pathb" \
+			|| die "`eval_gettext \
+				'${coreqf_patha} cannot be found in PATH'`"
+		eval $coreqf_pathc=\$coreqf_pathb
+	done
+}
+
+CheckReadlink() {
+	[ -n "${readlink_stat:++}" ] && return $readlink_stat
+	readlink -f / >/dev/null 2>&1
+	readlink_stat=$?
+	return $readlink_stat
+}
+
+# Consider variables (arguments) as paths and normalize them.
+# If normalize_resolve is : (default), use readlink/cd -P
+# to resolve to "true" pathnames.
+# Return with 1 if at least one variable is empty.
+# Set relative to a list of all variables which are relative paths
+# (the first token in relative will be a space if the list is not empty).
+
+normalize_resolve=:
+NormalizeNames() {
+	coreqf_normd=0
+	relative=
+	for coreqf_normc
+	do	eval coreqf_norma=\$$coreqf_normc
+		if [ -z "${coreqf_norma:++}" ]
+		then	coreqf_normd=1
+			continue
+		fi
+		case $coreqf_norma in
+		/*)
+			:;;
+		*)
+			relative="$relative $coreqf_normc";;
+		esac
+		$normalize_resolve && if CheckReadlink
+		then	# Append A to avoid loss of trailing space in `...`
+			coreqf_normb=`readlink -f -- "$coreqf_norma"; printf A` \
+				&& coreqf_normb=${coreqf_normb%A} \
+				&& Chomp coreqf_normb
+		elif test -d "$coreqf_norma"
+		then	coreqf_normb=`case $coreqf_norma in
+				/*)
+					cd -P "$coreqf_norma";;
+				*)
+					cd -P "./$coreqf_norma";;
+				esac >/dev/null 2>&1 \
+				&& printf '%sA' "$PWD"` \
+				&& coreqf_normb=${coreqf_normb%A}
+		else	false
+		fi && [ -n "${coreqf_normb:++}" ] && coreqf_norma=$coreqf_normb
+		eval $coreqf_normc=\$coreqf_norma
+		while Replace -g "$coreqf_normc" '//' '/'
+		do	:
+		done
+		eval "[ x\"\$$coreqf_normc\" = x'/' ] || \
+			$coreqf_normc=\${$coreqf_normc%/}"
+	done
+	return $coreqf_normd
+}
+
+ReadGettext() {
+gettext() {
+	printf '%s' "$*"
+}
+coreqf_varopen='${'
+coreqf_varclose='}'
+eval_gettext() {
+	coreqf_gettexta=$*
+	coreqf_gettextb=
+	while coreqf_gettextc=${coreqf_gettexta%%"$coreqf_varopen"*}
+	do	coreqf_gettextb=$coreqf_gettextb$coreqf_gettextc
+		[ x"$coreqf_gettextc" = x"$coreqf_gettexta" ] && break
+		coreqf_gettexta=${coreqf_gettexta#*"$coreqf_varopen"}
+		coreqf_gettextc=${coreqf_gettexta%%"$coreqf_varclose"*}
+		case $coreqf_gettextc in
+		"$coreqf_gettexta"|*[!a-zA-Z0-9_]*)
+			coreqf_gettextb=$coreqf_gettextb$coreqf_varopen
+			continue;;
+		esac
+		eval coreqf_gettextb=\$coreqf_gettextb\$$coreqf_gettextc
+		coreqf_gettexta=${coreqf_gettexta#*"$coreqf_varclose"}
+	done
+	printf '%s' "$coreqf_gettextb"
+	unset coreqf_gettexta coreqf_gettextb coreqf_gettextc
+}
+pgettext() {
+	shift
+	gettext "$@"
+}
+eval_pgettext() {
+	shift
+	eval_gettext "$@"
+}
+ngettext() {
+	if [ "$3" -eq 1 ]
+	then	gettext "$1"
+	else	gettext "$2"
+	fi
+}
+eval_ngettext() {
+	if [ "$3" -eq 1 ]
+	then	eval_gettext "$1"
+	else	eval_gettext "$2"
+	fi
+}
+npgettext() {
+	shift
+	ngettext "$@"
+}
+eval_npgettext() {
+	shift
+	eval_ngettext "$@"
+}
+ReadGettext() {
+	return 1
+}
+return 1
+}
+
+unset have_random
+AssignTempEmulate() {
+	if [ -z "${have_random++}" ]
+	then	coreqf_assb=$RANDOM
+		if [ x"$coreqf_assb" = x"$RANDOM" ] && \
+			[ x"$coreqf_assb" = x"$RANDOM" ]
+		then	have_random=false
+			coreqf_assb=`od -d -N2 /dev/random 2>/dev/null` \
+				|| coreqf_assb=
+			coreqf_assb=`printf '%s' $coreqf_assb`
+			if [ -z "${coreqf_assb:++}" ]
+			then	coreqf_assb=1
+			else	coreqf_assb=`Expr "$coreqf_assb % 32768"`
+				[ "$coreqf_assb" -eq 0 ] && coreqf_assb=1
+			fi
+		else	have_random=:
+		fi
+		coreqf_assc=
+	fi
+	coreqf_assa=0
+	while [ $coreqf_assa -le 9999 ]
+	do	if [ -n "${coreqf_assc:++}" ]
+		then	if $have_random
+			then	coreqf_assb=$RANDOM
+			else	coreqf_assb=`Expr "$coreqf_assb" '*' '13821'`
+				coreqf_assb=`Expr "$coreqf_assb" '%' '32768'`
+			fi
+		fi
+		coreqf_assc=${TMPDIR:-/tmp}/${0##*/}.$$$coreqf_assa$coreqf_assb
+		if [ x"${2-}" = x'-d' ]
+		then	mkdir -m 700 -- "$coreqf_assc"
+		else	(
+			umask 077
+			set -C
+			: >"$coreqf_assc"
+		)
+		fi && eval $1=\$coreqf_assc && return
+		coreqf_assa=`Expr "$coreqf_assa" + 1`
+	done
+	die "`gettext 'found no free temporary name after 10000 attempts'`"
+}
+
+InitTmpdir() {
+	ReadVar COREQ_TMPDIR
+	if [ -n "${COREQ_TMPDIR:++}" ]
+	then	TMPDIR=$COREQ_TMPDIR
+		export TMPDIR
+	else	unset TMPDIR
+	fi
+}
+
+unset have_mktemp
+AssignTemp() {
+	eval $1=
+	if [ -z "${have_mktemp++}" ]
+	then	command -v mktemp >/dev/null 2>&1 \
+			&& have_mktemp=: || have_mktemp=false
+		InitTmpdir
+	fi
+	if $have_mktemp
+	then	eval $1'=`umask 077 && mktemp $2 -- "${TMPDIR:-/tmp}/${0##*/}.XXXXXXXX"`'
+	else	AssignTempEmulate ${1+"$@"}
+	fi && return
+	[ x"${2-}" = x'-d' ] && \
+		die "`gettext 'cannot create temporary directory'`"
+	die "`gettext 'cannot create temporary file'`"
+}

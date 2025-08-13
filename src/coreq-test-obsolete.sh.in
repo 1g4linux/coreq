@@ -1,0 +1,346 @@
+#!/usr/bin/env sh
+# This script is part of the coreq project and distributed under the
+# terms of the GNU General Public License v2.
+#
+# Author and Copyright (c):
+#   Martin V\"ath <martin@mvath.de>
+#
+# This script gives a structured output of coreq -tTc (@PACKAGE_STRING@).
+set -u
+
+read_var_prg=coreq
+if coreq_funcs=`./coreq-functions.sh.in 2>/dev/null`
+then	eval "$coreq_funcs"
+else	echo "${0##*/}: cannot find coreq-functions.sh" >&2
+	exit 1
+fi
+ReadGettext
+
+Usage() {
+	n=${0##*/}
+	p='@PACKAGE_STRING@'
+	eval_gettext 'Usage: ${n} [options] detail|brief|quick
+This is a wrapper script for coreq (${p}).
+
+It calls coreq -tTc several times with various variable settings in order to
+display missing packages or packages with obsolete entries in
+/etc/corepkg/package.* in a more organized manner than coreq -tTc would do alone.
+
+The speed and displayed details depend on whether you use the argument
+"detail", "brief", or "quick". On all three cases the same checks are done,
+the difference in output is only the amount of details for the matches.
+For displaying matching packages the format specified in the variable
+FORMAT_TEST_OBSOLETE is used (which defaults to %{FORMAT_ALL_COMPACT}).
+
+Note that the result depends on your settings of the TEST_FOR_*,
+REDUNDANT_IF_*, and NONEXISTENT_IF_* variables. In particular, the variables
+REDUNDANT_IF_{IN,DOUBLE}_{USE,ENV,CFLAGS} and REDUNDANT_IF_MIXED are
+false by default. Thus, e.g. to activate the two possible tests for
+/etc/corepkg/package.use you should set (e.g. in /etc/coreqrc) something like
+REDUNDANT_IF_IN_USE=-some REDUNDANT_IF_DOUBLE_USE=some
+
+The following options are available:
+	-c  use CHECK_INSTALLED_OVERLAYS=true
+	-C  use CHECK_INSTALLED_OVERLAYS=repository
+	-d  This can be used instead of the argument "detail"
+	-b  This can be used instead of the argument "brief"
+	-q  This can be used instead of the argument "quick"
+	-H  Suppress status line update
+	-h  Show this help text
+
+Options -b, -d, and -q are meant to be used in COREQ_TEST_OBSOLETE_OPTS to
+specify the default behavior.
+
+If neither -c nor -C is used, then CHECK_INSTALLED_OVERLAYS is not modified.
+The (recommended) default for CHECK_INSTALLED_OVERLAYS is "repository" which
+is much faster than CHECK_INSTALLED_OVERLAYS=true but works only reliable for
+packages installed with repository information (which is done by all recent
+corepkg versions).
+
+The argument can be abbreviated, e.g. instead of "brief" you can just use "b".'
+	echo
+	Exit ${1:-1}
+}
+
+myarg=
+# Once an option with paths as arguments is introduced, it is probably
+# necessary to turn the next command into eval "Push -c ..."
+# In the moment this seems not necessary, so we avoid that security risk:
+Push -c opt `coreq --print COREQ_TEST_OBSOLETE_OPTS`
+Push opt "$@"
+set -f
+eval "set -- a $opt"
+shift
+OPTIND=1
+while getopts 'cCdbqHh' opt
+do	case $opt in
+	c) CHECK_INSTALLED_OVERLAYS=true; export CHECK_INSTALLED_OVERLAYS;;
+	C) CHECK_INSTALLED_OVERLAYS=repository; export CHECK_INSTALLED_OVERLAYS;;
+	d) myarg='detail';;
+	b) myarg='brief';;
+	q) myarg='quick';;
+	H) statusline=false;;
+	'?') Exit 1;;
+	*) Usage 0;;
+	esac
+done
+[ $OPTIND -le 1 ] || shift `Expr $OPTIND - 1`
+[ $# -gt 1 ] && Usage
+[ $# -eq 1 ] && myarg=${1#-}
+quickmode=false
+case ${myarg#-} in
+[dD]*)	nodetails=false;;
+[bB]*)	nodetails=:;;
+[qQ]*)	quickmode=:
+	nodetails=:;;
+[hH]*)	Usage 0;;
+*)	Usage;;
+esac
+
+DEFAULT_FORMAT=normal
+FORMAT='%{FORMAT_TEST_OBSOLETE}'
+export DEFAULT_FORMAT FORMAT
+
+Statusline "`pgettext 'Statusline coreq-test-obsolete' 'coreq -t'`"
+coreq '-t*!sb'
+
+# sets is the list of all "*" for which there are set_* variables
+sets=
+
+# Defines a new set_* variable
+DefineSet() {
+	sets="$sets $1"
+	eval "shift
+	set_$1=\$*"
+}
+
+# Return true if all variables in arg are "false" according to coreq.
+AllFalse() {
+	for s
+	do	ReadBoolean "$s" coreq && return 1
+	done
+	return 0
+}
+
+# Set all variables listed in set_$1 to "false"
+SetFalse() {
+	eval "for c in \${set_$1}
+	do	eval \"\$c=false
+export \$c\"
+	done"
+}
+
+# Set all variables listed in set_* to "false" except for those in set_$1
+FalseExcept() {
+	for s in $sets
+	do	[ x"$s" = x"$1" ] || SetFalse $s
+	done
+}
+
+Output() {
+	if ! NOFOUND_STATUS=1 COUNT_ONLY_PRINTED=false coreq --nowarn -Tq0sb
+	then	[ -z "${1:++}" ] || Echo "$1"
+		return
+	fi
+	printf '\n%s\n' "$2"
+	if [ $# -le 3 ] || $nodetails
+	then	coreq --nowarn -Tsb
+		echo
+		return
+	fi
+	shift 2
+	for z
+	do	(
+			for j
+			do	[ x"$z" = x"$j" ] || eval "$j=false
+export $j"
+			done
+			Output '' "`eval_pgettext 'Obsolete-Table' '... considered as ${z}'`"
+		)
+	done
+}
+
+Check() (
+	if eval AllFalse \${set_$1}
+	then	Echo "$4"
+		return
+	fi
+	FalseExcept $1
+	eval "shift
+	Output \"\$1\" \"\$2\" \${set_$1}"
+)
+
+OutputExcept() (
+	SetFalse $1
+	shift
+	Output "$@"
+)
+
+ReadVar rump COREPKG_CONFIGROOT
+rump=$rump/etc/corepkg/package.
+
+DefineSet nonexistent \
+	TEST_FOR_NONEXISTENT
+DefineSet keywords \
+	REDUNDANT_IF_DOUBLE \
+	REDUNDANT_IF_MIXED \
+	REDUNDANT_IF_WEAKER \
+	REDUNDANT_IF_STRANGE \
+	REDUNDANT_IF_NO_CHANGE \
+	REDUNDANT_IF_DOUBLE_LINE
+DefineSet mask \
+	REDUNDANT_IF_MASK_NO_CHANGE \
+	REDUNDANT_IF_DOUBLE_MASKED
+DefineSet unmask \
+	REDUNDANT_IF_UNMASK_NO_CHANGE \
+	REDUNDANT_IF_DOUBLE_UNMASKED
+DefineSet use \
+	REDUNDANT_IF_DOUBLE_USE
+DefineSet env \
+	REDUNDANT_IF_DOUBLE_ENV
+DefineSet license \
+	REDUNDANT_IF_DOUBLE_LICENSE
+DefineSet restrict \
+	REDUNDANT_IF_DOUBLE_RESTRICT
+DefineSet cflags \
+	REDUNDANT_IF_DOUBLE_CFLAGS
+DefineSet in_keywords \
+	REDUNDANT_IF_IN_KEYWORDS
+DefineSet in_mask \
+	REDUNDANT_IF_IN_MASK
+DefineSet in_unmask \
+	REDUNDANT_IF_IN_UNMASK
+DefineSet in_use \
+	REDUNDANT_IF_IN_USE
+DefineSet in_env \
+	REDUNDANT_IF_IN_ENV
+DefineSet in_license \
+	REDUNDANT_IF_IN_LICENSE
+DefineSet in_restrict \
+	REDUNDANT_IF_IN_RESTRICT
+DefineSet in_cflags \
+	REDUNDANT_IF_IN_CFLAGS
+
+if AllFalse TEST_FOR_REDUNDANCY
+then	Echo "`eval_pgettext 'Obsolete-Table' \
+		'Skipping check of entries in ${rump}*'`"
+elif $quickmode
+then	Statusline "`pgettext 'Statusline coreq-test-obsolete' 'package.*'`"
+	OutputExcept nonexistent "`eval_pgettext 'Obsolete-Table' \
+		'No redundant entries in any ${rump}*'`" \
+	"`eval_pgettext 'Obsolete-Table' \
+		'Redundant in some ${rump}*:'`"
+else
+Statusline "`pgettext 'Statusline coreq-test-obsolete' 'accept_keywords'`"
+Check keywords "`eval_pgettext 'Obsolete-Table' \
+	'No  redundant  entries in ${rump}{,accept_}keywords'`" \
+"`eval_pgettext 'Obsolete-Table' \
+	'Redundant in ${rump}{,accept_}keywords:'`" \
+"`eval_pgettext 'Obsolete-Table' \
+	'Skipping check:  redundant  entries in ${rump}{,accept_}keywords'`"
+Check in_keywords "`eval_pgettext 'Obsolete-Table' \
+	'No uninstalled entries in ${rump}{,accept_}keywords'`" \
+"`eval_pgettext 'Obsolete-Table' \
+	'Not installed but in ${rump}{,accept_}keywords:'`" \
+"`eval_pgettext 'Obsolete-Table' \
+	'Skipping check: uninstalled entries in ${rump}{,accept_}keywords'`"
+Statusline "`pgettext 'Statusline coreq-test-obsolete' 'mask'`"
+Check mask "`eval_pgettext 'Obsolete-Table' \
+	'No  redundant  entries in ${rump}mask'`" \
+"`eval_pgettext 'Obsolete-Table' \
+	'Redundant in ${rump}mask:'`" \
+"`eval_pgettext 'Obsolete-Table' \
+	'Skipping check:  redundant  entries in ${rump}mask'`"
+Check in_mask "`eval_pgettext 'Obsolete-Table' \
+	'No uninstalled entries in ${rump}mask'`" \
+"`eval_pgettext 'Obsolete-Table' \
+	'Not installed but in ${rump}mask:'`" \
+"`eval_pgettext 'Obsolete-Table' \
+	'Skipping check: uninstalled entries in ${rump}mask'`"
+Statusline "`pgettext 'Statusline coreq-test-obsolete' 'unmask'`"
+Check unmask "`eval_pgettext 'Obsolete-Table' \
+	'No  redundant  entries in ${rump}unmask'`" \
+"`eval_pgettext 'Obsolete-Table' \
+	'Redundant in ${rump}unmask:'`" \
+"`eval_pgettext 'Obsolete-Table' \
+	'Skipping check:  redundant  entries in ${rump}unmask'`"
+Check in_unmask "`eval_pgettext 'Obsolete-Table' \
+	'No uninstalled entries in ${rump}unmask'`" \
+"`eval_pgettext 'Obsolete-Table' \
+	'Not installed but in ${rump}unmask:'`" \
+"`eval_pgettext 'Obsolete-Table' \
+	'Skipping check: uninstalled entries in ${rump}unmask'`"
+Statusline "`pgettext 'Statusline coreq-test-obsolete' 'use'`"
+Check use "`eval_pgettext 'Obsolete-Table' \
+	'No  redundant  entries in ${rump}use'`" \
+"`eval_pgettext 'Obsolete-Table' \
+	'Redundant in ${rump}use:'`" \
+"`eval_pgettext 'Obsolete-Table' \
+	'Skipping check:  redundant  entries in ${rump}use'`"
+Check in_use "`eval_pgettext 'Obsolete-Table' \
+	'No uninstalled entries in ${rump}use'`" \
+"`eval_pgettext 'Obsolete-Table' \
+	'Not installed but in ${rump}use:'`" \
+"`eval_pgettext 'Obsolete-Table' \
+	'Skipping check: uninstalled entries in ${rump}use'`"
+Statusline "`pgettext 'Statusline coreq-test-obsolete' 'env'`"
+Check env "`eval_pgettext 'Obsolete-Table' \
+	'No  redundant  entries in ${rump}env'`" \
+"`eval_pgettext 'Obsolete-Table' \
+	'Redundant in ${rump}env:'`" \
+"`eval_pgettext 'Obsolete-Table' \
+	'Skipping check:  redundant  entries in ${rump}env'`"
+Check in_env "`eval_pgettext 'Obsolete-Table' \
+	'No uninstalled entries in ${rump}env'`" \
+"`eval_pgettext 'Obsolete-Table' \
+	'Not installed but in ${rump}env:'`" \
+"`eval_pgettext 'Obsolete-Table' \
+	'Skipping check: uninstalled entries in ${rump}env'`"
+Statusline "`pgettext 'Statusline coreq-test-obsolete' 'license'`"
+Check license "`eval_pgettext 'Obsolete-Table' \
+	'No  redundant  entries in ${rump}license'`" \
+"`eval_pgettext 'Obsolete-Table' \
+	'Redundant in ${rump}license:'`" \
+"`eval_pgettext 'Obsolete-Table' \
+	'Skipping check:  redundant  entries in ${rump}license'`"
+Check in_license "`eval_pgettext 'Obsolete-Table' \
+	'No uninstalled entries in ${rump}license'`" \
+"`eval_pgettext 'Obsolete-Table' \
+	'Not installed but in ${rump}license:'`" \
+"`eval_pgettext 'Obsolete-Table' \
+	'Skipping check: uninstalled entries in ${rump}license'`"
+Statusline "`pgettext 'Statusline coreq-test-obsolete' 'accept_restrict'`"
+Check restrict "`eval_pgettext 'Obsolete-Table' \
+	'No  redundant  entries in ${rump}accept_restrict'`" \
+"`eval_pgettext 'Obsolete-Table' \
+	'Redundant in ${rump}accept_restrict:'`" \
+"`eval_pgettext 'Obsolete-Table' \
+	'Skipping check:  redundant  entries in ${rump}accept_restrict'`"
+Check in_restrict "`eval_pgettext 'Obsolete-Table' \
+	'No uninstalled entries in ${rump}accept_restrict'`" \
+"`eval_pgettext 'Obsolete-Table' \
+	'Not installed but in ${rump}accept_restrict:'`" \
+"`eval_pgettext 'Obsolete-Table' \
+	'Skipping check: uninstalled entries in ${rump}accept_restrict'`"
+Statusline "`pgettext 'Statusline coreq-test-obsolete' 'cflags'`"
+Check cflags "`eval_pgettext 'Obsolete-Table' \
+	'No  redundant  entries in ${rump}cflags'`" \
+"`eval_pgettext 'Obsolete-Table' \
+	'Redundant in ${rump}cflags:'`" \
+"`eval_pgettext 'Obsolete-Table' \
+	'Skipping check:  redundant  entries in ${rump}cflags'`"
+Check in_cflags "`eval_pgettext 'Obsolete-Table' \
+	'No uninstalled entries in ${rump}cflags'`" \
+"`eval_pgettext 'Obsolete-Table' \
+	'Not installed but in ${rump}cflags:'`" \
+"`eval_pgettext 'Obsolete-Table' \
+	'Skipping check: uninstalled entries in ${rump}cflags'`"
+fi
+Statusline "`pgettext 'Statusline coreq-test-obsolete' 'installed'`"
+Check nonexistent "`pgettext 'Obsolete-Table' \
+	'All installed versions of packages are in the database.'`" \
+"`pgettext 'Obsolete-Table' \
+	'Installed packages with a version not in the database (or masked):'`" \
+"`pgettext 'Obsolete-Table' \
+	'Skipping check: installed but not in the database'`"
+Exit 0

@@ -1,0 +1,125 @@
+// vim:set noet cinoptions= sw=4 ts=4:
+// This file is part of the coreq project and distributed under the
+// terms of the GNU General Public License v2.
+//
+// Copyright (c)
+//   Wolfgang Frisch <xororand@users.sourceforge.net>
+//   Emil Beinroth <emilbeinroth@gmx.net>
+//   Martin Väth <martin@mvath.de>
+
+#include "cache/common/flat_reader.h"
+#include <config.h>  // IWYU pragma: keep
+
+#include <cerrno>
+#include <cstring>
+
+#include <fstream>
+#include <limits>
+#include <string>
+
+#include "cache/base.h"
+#include "coreqTk/coreqint.h"
+#include "coreqTk/formated.h"
+#include "coreqTk/i18n.h"
+#include "coreqTk/likely.h"
+#include "corepkg/depend.h"
+#include "corepkg/package.h"
+#include "corepkg/version.h"
+
+using std::string;
+
+using std::ifstream;
+
+bool FlatReader::skip_lines(const coreq::TinyUnsigned nr, ifstream *is, const string& filename) const {
+	for(coreq::TinyUnsigned i(nr); likely(i != 0); --i) {
+		is->ignore(std::numeric_limits<int>::max(), '\n');
+		if(is->fail()) {
+			m_cache->m_error_callback(coreq::format(_("cannot read cache file %s: %s"))
+				% filename % std::strerror(errno));
+			return false;
+		}
+	}
+	return true;
+}
+
+/**
+Read the keywords and slot from a flat cache file
+**/
+void FlatReader::get_keywords_slot_iuse_restrict(const string& filename, string *eapi, string *keywords, string *slotname, string *iuse, string *required_use, string *restr, string *props, Depend *dep, string *src_uri) {
+	ifstream is(filename.c_str());
+	if(!is.is_open()) {
+		m_cache->m_error_callback(coreq::format(_("cannot open %s: %s"))
+			% filename % std::strerror(errno));
+	}
+	string depend, rdepend, idepend;
+	bool use_dep(Depend::use_depend);
+	if(use_dep) {
+		getline(is, depend);
+		getline(is, rdepend);
+	} else {
+		skip_lines(2, &is, filename);
+	}
+	getline(is, *slotname);
+	if(ExtendedVersion::use_src_uri) {
+		getline(is, *src_uri);
+	} else {
+		skip_lines(1, &is, filename);
+	}
+	getline(is, *restr);
+	skip_lines(3, &is, filename);
+	getline(is, *keywords);
+	if(use_dep) {
+		getline(is, idepend);
+	} else {
+		skip_lines(1, &is, filename);
+	}
+	getline(is, *iuse);
+	bool use_required_use(Version::use_required_use);
+	if(use_required_use) {
+		getline(is, *required_use);
+	}
+	if(use_dep) {
+		if(!use_required_use) {
+			skip_lines(1, &is, filename);
+		}
+		string pdepend, bdepend;
+		getline(is, pdepend);
+		getline(is, bdepend);
+		dep->set(depend, rdepend, pdepend, bdepend, idepend, false);
+	} else {
+		skip_lines((use_required_use ? 2 : 3), &is, filename);
+	}
+	getline(is, *eapi);
+	getline(is, *props);
+	is.close();
+}
+
+/**
+Read a flat cache file
+**/
+void FlatReader::read_file(const string& filename, Package *pkg) {
+	ifstream is(filename.c_str());
+	if(!is.is_open()) {
+		m_cache->m_error_callback(coreq::format(_("cannot open %s: %s"))
+			% filename % std::strerror(errno));
+	}
+	skip_lines(5, &is, filename);
+	string linebuf;
+	// Read the rest
+	for(coreq::TinyUnsigned linenr(5); is.good(); ++linenr) {
+		getline(is, linebuf);
+		switch(linenr) {
+			case 5:  pkg->homepage = linebuf;
+			         break;
+			case 6:  pkg->licenses = linebuf;
+			         break;
+			case 7:  pkg->desc     = linebuf;
+			         is.close();
+			         return;
+			default:
+				break;
+		}
+	}
+	// We should never get here. However, we do not spit errors if we do...
+	is.close();
+}

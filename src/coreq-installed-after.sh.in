@@ -1,0 +1,255 @@
+#!/usr/bin/env sh
+# This script is part of the coreq project and distributed under the
+# terms of the GNU General Public License v2.
+#
+# Authors and Copyright (c):
+#   Martin V\"ath <martin@mvath.de>
+#
+# This script lists all packages installed after/before a certain package
+# See the coreq manpage for details. (@PACKAGE_STRING@).
+set -u
+
+# We make use of the functions provided by coreq-functions.sh:
+
+if coreq_funcs=`./coreq-functions.sh.in 2>/dev/null`
+then	eval "$coreq_funcs"
+else	echo "${0##*/}: cannot find coreq-functions.sh" >&2
+	exit 1
+fi
+ReadFunctions
+
+# Prepend content of coreq variable COREQ_INSTALLED_AFTER to the arguments
+
+ReadVar COREQ_INSTALLED_AFTER
+eval "set -- a $COREQ_INSTALLED_AFTER \${1+\"\$@\"}"
+shift
+
+# The following function outputs the usage of the script and then dies.
+
+Usage() {
+	n=${0##*/}
+	p='@PACKAGE_STRING@'
+	eval_gettext 'Usage: ${n} [options] category/package[:slot]
+This is a well-commented demo script for coreq (${p}).
+It lists packages installed after (or before) the last (or first) install
+of the given package/version in an output format which is convenient
+as an argument for "emerge -1".
+Be aware that only packages in the coreq database are considered.
+
+The argument can use shell pattern matching (* and ?; do not forget to quote
+them if you call this script from a shell); the first match is chosen.
+The :slot part can be omitted if the corresponding package has only one slot.
+(Options -l and -L have different rules.)
+The argument is not needed if option -f, -e or -F is used.
+
+The coreq (or environment) variable COREQ_INSTALLED_AFTER is prepended to the
+arguments; note that this variable is evaluated, so quote properly and be
+aware about security risks!
+
+The following options are available:
+
+-i   Ignore all previous options (useful if COREQ_INSTALLED_AFTER is set.)
+-f   Output full list of all packages.
+-e TIME Use TIME as "install" date.
+     TIME is in seconds since epoch (see e.g. "date +%s")
+-F FILE Use the mtime of FILE as the "install" date.
+-l   Use /var/log/emerge.log to use the _first_ (instead of the last) install
+     time of the given package. In this case, the argument must be a
+     regular expression matching category/package-version.
+     Note that the time in the log file and the time recorded in the database
+     usually differ slightly so that usage/non-usage of option -I need not
+     have the expected effect: The package may or may not be included.
+     You can use -a/-A to fix the time. Note also that -t or -T have no
+     effect on the data in the log file.
+-L LOG As -l but use LOG instead of /var/log/emerge.log
+-a SEC With -F, -l -L, or -e, increase the actual match time by SEC seconds.
+-A SEC With -F, -l -L, or -e, decrease the actual match time by SEC seconds.
+-b   Output packages installed before (instead of after) the given package
+-I   Include the given package (on the command line) in the output
+-S   When finding the starting package, choose the first matching slot
+-V   When finding the starting package, look for category/package-version
+     instead of category/package:slot
+-d   Output the installation date after the package
+-s   Output slot of the package, even if there appears no ambiguity
+-v   Output category/package-version  instead of category/package[:slot]
+-=   Output =category/package-version instead of category/package[:slot]
+-t   Use build time (if available) instead of installation time,
+     independent of the value of USE_BUILD_TIME
+-T   Never use build time'
+	echo
+	exitcode=${1:-1}
+	Exit $exitcode
+}
+
+
+# Parse the command line options:
+
+DefaultOpts() {
+	full=false
+	timefile=
+	epoch=
+	logfile=
+	before=false
+	date_output=
+	output='NAMESLOT'
+	input='NAMESLOT'
+	including=false
+	addtime=
+	subtime=
+}
+DefaultOpts
+OPTIND=1
+while getopts 'fF:lL:e:a:A:bdsv=SViItTh' opt
+do	case $opt in
+	f)	full=:;;
+	F)	timefile=$OPTARG;;
+	l)	logfile='/var/log/emerge.log';;
+	L)	logfile=$OPTARG;;
+	e)	epoch=$OPTARG;;
+	a)	addtime=$OPTARG;;
+	A)	subtime=$OPTARG;;
+	b)	before=:;;
+	d)	date_output='\t<date:DATE_OUTPUT>';;
+	s)	output='NAMEASLOT';;
+	v)	output='NAMEVERSION';;
+	'=')	output='EQNAMEVERSION';;
+	S)	input='NAME';;
+	V)	input='NAMEVERSION';;
+	i)	DefaultOpts;;
+	I)	including=:;;
+	t)	USE_BUILD_TIME=true; export USE_BUILD_TIME;;
+	T)	USE_BUILD_TIME=false; export USE_BUILD_TIME;;
+	'?')	exitcode=1; Exit 1;;
+	*)	Usage 0;;
+	esac
+done
+[ $OPTIND -le 1 ] || shift `Expr $OPTIND - 1`
+
+# After the options there should be exactly one argument: $match
+
+if [ -n "${timefile:++}" ]
+then	epoch=`stat -c '%Y' -- "$timefile" 2>/dev/null` || epoch=
+fi
+
+# "found" is our flag in the loop whether we already found our package.
+found=false
+if $full
+then	logfile=
+	before=false
+	epoch=
+	found=:
+elif [ -z "${epoch:++}" ]
+then	[ $# -eq 1 ] || Usage
+	match=$1
+fi
+
+
+# With options -l or -L, we also have to parse the logfile:
+
+if [ -n "${logfile:++}" ]
+then	test -r "$logfile" || die "`eval_gettext 'cannot read ${logfile}'`"
+	epoch=`unset LC_ALL
+LC_COLLATE=C
+sed -ne "\\: Merging ($match\\:\\:.*):{s/^\([0-9]*\).*/\\1/p
+q}" "$logfile"` && [ -n "${epoch:++}" ] || die "`eval_gettext \
+		'cannot find merge of ${match} in ${logfile}'`"
+fi
+
+# We will let coreq output for each installed package (and then sort by time):
+#	date (in the format %s) TAB
+#	package (in the input format) TAB
+#	package (in the output format) [TAB date (in the format "%x %X")]
+#	newline
+# (the [...] part occurs only with option -d).
+# The functions Check resp. Output are called with each $line as argument
+# (which thus undergoes the usual splitting at spaces or tabs).
+# Check  returns 0 if the package matches $match (or is known to be younger).
+# Output outputs the package (and date).
+# Both functions ignore empty lines.
+
+if [ -z "${epoch:++}" ]
+then
+Check() {
+	[ $# -ge 2 ] && case "$2:" in
+	$match:*)
+		return 0;;
+	esac
+	return 1
+}
+else	[ -z "${addtime:++}" ] || epoch=`Expr "$epoch" + "$addtime"`
+	[ -z "${subtime:++}" ] || epoch=`Expr "$epoch" - "$subtime"`
+# With options -f, -e, -l, -L, we need a different Check function:
+Check() {
+	[ $# -ne 0 ] && [ "$1" -ge "$epoch" ]
+}
+fi
+
+Output() {
+	if [ $# -eq 3 ]
+	then	Echo "$3"
+	elif [ $# -gt 3 ]
+	then	printf '%-43s %-11s %s\n' "$3" "$4" "$5"
+	fi
+}
+
+# Now the main loop. The interesting point is of course the call to coreq.
+#
+# We could define NAMESLOT, NAMEASLOT, NAMEVERSION, and EQNAMEVERSION
+# instead of using their default definitions (which are built into coreq).
+# However, we want to allow that the user overrides these definitions if he
+# wants to and thus is able to change the input/output format of this script
+# implicitly.
+#
+# Since there is no corresponding default variable which outputs _only_
+# the package category/name (and never the slot), we define such a variable
+# for option -S (we have chosen the name NAME for that).
+#
+# As you can see with "coreq --dump", the default definitions of
+# NAMESLOT, NAMEASLOT, NAMEVERSION, and EQNAMEVERSION make use of the variable
+# VERSION_NEWLINE to output an optional newline.
+# We do not want such a newline: In fact, the only newline we want is the one
+# which should be output at the end of the LINE variable.
+# So we set VERSION_NEWLINE=
+#
+# We set NOCOLORS to avoid the "reset color string" at the very end.
+#
+# We set COREQ_LIMIT to 0 to force output of really all packages.
+#
+# To define the output format, we use the --format argument.
+# If we would have used the FORMAT variable instead (or in <coreq-0.29.6)
+# we would have to set additionally DEFAULT_FORMAT=normal to make sure
+# the a user's setting of DEFAULT_FORMAT is overridden.
+#
+# The --format refers implicitly to the LINE variable which in turn refers
+# implicitly to DATE_FORMAT, DATE_OUTPUT, and NAME:
+#
+# The name of the variables DATE_FORMAT, DATE_OUTPUT, NAME, and LINE
+# could also be any other unused names; it is only important that in LINE
+# resp. in the --FORMAT argument we use the corresponding variable names.
+#
+# We have to quote \ for the shell when we use "..." to set variables.
+#
+# Note that all the following variables are automatically exported, since
+# they immediately preceed the command (the \ at the line-ends is crucial):
+NOCOLORS=: \
+COREQ_LIMIT=0 \
+VERSION_NEWLINE= \
+DATE_FORMAT='%s' \
+DATE_OUTPUT='%x %X' \
+NAME='<category>/<package>' \
+LINE='<date:DATE_FORMAT>\t%{'$input'}\t%{'$output'}'$date_output'\n' \
+coreq --format '<installedversions:LINE>' '-I*sb' \
+| sort -n \
+| {
+	while read -r line
+	do	if $found
+		then	$before || Output $line
+		elif Check $line
+		then	found=:
+			$including && Output $line
+		else	$before && Output $line
+		fi
+	done
+	$found
+}
+Exit

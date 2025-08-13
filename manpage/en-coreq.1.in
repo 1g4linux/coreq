@@ -1,0 +1,4245 @@
+.TH "coreq" "1" "" "@PACKAGE_STRING@" ""
+.\" {{{ NAME
+.SH "NAME"
+.B coreq
+- a set of utilities for searching, diffing and updating a binary cache of your local corepkg-trees
+.\" }}}
+
+.\" {{{ SYNOPSIS
+.SH "SYNOPSIS"
+.B coreq
+[I<common options>] [I<OPTIONS>] I<EXPRESSION>
+
+.B coreq-update
+[I<common options>] [I<coreq-update options>]
+
+.B coreq-diff
+[I<common options>] [I<OLD-CACHE>] [I<NEW-CACHE>]
+
+.B coreq-sync
+
+.B coreq-postsync
+
+.B coreq-test-obsolete
+
+.B coreq-remote
+
+.B coreq-installed-after
+
+.B coreq-installed
+
+.B coreq-etcat
+
+.B coreq-functions.sh
+
+.B coreq-header
+
+.B coreq-drop-permissions
+[B<-->] [I<command to execute>]
+
+.B masked-packages
+[I<options>] I<category>B</>I<name>B<->I<version>[B<:>I<slot>][B<::>I<repo>] ...
+
+.B versionsort
+[B<-n>|B<-p>|B<-f>|B<-v>|B<-r>|B<-V>] [I<(rubbish)>I<package->]I<version> ...
+.\" }}}
+
+.\" {{{ DESCRIPTION
+.SH "DESCRIPTION"
+B<coreq-update> generates a binary cache from your local corepkg-tree and overlays.
+B<coreq> searches this cache for packages that match the restricting criteria you specify in I<EXPRESSION>;
+if you specify no such restriction, all packages are output, of course.
+B<coreq-diff> compares two binary caches and finds packages that were added, removed or for
+which the highest stable versions has changed.
+
+All of these programs and scripts read the configuration files described later.
+B<coreq-sync> has optionally an additional separate configuration file.
+
+B<coreq-sync> can sync the corepkg/overlay trees and compare them with the old cache
+using B<coreq-diff>.
+To get more help on B<coreq-sync> call B<coreq-sync -h> and see the documentation
+of I<@SYSCONFDIR@/coreq-sync.conf> below.
+Note that the content of the latter can also be stored in the variable
+B<COREQ_SYNC_CONF>.
+
+B<coreq-postsync> is a simple alternative to B<coreq-sync>.
+It is similar to B<coreq-update>, but backups the cache before so that
+B<coreq-diff> can be used to show the differences to the previous syncing.
+To execute B<coreq-postsync> automatically after B<emerge --sync>
+with >=corepkg-2.3.7, you can create the directory /etc/corepkg/postsync.d/
+and symlink B<coreq-postsync> there.
+The main disadvantage of using B<emerge --sync> with that symlink (compared
+to B<coreq-sync>) is that in the exceptional situation when a new upgrade
+of coreq should no longer support the current database format then
+B<coreq-diff> will not work for the first syncing after the upgrade
+(unless you manually called B<coreq-update> before syncing).
+
+B<coreq-test-obsolete> is a script which calls B<coreq> several times to display
+the output of B<coreq -tTc> in a more organized manner.
+
+B<coreq-remote> can sync an coreq database from an external server and
+add/remove it to the current database. This can be used to create a
+local database of packages in all registered repositories/overlays,
+not just those in overlays installed locally.
+By default it uses a separate cachefile.
+With this default you should regularly call B<coreq-remote add1> and/or B<coreq-remote add2> after B<coreq-update>
+so that the separate cachefile is synchronized with your main database.
+(If you use B<coreq-sync> this is done by default.)
+If you use the same cachefile you can save remote-data over B<coreq-update> calls
+by setting B<KEEP_VIRTUALS=true> in I<@SYSCONFDIR@/coreqrc>.
+By default, this script drops its permissions using B<coreq-drop-permissions>.
+To get more help on B<coreq-remote> call B<coreq-remote -h>.
+
+B<coreq-installed-after> is a simple script (with many comments) demonstrating some
+possibilities how a custom coreq output format can be used.
+It outputs packages installed after (or before) the last (or first) emerge of a specific package/version.
+To get more help on this script call B<coreq-installed-after -h>.
+
+B<coreq-functions.sh> outputs helper functions used by B<coreq-sync> and B<coreq-remote>.
+You might want to use them for your own similar scripts.
+You can either "eval" the output of this program.
+Note that after this, you should usually call B<ReadFunctions> for
+initialisation.
+
+B<coreq-header> is a helper program for B<coreq-remote> (and possibly your own scripts).
+It can check database file headers and can find/output overlay paths or labels stored in these files.
+For details how to use it, call B<coreq-header -h>.
+
+B<coreq-drop-permissions> is a helper program for B<coreq-remote> (and possibly your own scripts).
+It executes the command given as argument with permissions dropped according to
+B<COREQ_USER>, B<COREQ_GROUP>, B<COREQ_UID>, B<COREQ_GID> (see later).
+Note that also the binaries B<coreq>, B<coreq-diff>, and B<coreq-update> drop their
+permissions according to these variables as soon as possible, i.e., you might
+have to adjust these variables if you use B<coreq> (in particular B<coreq-update>)
+in a nonstandard setting.
+
+B<coreq-installed> is a simple script which outputs all installed packages
+(in their exact version) and can check for packages installed with/without
+repository or buildtime information
+(cf. the description of B<CHECK_INSTALLED_OVERLAYS> and B<USE_BUILD_TIME>).
+To get more help on B<coreq-installed> call B<coreq-installed -h>.
+
+B<coreq-etcat> is a wrapper script which calls coreq with a configuration such
+that it resembles the behaviour of B<etcat -v> from old app-corepkg/gentoolkit
+versions or its updated version from https://github.com/proteusx/etcat/ (e.g.
+app-corepkg/etcat from the mv overlay).
+The output is analogousand the default input accepts a sequence of
+(exact) package names (the specification of the category is optional).
+It might be instructive to look at the simple wrapper script if you want to
+write your own input/output format: The output format can be seen by calling
+B<coreq --print FORMAT_ETCAT> and B<coreq --print FORMAT_VERSION_ETCAT>.
+
+B<masked-packages> is a helper tool which matches the arguments against a list of masks.
+Details can be found near the end of the manpage.
+
+B<versionsort> is a helper tool for scripts which cuts the version strings from its arguments
+and outputs them sorted according to the corepkg rules of version sorting.
+Details can be found near the end of the manpage.
+.\" }}}
+
+.\" {{{ OPTIMIZATION, MEMORY, SECURITY
+.SH "OPTIMIZATION, MEMORY, SECURITY"
+If you installed coreq from the gentoo repository, then very likely
+the coreq ebuild B<will not> have installed coreq with the B<CXXFLAGS>
+and B<LDFLAGS> which are recommended for optimization and security of coreq by
+the coreq maintainer.
+Also, coreq can be configured to use less memory if required.
+See the section B<INSTALLATION> for how to install coreq in the way the
+maintainer recommends.
+.\" }}}
+
+.\" {{{ EXAMPLES
+.SH "EXAMPLES"
+
+The following examples are some useful but perhaps unusual applications of coreq.
+They are listed here to give you an idea what unexpected things you can do with coreq.
+Since the examples are meant to be copied from this manpage they are listed early.
+To understand how they work, you should read the full manpage, of course.
+For more examples see e.g. the script B<coreq-installed-after> which contains many comments.
+
+.TP
+.IB cmd " | coreq '-|*' --format '<markedversions:NAMESLOT>'"
+
+Assuming I<cmd> creates a list of the form B<category/name-version> or B<=category/name-version>,
+the above prints the corresponding list B<category/name> or B<category/name:SLOT>
+(depending on whether B<SLOT>s need to be distinguished).
+
+.TP
+.IB cmd " | coreq '-|*' --format '<markedversions:NAMEASLOT>'"
+
+Similar to the above, but print always B<category/name:SLOT> even if B<SLOT>
+may be redundant. (Mnemonic: B<A>lways).
+
+.TP
+.B coreq '-I*' --format '<installedversions:NAMEVERSION>'
+
+Print out installed packages, using the format B<category/name-version>.
+Of course, you could replace B<NAMEVERSION> also by B<NAMESLOT> or B<NAMEASLOT> to get another format.
+The only purpose of the B<I> option in this context is to speed up the output slightly.
+
+.TP
+.B coreq '-I*' --format '<installedversions:EQNAMEVERSION>'
+
+Similarly to the above but in the format B<=category/name-version> which you
+can pipe directly to corepkg.
+
+.TP
+.B coreq '-I*' --format '<installedversions:DATESORT>' | sort -n | cut -f2-3
+
+Print out installed packages (with slots if necessary), sorted by installation date.
+If you want the output in another format, you have to modify B<DATESORT> correspondingly
+(you can see the original definition in the output of B<coreq --dump>).
+
+This sorting trick works as follows: The B<DATESORT> variable outputs as
+the first column the seconds since epoch (B<coreq --print DATESORT> will show you
+that this happens by the variable B<DATESORT_DATE> whose first entry is B<%s>),
+and B<sort> thus gets the correct order by sorting alphabetically.
+Finally the B<cut> command gets rid of this first column which was only needed for sorting.
+
+.LP
+In the above examples, things like B<NAMEVERSION> and B<DATESORT> are actually
+just names of variables which are predefined in coreq (with B<coreq --dump> you see them).
+You can as well define your own variables and use them.
+To understand how this works, please read the manpage, especially the description of the B<FORMAT> string.
+.\" }}}
+
+
+.\" {{{ OPTIONS
+.SH "OPTIONS"
+.\" {{{ -------- Common options
+.SS Common options
+These options are common to B<coreq>, B<coreq-diff>, and B<coreq-update>.
+.TP
+.BR -h ", " --help
+Print a help screen and exit.
+.TP
+.BR -Q ", " --quick "   (toggle)    (not for B<coreq-update>)"
+Do (not) read the slots of installed versions which cannot be guessed
+(i.e. installed versions of packages with at least two different slots
+for which the installed version is not in the database anymore).
+Note that with this option, coreq and coreq-diff might report false positives
+for up-/downgrade recommendations for these packages.
+.TP
+.BR --care "    (not for B<coreq-update>)"
+This deactivates B<--quick>, and moreover, slots of installed version are
+always read instead of relying on the guess of the slot.
+This will in particular make sure that you get an up-/downgrade
+recommendation if a slot name of an installed version changes.
+Note that this will dramatically decrease the speed at the first call.
+(If your filesystem has a reasonable cache, later calls are almost not
+slower than without this option.)
+.TP
+.BR --deps-installed "    (not for B<coreq-update>)"
+This is the same as B<DEPS_INSTALLED=true>.
+Dependencies of installed version are always read, even if they are known
+from an available version.
+Note that this will dramatically decrease the speed at the first call.
+(If your filesystem has a reasonable cache, later calls are almost not
+slower than without this option.)
+.TP
+.BR -q ", " --quiet "   (toggle)"
+Produce no output on stdout.
+For coreq you can decrease execution time by combining this
+(depending on your needs) with either B<--brief> or B<--brief2>
+and by setting B<COUNT_ONLY_PRINTED=false>.
+See also B<NOFOUND_STATUS> and B<MOREFOUND_STATUS>
+.TP
+.B --dump
+Show the current coreqrc-variables, and their defaults as comments; then exit.
+.TP
+.B --dump-defaults
+Show the defaults of the coreqrc-variables, and their current values as comments; then exit.
+.TP
+.BI "--print " VAR
+Print the specified variable I<VAR> of coreqrc or of corepkg settings,
+completely expanded as it would be used internally by coreq; then exit.
+The exit status is nonzero if I<VAR> is not known to coreq (see B<--known-vars>)
+This is mainly intended for usage in scripts or for debugging purposes.
+If you use it in scripts you might want to specify B<PRINT_APPEND> to
+get trailing spaces (see description of B<PRINT_APPEND>).
+Two special I<VAR> values which can be accessed only in this way are
+B<USE.profile> and B<USE.make_conf> which contain the USE string of the profile
+or make.conf before the concatenation, respectively.
+.TP
+.B --known-vars
+Print an alphabetical list of variables known to coreq with B<--print>.
+After each variable name a newline is output.
+.TP
+.BR -V ", " --version
+Print version and exit.
+.TP
+.BR -n ", " --nocolor
+Disables the use of ANSI color codes. This is useful for terminals that do not support ANSI colors.
+(This is automatically turned on if stdout is no tty, but can be overridden by using --force-color)
+.TP
+.BR -F ", " --force-color
+The opposite of --nocolor.
+.\" }}}
+
+.\" {{{ -------- coreq exclusive
+.SS Special information options
+The following special information options are only provided by the B<coreq> binary.
+They are one-shot exclusive options, i.e. coreq outputs only the required data and then exits.
+.TP
+.BR --color " " (always / never / auto)
+Override all other color options and variables: Colorize always, never, or only if the output goes to some terminal
+.TP
+.BR --ansi " (also for coreq-diff)"
+Define the 256 color palette suggested by Todd Larason (the author of the 256 color support for xterm).
+Use this if something some tool has redefined the default palette.
+.TP
+.BR "--256" ", " "--256d" ", " "--256d0" ", " "--256d1" ", " "--256l" ", " "--256l0" ", " "--256l1" ", " "256b"
+Print the 256 color palettes (assuming it follows ansi color scheme) and exit.
+With B<--256d>/B<--256l> (B<--256d0>/B<--256l0>, B<--256d1>/B<--256l1>) only the foreground palettes with dark/light background
+(or only the normal or bright dark/light foreground palette, respectively) is printed.
+With B<--256b> only the background palette is printed.
+.TP
+.B --print-all-eapis
+print all EAPIs used in some version.
+.TP
+.B --print-all-useflags
+print all IUSE or REQUIRED_USE words used in some version.
+.TP
+.B --print-all-keywords
+print all KEYWORDS used in some version.
+.TP
+.B --print-all-slots
+print all SLOT strings used in some version.
+.TP
+.B --print-all-licenses
+print all LICENSE strings used in some package.
+.TP
+.B --print-all-depends
+print all words occurring in some B<{,R,P,B}DEPEND>.
+This only works if B<DEP=true> is active (and was so when the cachefile was created).
+.TP
+.B --print-world-sets
+print the world sets.
+.TP
+.B --print-profile-paths
+Outputs all paths of the current profile.
+To each Path B<PRINT_APPEND> is appended.
+If B<PRINT_APPEND> is empty, the null character is appended.
+.\" }}}
+
+.\" {{{ -------- Output options
+.SS Output options
+.TP
+.BR --nowarn "   (toggle)"
+Suppress some warnings concerning the corepkg configuration.
+.TP
+.BR -x ", " --versionsort "    (toggle)"
+Prints available versions sorted by versions (slots).
+If sorted by slots, each new slot starts in a new line.
+This mode can be combined with B<--versionlines> (B<-l>)
+to start a new line even for every version.
+.TP
+.BR -l ", " --versionlines "   (toggle)"
+Prints available versions in a (vertical) list.
+Only in this mode some additional information for each version is output.
+More precisely, depending on whether you have chosen B<--verbose> and
+depending on the state of the configuration variables
+B<VERSION_{IUSE,KEYWORDS,DEPS}_{NORMAL,VERBOSE}>,
+this can be the B<KEYWORDS>, B<IUSE>, B<DEPEND>, B<RDEPEND>, B<PDEPEND>, B<BDEPEND>, B<IDEPEND> data.
+Note that if B<IUSE> is not printed per version then it is only collected
+for the whole package which can give the wrong impression, since often
+B<IUSE> changes dramatically with versions.
+.TP
+.BR -c ", " --compact
+Causes coreq to use a compact layout for search results. Useful for obtaining a better
+overview in the case of a long list of results, and also to help speed up searching over
+slow connections such as a serial console.
+.TP
+.BR -v ", " --verbose
+Use a verbose layout with additional information about search results such as the license
+of a package.
+.TP
+.BR -N ", " --normal
+Use the normal layout which is the default if B<DEFAULT_FORMAT> was not explicitly changed.
+.TP
+.BR --xml ", " --proto, "   (toggle)"
+Output in XML or protobuf format.
+
+For usage from an external program you will probably want to combine this
+with B<--care>.
+
+For B<--xml>, you probably additionally want to export B<LOCAL_COREPKG_CONFIG>
+to make sure that the preferred user output setting do not influence your output.
+
+The B<--proto> format is independent of this variables: local and system settings are separate.
+
+If some of these options is active, B<OVERLAYS_LIST=none> and B<--pure-packages> are
+automatically active so that your output is not clobbered with normal coreq output.
+
+The XML output format can be slightly influenced by the B<XML_*> variables.
+The XML format used is documented in human-readable form in the files coreq-xml.html or coreq-xml.txt
+and in less human-readable form (namely as an xml-schema) in the file coreq-xml.xsd.
+
+The protobuf format is in the file coreq.proto.
+.TP
+.BR -* ", " --pure-packages "   (toggle)"
+(do not forget quoting if you use the short form from within a shell.)
+Omit printing of additional information (overlay names, number of found packages) after the packages.
+This might be useful for some shell scripts parsing the output
+.TP
+.BR -# ", " --only-names "   (toggle)"
+As B<--pure-packages>, but additionally print only the category and name of the packages found.
+.TP
+.BR -0 ", " --brief "   (toggle)"
+Print at most one package then stop.
+This option is typically faster when used with B<COUNT_ONLY_PRINTED=false>.
+In the latter case, when you use fuzzy search, not necessarily the best match is output.
+.TP
+.BR --brief2 "   (toggle)"
+As B<--brief>, but print up to two packages.
+.\" }}}
+
+.\" {{{ -------- Options for coreq
+.SS Special options for B<coreq>
+.TP
+.BR -t ", " --test-non-matching
+Before other output, print entries of /etc/corepkg/package.* which do not
+match any existing version in the package database or which apparently have
+no meaning because they are empty (see B<TEST_FOR_EMPTY>).
+
+This option also lists all installed packages whose name is not in the database.
+
+Note that this is essentially different from B<-T> (see below).
+The latter only tests for packages B<in the database> whether redundant
+entries in /etc/corepkg/package.* exist or whether the installed versions
+are available, respectively.
+
+This option is best combined with B<-T> to clean up /etc/corepkg/package.*
+
+Or you can combine it with B<-e> to have no other output.
+
+If you have a reason to exclude certain entries/packages from this test,
+you can write those entries into a file /etc/corepkg/package.*.nonexistent
+where B<*> is one of B<accept_keywords> (or the obsolete B<keywords>),
+B<mask>, B<unmask>, B<use>, B<env>, B<license>, B<accept_restrict>, B<cflags>,
+and B<installed>.
+These files (and how to modify their filenames) are described later.
+
+.TP
+.BR -R ", " --remote
+Uses the value of B<COREQ_REMOTE1> as cache file name.
+Use this option if you want to see packages in the cache created
+and synchronized by B<coreq-remote>.
+You can make this option the default by setting B<REMOTE_DEFAULT=1>.
+
+.TP
+.BR -Z ", " --remote2
+Uses the value of B<COREQ_REMOTE2> as cache file name.
+Use this option if you want to see packages in the cache created
+and synchronized by B<coreq-remote>.
+You can make this option the default by setting B<REMOTE_DEFAULT=2>.
+
+.TP
+.BI "--cache-file " FILE
+Use I<FILE> instead of B<@COREQ_CACHEFILE@>.
+
+.\" {{{ -------- Options for EXPRESSION
+.SS Options for EXPRESSION
+EXPRESSION is used to narrow which packages coreq prints.
+
+An EXPRESSION can contain Boolean operators and tests according to the following grammar:
+
+EXPRESSION ::= [ B<--not> | B<-!> ] BRACE_OR_TEST |
+               EXPRESSION [ B<--and>| B<-a> ] EXPRESSION |
+               EXPRESSION [ B<--or> | B<-o> ] EXPRESSION
+
+BRACE_OR_TEST ::= B<--open>|B<-(> EXPRESSION B<--close>|B<-)> |
+               TEST_WITH_OPTIONS
+
+TEST_WITH_OPTIONS ::= [TEST_OPTIONS] [PATTERN]
+
+Do not forget that B<!>, B<(>, B<)> have to be quoted in shells so that
+coreq actually receives these as parts of arguments!
+
+If you want that an EXPRESSION starts with B<->, precede it with two further B<--> symbols:
+This way, the EXPRESSION is not read as an option, and two additional B<--> symbols are ignored.
+For example, B<coreq ---tool --or ---util> will output the packages containing B<-tool> or B<-util>.
+
+The meaning of the logical operators should be obvious with perhaps some exceptions:
+
+1. If neither B<--and>|B<-a> nor B<--or>|B<-o> is between two EXPRESSIONs, then one of
+them is implicitly assumed; whether this is B<-a> or B<-o> depends on the setting
+of the configuration variable B<DEFAULT_IS_OR>.
+
+2. The operators B<-a> and B<-o> have equal precedence and are left-associative.
+In particular, B<X -o Y -a Z> fails if B<Z> fails.
+
+3. B<--not>|B<-!> negates only the result of the subsequent BRACE_OR_TEST.
+
+4. If PATTERN is omitted, it defaults to the empty PATTERN.
+For instance, with the default settings, B<coreq> without arguments will match
+all packages, since the empty string is contained in every name.
+On the other hand, B<coreq -e> should (usually) output nothing,
+because no package name should I<exactly be> the empty string.
+
+5. Note that the syntax implies that PATTERN always ends an expression.
+TEST_OPTIONS after PATTERN always start a new expression
+(i.e. an implicit B<--and> or B<--or> is inserted, depending on B<DEFAULT_IS_OR>).
+In particular B<coreq -e foo> has a different meaning than B<coreq foo -e>.
+The latter means the same as B<coreq foo --and -e> or B<coreq foo --or -e>,
+depending on B<DEFAULT_IS_OR>.
+
+6. Observe that TEST_OPTIONS can consist of several options.
+All of these options are applied simultaneously, i.e. in a sense these options
+are logically braced and combined with B<and> (independently of B<DEFAULT_IS_OR>).
+This is somehow ambiguous, since PATTERN can be omitted.
+This ambiguity is resolved by interpreting successive TEST_OPTIONS always as a
+part of one TEST_WITH_OPTIONS.
+For instance, in B<coreq -I -O -e foo> all options are considered as part of a common I<EXPRESSION>
+(not as four I<EXPRESSION>s as would be the case for B<coreq -I '' -O '' -e '' foo>).
+On the other hand, in B<coreq -I --not -e> the B<--not> will cause the subsequent TEST_OPTION B<-e> to be considered as part of a new I<EXPRESSION>.
+Options other than TEST_OPTIONS or a logical option (like B<-!>, B<-(>, B<-)>, B<-a>, B<-o>) are ignored in this respect.
+For instance, B<coreq -I -c -e> generates only one I<EXPRESSION>, since B<-c> is neither a TEST_OPTION nor a logical option
+and therefore plays no role for the interpretation of I<EXPRESSION>.
+
+7. The TEST_OPTIONS can specify things like the B<match algorithm> and also B<operation selection>.
+All these specifications refer B<only> to the current TEST_WITH_OPTIONS, in particular, they are only active for the next B<PATTERN>.
+
+Note that besides using this expression syntax a different way of implicit
+(though slow) package selection on various other criteria is possible by
+defining B<FORMATSTRING> (see below) using conditionals such that it outputs
+an empty string for the undesired packages.
+
+Here are the admissible TEST_OPTIONS:
+.TP
+.BR -I ", " --installed
+Only match installed packages.
+Please do not use this as a replacement for B<coreq-installed -a>
+(or B<qlist -ICv> or B<equery>), it is not the same:
+Packages that are installed, but no longer in the corepkg tree (or an overlay) are not listed here.
+However, you should better not have such packages at all
+(better put these packages in overlays in case you need to reinstall them).
+To find such packages, you can use B<coreq -te> (or B<coreq -tI> to get listed both)
+but be aware that coreq -t does not obey the usual B<FORMAT> rules for these packages.
+So you better do not use this in scripts unless you know what you are doing.
+
+If you really want to use this option as a substitute for equery in scripts,
+you might want to combine it with some of
+
+.B --format --only-names
+
+.B --format '<installedversions:NAMEVERSION>' --pure-packages
+
+.B --format '<installedversions:EQNAMEVERSION>' --pure-packages
+
+.B --format '<installedversions:NAMESLOT>' --pure-packages
+
+.B --format '<installedversions:NAMEASLOT>' --pure-packages
+
+.B --format '<installedversions:DATESORT>' --pure-packages
+.TP
+.BR -i ", " --multi-installed
+Only match packages which are installed in at least two different versions.
+Usually, this means that these versions are slotted (at installation time).
+.TP
+.BR -d ", " --dup-packages
+Only match duplicated packages,
+for example, if sys-foo/bar exists both in the official corepkg tree and a local overlay.
+If B<DUP_PACKAGES_ONLY_OVERLAYS> is set (see below), the instances must be in two different local overlays.
+.TP
+.BR -D ", " --dup-versions
+Only match packages with duplicated versions,
+for example, if sys-foo/bar-0.2.1 exists both in the official corepkg tree and a local overlay.
+If B<DUP_VERSIONS_ONLY_OVERLAYS> is set (see below), both instances must be in overlays.
+.TP
+.BR -1 ", " --slotted
+Only match packages with a nontrivial slot, i.e. where SLOT is nonempty and different from "0".
+.TP
+.BR -2 ", " --slots
+Only match packages with at least two different slots.
+In contrast to -1, a package is not shown here, if only one slot is available with e.g. slot-name "4.3".
+.TP
+.BR -u ", " --upgrade ", " --upgrade+ ",  " --upgrade-
+Only match packages which have at least one slotted version installed which
+is not the best version within that slot.
+This means usually that you should either upgrade or downgrade that package.
+
+However, the test takes also B<UPGRADE_TO_HIGHEST_SLOT> (see below) into account.
+
+If you use B<--upgrade+> or B<--upgrade->, then the test acts as if B<LOCAL_COREPKG_CONFIG> is B<true> or B<false>.
+Otherwise, this decision is based upon B<UPGRADE_LOCAL_MODE>.
+
+If you want to see only packages with downgrade recommendations, you might make
+use of the B<FORMATSTRING> features described below.
+.TP
+.BR --stable ", " --testing ", " --non-masked ", " --system ", " --profile
+Only match packages which have at least one version which is stable (and non-masked),
+testing or stable (and non-masked), non-masked, or in system or profile, respectively.
+If several of these options are combined in one test, it is the same version
+which must satisfy all.
+.TP
+.BR --stable+ ", " --testing+ ", " --non-masked+ ", " --system+ ", " --profile+
+This is as the above ones just that the test acts as if B<LOCAL_COREPKG_CONFIG=true>.
+.TP
+.BR --stable- ", " --testing- ", " --non-masked- ", " --system- ", " --profile-
+This is as the above ones just that the test acts as if B<LOCAL_COREPKG_CONFIG=false>.
+.TP
+.BR --installed-unstable ", " --installed-testing ", " --installed-masked
+Only match packages which have
+at least one non-stable, testing, or masked version installed
+(the test acts as if B<LOCAL_COREPKG_CONFIG=false>).
+If several of these options are combined in one test, it is the same version
+which must satisfy all.
+.TP
+.BR --world
+Only match @world packages.
+This is analogous to "emerge @world", i.e. it includes not only packages in
+the world file but also in world sets and the @system set.
+If you do not want to have all included, choose the appropriate alternative
+option.
+.TP
+.BR --world-file
+This only matches packages from the world file or from the @system set.
+.TP
+.BR --world-set
+This only matches packages from world_set or from the @system set.
+.TP
+.BR --selected
+Only match @selected packages.
+This is analogous to "emerge @selected", i.e. it includes not only packages in
+the world file but also in world_sets (if you have @system contained in the
+world_sets file, then the behaviour is of course identical to B<--world>).
+If you do not want to have both included, choose the appropriate alternative option.
+.TP
+.BR --selected-file
+This only matches packages from the world file.
+.TP
+.BR --selected-set
+This only matches packages from world_set.
+.TP
+.BR --binary
+Only match packages with a binary file (*.tbz2, *.gpkg.tar, or *.xpak) in PKGDIR.
+The version of the binary file must either match the version of an available version or of an installed version.
+(However, note that if no version is available, the package cannot be found either).
+Just the existence of the corresponding *.tbz2, *.gpkg.tar, or *.xpak file is checked:
+Whether corepkg can actually use the file depends also on metadata within that file (like USE settings) which is not considered by coreq.
+.TP
+.BI --multi-binary NR
+Only match packages with a version with at least I<NR> files matching B<--binary>.
+.TP
+.B --nonvirtual
+Only match packages with at least one version from the main tree or a non-virtual overlay.
+.TP
+.B --virtual
+Only match packages with at least one version in a virtual overlay.
+.TP
+.BR -O ", " --overlay
+Only match packages with at least one version in an overlay.
+.TP
+.BI "--in-overlay " overlay
+Only match packages with at least one version in an overlay matching I<overlay>.
+
+If this option is repeated, the additional I<overlay> arguments are joined
+to the list of admissible overlays.
+
+I<overlay> may be either a wildcard pattern or a number.
+Note that if you use the default B<OVERLAYS_LIST=all-used-renumbered>
+you do not see the correct overlay numbers; to get a list of the correct
+overlay numbers you can e.g. call
+
+B<OVERLAYS_LIST=all coreq --not>
+
+or in scripts better
+
+B<OVERLAYS_LIST=all PRINT_COUNT_ALWAYS=never coreq -!>
+
+The special values B<0> or B<$PORTDIR> match the "main" tree (which in
+this connection is considered as the 0'th overlay).
+
+If I<overlay> is empty (or omitted if B<--in-overlay> is the last option)
+it matches all overlays except for the "main" tree
+(i.e. B<--in-overlay ''> is the same as B<-O>).
+.TP
+.BI "--only-in-overlay " overlay
+Only match packages which have only versions in an overlay matching I<overlay>.
+
+If this option is repeated, the additional I<overlay> arguments are joined
+to the list of admissible overlays.
+
+I<overlay> may be either a wildcard pattern or a number, as in B<--in-overlay>.
+In particular, B<--only-in-overlay ''> matches all packages which are not in
+the official corepkg tree but only in some overlay.
+.TP
+.BR -J ", " --installed-overlay
+Only match packages which have been installed from some overlay.
+To get a completely reliable result you should set
+B<CHECK_INSTALLED_OVERLAYS> to true (which is not the default because
+it dramatically slows down the test).
+See B<CHECK_INSTALLED_OVERLAYS> for details.
+.TP
+.BI "--installed-from-overlay " overlay
+This is analogous to B<--in-overlay> with the difference that only
+packages are matched which have at least one version installed
+from I<overlay>.
+For instance, B<--installed-from-overlay 0> will only match those packages
+which have at least one version which was installed from the regular
+corepkg tree.
+As for -J, you should set B<CHECK_INSTALLED_OVERLAYS> to true to get a
+completely reliable result.
+.TP
+.B --installed-in-some-overlay
+Only match packages with at least one installed version number which is
+also in some overlay.
+.TP
+.BI "--installed-in-overlay " overlay
+This is analogous to B<--in-overlay> with the difference that only
+packages are matched which have at least one installed version in I<overlay>.
+For instance, B<--installed-in-overlay 0> will only match those packages
+which have at least one version which is also in the regular corepkg tree.
+.TP
+.B --restrict-fetch
+Only match packages which have at least one version with RESTRICT=fetch.
+If used with other PROPERTIES/RESTRICT tests, the version must satisfy all simultaneously.
+.TP
+.B --restrict-mirror
+Only match packages which have at least one version with RESTRICT=mirror.
+If used with other PROPERTIES/RESTRICT tests, the version must satisfy all simultaneously.
+.TP
+.B --restrict-primaryuri
+Only match packages which have at least one version with RESTRICT=primaryuri.
+If used with other PROPERTIES/RESTRICT tests, the version must satisfy all simultaneously.
+.TP
+.B --restrict-binchecks
+Only match packages which have at least one version with RESTRICT=binchecks.
+If used with other PROPERTIES/RESTRICT tests, the version must satisfy all simultaneously.
+.TP
+.B --restrict-strip
+Only match packages which have at least one version with RESTRICT=strip.
+If used with other PROPERTIES/RESTRICT tests, the version must satisfy all simultaneously.
+.TP
+.B --restrict-test
+Only match packages which have at least one version with RESTRICT=test.
+If used with other PROPERTIES/RESTRICT tests, the version must satisfy all simultaneously.
+.TP
+.B --restrict-userpriv
+Only match packages which have at least one version with RESTRICT=userpriv.
+If used with other PROPERTIES/RESTRICT tests, the version must satisfy all simultaneously.
+.TP
+.B --restrict-installsources
+Only match packages which have at least one version with RESTRICT=installsources.
+If used with other PROPERTIES/RESTRICT tests, the version must satisfy all simultaneously.
+.TP
+.B --restrict-bindist
+Only match packages which have at least one version with RESTRICT=bindist.
+If used with other PROPERTIES/RESTRICT tests, the version must satisfy all simultaneously.
+.TP
+.B --restrict-parallel
+Only match packages which have at least one version with RESTRICT=parallel.
+If used with other PROPERTIES/RESTRICT tests, the version must satisfy all simultaneously.
+.TP
+.B --properties-interactive
+Only match packages which have at least one version with PROPERTIES=interactive.
+If used with other PROPERTIES/RESTRICT tests, the version must satisfy all simultaneously.
+.TP
+.B --properties-live
+Only match packages which have at least one version with PROPERTIES=live.
+If used with other PROPERTIES/RESTRICT tests, the version must satisfy all simultaneously.
+.TP
+.B --properties-virtual
+Only match packages which have at least one version with PROPERTIES=virtual.
+If used with other PROPERTIES/RESTRICT tests, the version must satisfy all simultaneously.
+.TP
+.B --properties-set
+Only match packages which have at least one version with PROPERTIES=set.
+If used with other PROPERTIES/RESTRICT tests, the version must satisfy all simultaneously.
+.TP
+.BR -T ", " --test-obsolete
+Only match obsolete packages.
+
+Packages are obsolete if they have redundant entries in /etc/corepkg/package.*
+(if B<TEST_FOR_REDUNDANCY> is true) or if not all installed versions exist
+(if B<TEST_FOR_NONEXISTENT> is true).
+
+What is considered as redundant is defined by the B<REDUNDANT_IF>-variables below,
+and what is considered as non-existent is defined by the B<NONEXISTENT_IF>-variables.
+Note that the test for versions from obsolete overlays works only reliable if
+you set B<CHECK_INSTALLED_OVERLAYS> to true (which is not the default because
+it dramatically slows down the test).
+See B<CHECK_INSTALLED_OVERLAYS> for details.
+
+Note that this options only tests packages in the database - in particular, you
+will not find entries for e.g. renamed or removed (from the corepkg tree) packages with this option.
+Use B<-t> to find the latter.
+
+Therefore, this option is best combined with -t to find also other types of obsolete entries.
+
+If you have a reason to exclude certain packages from this test,
+you can write those entries into a file (or directory) /etc/corepkg/package.nowarn
+This file (and how to specify alternative/additional files) is described later.
+.TP
+.BR -| ", " --pipe
+(Recall that a shell will not pass an unquoted B<|> sign, so quote properly).
+
+Only match packages/masks from standard input; usually you will want to use this in a pipe,
+redirected e.g. from emerge -pv (similar to genlop -p).
+Actually, any (space or newline separated) words are considered which contain a / symbol.
+
+Each such word is considered as a mask (in the form of the first entry in /etc/corepkg/package.* files),
+and due to a heuristics package versions can also specified without an explicit leading B<=> symbol.
+(This can lead to ambiguities; use B<--pipe-mask> if you need a reliable result.)
+
+All available packages/versions which match a mask from the input will in the output be considered as marked.
+For details on the latter, see the B<marked> and B<markedversions:*> formatstrings.
+
+Even if B<--pipe> occurs more than once, the standard input is of course only read once,
+but interpreted repeatedly for each occurrence (i.e. if the first --pipe matches, all others will also match).
+
+If you want to use the standard input only for marking but not for selection, you can
+choose an expression like
+
+B<coreq something -a "-(" --pipe -o "-)">
+
+If the option B<--pipe-name> or B<--pipe-version> occurs after this option in the argument list,
+B<--pipe> acts as if it were B<--pipe-name> or B<--pipe-version>, respectively.
+.TP
+.B --pipe-mask
+This is analogous to B<--pipe> with the difference that only masks are allowed in the input,
+i.e. if package versions are specified the leading B<=> is non-optional.
+This avoids ambiguities in the input if a part of the name looks like a version number.
+You should use this option instead of B<--pipe> if you want a reliable result!
+.\" }}}
+
+.\" {{{ -------- Match field selection
+.SS Match field selection
+The subsequent options define the fields that the pattern should be tested on.
+Multiple fields may be specified in one expression (the expression matches
+if the pattern matches at least one of the specified fields).
+If you do not specify some of these options, the default is chosen according
+to some heuristic depending on the form of your pattern.
+In most cases, the default match field will be B<--name>, but if your pattern
+looks "special" like e.g. "cat/n" or "@set", the default match field will change to
+B<--category-name>, B<--set>, B<--description>, B<--homepage>, or B<--license>.
+Details of the heuristic are specified by the B<DEFAULT_MATCH_FIELD>
+configuration variable explained later.
+Depending on the configuration of that variable, it might even be non-optional
+to specify some of the following options for every query.
+.TP
+.BR -y ", " --any
+Any match field is searched. This is the same as specifying simultaneously
+all of B<--name>, B<--description>, B<--category>, ...
+Thus, you may want to use this if you want to be sure to not miss any matches.
+However, be warned that the output list will often be much longer than you might expect.
+(If you are curious, you can find with options B<-vl> and piping to grep
+the often unexpected reason why a match occurs with B<-y>.)
+To exclude at least the dependency strings from matches, you might want to
+combine this option with setting B<DEP=false>, e.g.
+
+B<DEP=false coreq --any SIP>
+
+.TP
+.BR -s ", " --name
+e.g. "coreq"
+.TP
+.BR -S ", " --description
+e.g. "Small utility for searching .."
+.TP
+.BR -C ", " --category
+e.g. "app-corepkg"
+.TP
+.BR -A ", " --category-name
+e.g. "app-corepkg/coreq"
+.TP
+.BR -H ", " --homepage
+e.g. "@PACKAGE_URL@"
+.TP
+.BR -L ", " --license
+e.g. "GPL-2"
+.TP
+.BR --available-deps ", " --available-depend ", " --available-rdepend ", " --available-pdepend ", " --available-bdepend ", " --available-idepend
+This test can only be successful if B<DEP=true> is used
+(and if B<DEP=true> was used when the cachefile was created).
+It matches against B<DEPEND>, B<RDEPEND>, B<PDEPEND>, B<BDEPEND>, or B<IDEPEND>
+(or with B<--available-deps> any of those) of any available version of the package.
+B<--available-deps> is the same as specifying all of
+B<--available-depend> B<--available-rdepend> B<--available-pdepend> B<--available-bdepend> B<--available-idepend>.
+Note that it is matched against the string without any interpretation or
+modification of the latter; only word separators become single spaces.
+In particular, the string to match against can look like
+
+app-admin/fam nls? ( sys-devel/gettext ) =dev-libs/apr-1* !!dev-db/libpq
+
+Therefore, the match is not only against dependent packages but also against
+blockers and/or conditionals and various ways of specifying versions.
+.TP
+.BR --installed-deps ", " --installed-depend ", " --installed-rdepend ", " --installed-pdepend ", " --installed-bdepend ", " --installed-idepend
+This is similar to the corresponding option --available-* but with the difference
+that the corresponding dependency string of any installed versions of the package is matched.
+In contrast to --available-* this check does not involve the setting of B<DEP>.
+You might probably want to combine these options with B<--deps-installed> to make sure that indeed
+the content of the installed version is read.
+
+Note that dependencies of installed versions are usually much simpler, e.g. not containing conditionals.
+.TP
+.BR --deps ", " --depend ", " --rdepend ", " --pdepend ", " --bdepend ", " --idepend
+These are shortcuts for specifying the corresponding --available-* and --installed-* options simultaneously.
+.TP
+.BR --set
+Name of a local package set of a version in the database
+(i.e. corresponding to a file in B</etc/corepkg/sets>, B</etc/corepkg/sets.coreq>,
+or from another directory specified in B<COREQ_LOCAL_SETS_ADD>;
+see the comments to B<COREQ_LOCAL_SETS>).
+The "profile", "system" and "world" sets are intentionally excluded here, since these
+should be tested with B<--profile[+-]>, B<--system[+-]>, B<--world>, B<--world-all>, or B<--world-sets>.
+.TP
+.B --src-uri
+SRC_URI of a version in the database
+.TP
+.B --eapi
+EAPI of a version in the database, e.g. "6"
+.TP
+.B --installed-eapi
+EAPI of an installed version
+.TP
+.B --slot
+Slotname of a version in the database, e.g. "kde-4"
+.TP
+.B --fullslot
+Slotname of a version in the database, possibly with its subslot, e.g. "3/1.4"
+.TP
+.B --installed-slot
+Slotname of an installed version.
+Recall that without option B<--care> (or B<CAREMODE=true>) the slotname might be guessed.
+.TP
+.B --installed-fullslot
+Slotname of an installed version, possibly with its subslot.
+Recall that without option B<--care> (or B<CAREMODE=true>) the slotname might be guessed.
+.TP
+.BR -U ", " --use
+A useflag defined by IUSE in some version by some of the ebuilds of the package.
+You will usually want to combine this option with -e
+.TP
+.B --installed-with-use
+A useflag enabled during installation of the package.
+Of course, this flag can only match if the package is installed.
+Note that the same restrictions hold as for B<-I>, i.e. only packages will be matched
+which are still in the database.
+.TP
+.B --installed-without-use
+A useflag disabled during installation of the package.
+Of course, this flag can only match if the package is installed.
+Note that the same restrictions hold as for B<-I>, i.e. only packages will be matched
+which are still in the database.
+.\" }}}
+
+.\" {{{ -------- Match algorithm
+.SS "Match algorithm"
+The subsequent options define the algorithm by which the match field should be tested
+against the expression.
+Only one algorithm can be chosen for an expression.
+If you do not specify some of these options, the default is chosen according
+to some heuristic depending on the form of your search pattern and according
+to the selected match field.
+In most cases, the default will be B<--regex> (or B<--regex-case> if your
+expression contains capital letters) unless your expression "looks" like a glob
+pattern or a substring (in which case the corresponding algorithm will be the
+default), or if the selected match field refers only to USE-flags, sets, EAPI,
+or SLOT which perhaps most people would expect to match the whole string.
+Details of the heuristic are specified by the B<DEFAULT_MATCH_ALGORITHM>
+configuration variable explained later.
+Depending on the configuration of that variable, it might even be non-optional
+to specify some of the following options for every query.
+.TP
+.BR -e ", " --exact
+Pattern is an exact (full) string. For example, "coreq -e gcc" will only show packages
+with the name "gcc".
+.TP
+.BR -b ", " --begin
+Pattern is the beginning of the string. For example, "coreq -b gcc" will show the package
+with the name "gcc" but also e.g. "gcc-config".
+.TP
+.BR --end
+Pattern is the end of the string.
+.TP
+.BR -z ", " --substring
+Pattern occurs somewhere within the string.
+.TP
+.BR -f " [" I<N> "], " --fuzzy " [" I<N> "]"
+Do a fuzzy search with a maximal levenshtein-distance of I<N> (default @LEVENSHTEIN_DISTANCE_DEFAULT@)
+for the full string.
+Note that this command slows down search speed.
+.TP
+.BR -p ", " --pattern
+pattern is a wildcard-pattern (for the full string). See
+.BR fnmatch (3)
+and/or
+.BR glob (7)
+for further information. Be sure to use single quotes around patterns (to prevent the
+shell from intercepting any wildcards).
+.TP
+.BR -r ", " --regex
+pattern is a regexp, ignoring case.
+Only a substring must be matched (unless \(ha or $ are used);
+the empty pattern matches everything.
+For further information, please read
+.BR regex (7).
+Again, be sure to use single quotes around patterns.
+.TP
+.BR --regex-case
+As B<--regex>, but does not ignore case.
+.\" }}}
+.\" {{{ -------- Defining layouts
+.SS Defining layouts \fP(see B<FORMATSTRING> below)
+.TP
+.BR --format " " I<FORMATSTRING>
+Defines the I<FORMATSTRING>.
+Since coreq-0.29.6, all other possibilities to modify the format string like
+the setting of B<DEFAULT_FORMAT> or B<FORMAT> are overridden by this option.
+In contrast, if this option is not used, whether the B<FORMAT>,
+B<FORMAT_VERBOSE> or B<FORMAT_COMPACT> variable is used depends on
+the setting of B<DEFAULT_FORMAT> and/or whether the options B<--verbose>,
+B<--compact>, or B<--normal> are used.
+.\" }}}
+.\" }}}
+.\" {{{ -------- Options for coreq-update
+.SS Special options for B<coreq-update>
+.TP
+.BR -H ", " --nostatus
+Do not update the status line.
+.TP
+.BR --force-status
+Update the status line even if output is not a terminal
+or if TERM does not begin with a TERM_STATUSLINE word.
+.TP
+.BR  -o " " I<outputfile> ", " --output " " I<outputfile>
+With this option, B<coreq-update> will write the coreq database to I<outputfile>
+instead of B<@COREQ_CACHEFILE@>.
+When this option is used, the current B<umask> will be honoured:
+otherwise, the B<umask> is forced to B<002> for creating the file.
+.TP
+.BR  -a " " I<overlay> ", " --add-overlay " " I<overlay>
+This is similar to adding I<overlay> to B<PORTDIR_OVERLAY> in /etc/corepkg/make.conf
+or to B<ADD_OVERLAY> but has the advantage that you need not modify some of those,
+and you can also use spaces in I<overlay>.
+Overlays added by this option come after overlays added by B<KEEP_VIRTUALS>.
+If I<overlay> is already contained in the list of overlays, this option has no effect.
+It is explicitly admissible to use this option repeatedly to add several overlays.
+
+.TP
+.BR -x " " I<overlay> ", " --exclude-overlay " " I<overlay>
+This is similar to adding I<overlay> to B<EXCLUDE_OVERLAY>
+but has the advantage that you need not modify the latter,
+and you can also use spaces in I<overlay>.
+I<overlay> is considered as a mask. All matching overlays
+(even those added by later B<--add-overlay> options)
+are excluded from the list of overlays.
+The B<PORTDIR> directory is considered as any other overlay which can be excluded
+(in this case, the first I<overlay> in the list will be stored as B<PORTDIR>).
+It is explicitly admissible to use this option repeatedly to exclude several overlays.
+.TP
+.BR -m " " I<overlay> " " I<method> ", " --override-method " " I<overlay> " " I<method>
+Change the cache method of I<overlay>
+(the B<PORTDIR> directory is an allowed I<overlay>) to I<method>.
+I<overlay> is considered as a mask, i.e. it may contain wildcards.
+If I<overlay> does not match anything in the list of overlays,
+this option has no effect.
+This option is similar to adding the entry "I<overlay> I<method>" at the
+end of the B<OVERRIDE_CACHE_METHOD> variable.
+It is explicitly admissible to use this option repeatedly to
+override cache methods for several overlays.
+The last matching override takes precedence.
+In particular, the option overrides the content of B<OVERRIDE_CACHE_METHOD>.
+.TP
+.BR -r " " I<overlay-path> " " I<overlay-label> ", " --repo-name " " I<overlay-path> " " I<overlay-label>
+The overlay I<overlay-path> obtains the label I<overlay-label>, independent of any other settings.
+This may be overridden by B<REPO_NAMES>.
+In contrast to B<REPO_NAMES>, I<overlay-path> is not a pattern but the exact path.
+.TP
+.BR -v " " --verbose
+Output the effectively used cache method for each ebuild.
+This produces a lot of output and is mainly useful for debugging
+if you are wondering why coreq-update is faster/slower than expected.
+.\" }}}
+
+.\" {{{ OUTPUT
+.SH OUTPUT
+.SS Slots
+In contrast to usual output of versions in emerge, B<coreq>
+can also print slot names if they are nonempty and different from "0".
+Whether this happens is determined by the content of the B<FORMATSTRING>.
+
+If slots are printed, the slot name is separated from the version number
+either with a colon, or the slot names are written in braces.
+You can choose the preferred modes with the B<COLON_SLOTS> variable.
+
+If B<PROPERTIES> or B<RESTRICT> are set in the ebuild, this is shown
+by default in the version string; details can be influenced by setting
+of configuration variables.
+
+Some Examples:
+.TP
+.BR 4.1.1:4.1 "    or    " 4.1.1(4.1)
+This is version 4.1.1 which will be installed into the slot "4.1".
+.TP
+.BR 3.14p:GNAT-3.14p "    or    " 3.14p(GNAT-3.14p)
+This is version 3.14p which will be installed into the slot "GNAT-3.14p".
+.TP
+.B 2.0.0_rc1-r6
+This is version 2.0.0_rc1-r6, and SLOT is either empty or "0".
+.TP
+.B 1.0*ilvs\(hafmpbstuidP{tbz2,gpkg:3,pak:2}
+This is version 1.0 which is subject to
+PROPERTIES="interactive live virtual set" as well as
+RESTRICT="fetch mirror primaryuri binchecks strip test userpriv installsources bindist parallel"
+Moreover, a *.tbz2, three *.gpkg.tar, and two *.xpak files (binary packages without or with
+FEATURES=binpkg-multi-instance or BINPKG_FORMAT=gpkg, respectively) exist for that version
+in B<PKGDIR>.
+.TP
+.B 5.0-r3(5.0R3)\(haf "    or    " 5.0-r3:5.0R3\(haf
+This is version 5.0-r3 which will be installed into SLOT 5.0R3 and has
+fetch restrictions.
+
+.SS Masking
+If you used gentoo for more than a week you're probably going to immediately
+recognize the format of the masking in the version-strings.
+Nevertheless, we are going to explain it here by some examples.
+We describe here of course only the default setting; details can be
+influenced by setting of configuration variables.
+.TP
+.B [P]2.95.3-r8
+If a mask for the package was found in the packages-files from your profile, but this
+version does not match it, the version is determined to be "masked by profile".
+.TP
+.B [M]4.0.0_alpha20050213
+The version matches a mask from /etc/corepkg/package.mask, $PORTDIR/profiles/package.mask
+or a package.mask from your profile. CorePkg calls this "masked by package.mask".
+.TP
+.B [m]4.1.4
+The version matches a local mask (from /etc/corepkg/package.mask), but it is
+neither "masked by profile" nor masked in $PORTDIR/profiles/package.mask.
+.TP
+.B {P}2.95.3-r8
+The version was originally "masked by profile", but this was locally changed in /etc/corepkg/profile/packages.
+.TP
+.B {M}4.0.0_alpha20050213
+The version was originally masked in $PORTDIR/profiles/package.mask, but this was locally changed in /etc/corepkg/package.unmask.
+.TP
+.B *3.3.3
+This means the version is "masked by missing keyword" but stable for an alien architecture.
+.TP
+.B ~*3.3.3
+This version is "masked by missing keyword", stable on no architecture, but unstable on an alien architecture.
+.TP
+.B **3.3.3
+This means the version is "masked by missing keyword" for all architectures.
+.TP
+.B (**)3.4.3-r2
+That version originally had no keyword, but this was locally changed (in /etc/corepkg/package.{accept_,}keywords or by ACCEPT_KEYWORDS).
+.TP
+.B -0.8.14
+Masked by -ARCH.
+.TP
+.B ~3.3.5.20050130
+The version would be "masked by ~keyword".
+.TP
+.B (~)3.3.5.20050130
+The version was originally "masked by ~keyword", but this was locally changed (in /etc/corepkg/package.{accept_,}keywords or by ACCEPT_KEYWORDS).
+.TP
+.B [M]~1.0.9626
+The version is both, "masked by package.mask" and "masked by ~keyword".
+.TP
+.B [m](~)4.1.4-r1
+The version was originally only "masked by ~keyword", but this was locally changed (in /etc/corepkg/package.{accept_,}keywords or by ACCEPT_KEYWORDS).
+However, the version is locally masked (in /etc/corepkg/package.mask).
+.TP
+.B 3.3.1
+Finally, this would be a stable version (which would be stable also without the local settings).
+.SS coreq-diff
+The output of B<coreq-diff> is completely determined by configuration variables
+(B<DIFF_FORMAT_NEW>, B<DIFF_FORMAT_DELETE>, B<DIFF_FORMAT_CHANGED> and a
+lot of variables which - at least in their default setting - is used by them via delayed substitution, see below).
+The following explanation by means of examples therefore can only describe
+the behavior in the default setting of the current coreq version.
+Although this default format was not changed for quite a while, no stability of
+the defaults is guaranteed for future coreq versions.
+.TP
+.B "[N]   >> foo/bar (~1.0): description of foo/bar"
+The package B<foo/bar> has freshly appeared in the tree.
+.TP
+.B "[*N]  >> foo/bar (1.0): description of foo/bar"
+The package B<foo/bar> has freshly appeared in the tree.
+Moreover, it has a version (1.0) which could be installed without any sort of unmasking/keywording.
+.TP
+.B "      << foo/bar ({M}1.0): description of foo/bar"
+B<foo/bar> was removed from the tree; the previous version B<1.0>  was masked, but it is currently not masked anymore
+(probably, because the developer has cleaned up the package.mask file with the removal of the package).
+.TP
+.B "[*>]   == foo/bar (1.0): description of foo/bar"
+The status of package B<foo/bar> has changed in the tree (for your settings): It has gained a version (1.0) which could be installed without any sort of unmasking/keywords
+while in the previous tree foo/bar had no such version. Moreover, the
+.B >
+means that one slot has gained a higher version. In this case, it is actually the
+same change which is responsible for both symbols
+.B >
+and B<*>.
+.TP
+.B "[><]  == foo/bar (1.1(1) 2.0(2) -> 1.0(1) 2.1(2)): description"
+The status of package B<foo/bar> has changed in the tree (for your settings):
+The symbols on the left mean that one slot has gained a higher version which could be installed without modifying masks/keywords,
+another slot had such a highest version removed. If you consider the version strings, it becomes clear
+that slot B<2> has obtained a new version (the previous stable in this slot was B<2.0>, the new one is B<2.1>),
+and that the previously highest stable version B<1.1> of slot B<1> was removed or masked
+(the current stable version in this slot is now B<1.0>).
+.TP
+.B "[U?]  == foo/bar (1.1(1)@01.01.2009; 1.1(1) -> 2.0(2)): description"
+The status of package B<foo/bar> has changed in the tree (for your settings):
+The symbols on the left mean that a slot you have installed can be upgraded (without modifying masks/keywords),
+and that another slot you have installed was removed/masked.
+Looking at the versions on the right, it becomes clear that the installed version B<1.1> of Slot B<1>
+has been removed or masked, and that there is no other installed version of slot B<1>.
+However, a new stable version B<2.0> in slot B<2> has appeared (i.e. slot B<2> did previously not
+exist or had no stable version).
+
+Since no version of slot B<2> was installed yet, coreq cannot decide in this
+situation whether the symbol "B<U>" is really appropriate: Since coreq does no
+dependency tracking, it does not know whether the new slot would be pulled
+in e.g. by your world file, or whether there is only some dependency to your
+old slot.
+Therefore, the symbol "B<U>" is only shown in this situation if
+B<UPGRADE_TO_HIGHEST_SLOT=true> or if the package is listed in
+B</etc/corepkg/package.slot_upgrade_allow>.
+
+Actually, the output
+.B "[U?><] == foo/bar ..."
+would be more consistent, because in addition one slot has gained a
+higher stable version and the highest stable version of another slot was removed,
+but since typically this is implicitly implied by "B<U>" or "B<?>", respectively,
+it was a design decision of the default setting that if B<U> or B<?> is output
+then the symbols
+.B <
+and
+.B >
+will not be output.
+You can of course build a different B<DIFF_FORMAT_HEADER_CHANGED> string
+which follows another policy.
+.\" }}}
+
+.\" {{{ FORMATSTRING
+.SH FORMATSTRING
+.LP
+A formatstring can contain conditional blocks, package properties, colors and
+normal strings. The normal strings are output as expected (with special escape
+sequences being recognized, see below); for size calculations for e.g. tabs,
+UTF8 encoding is supposed.
+.\" {{{ -------- Conditional blocks
+.SS Conditional blocks
+Conditions are very simple: A property is expanded and the resulting string is
+tested against another string. If they are the same, the condition is true and
+the block is executed. Conditions can be negated so that the else-part is
+executed if the condition is true, and the if-part if the condition is false.
+The else-part can be also be completely left out.
+.TP
+.BR { [ ! ] I<PROPERTY> [ = I<RHS>] } I<TCODE> {}
+Execute I<TCODE> if the string resulting from expanding I<PROPERTY> is equal to I<RHS>.
+The B<!> would negate the behaviour.
+.TP
+.BR { [ ! ] I<PROPERTY> [ = I<RHS>] } I<TCODE> {else} I<FCODE> {}
+Execute I<TCODE> if the string resulting from expanding I<PROPERTY> is equal to I<STRING>.
+If it's not, execute I<FCODE>.
+
+I<RHS> is either a property (if enclosed in <>) or a variable (if prefixed with $)
+or a string (otherwise or if quoted).
+
+I<PROPERTY> can be either one of the Package properties specified below,
+or it can be a variable access.
+A variable access has the form B<$>I<VARIABLE>.
+I<VARIABLE> need not be initialized; its content defaults to the empty string.
+
+To change I<VARIABLE> during runtime use this syntax:
+.TP
+.BR { [ ! ] *I<VARIABLE> [ = I<RHS>] }
+This sets the runtime variable B<VARIABLE> to I<RHS>.
+With B<!>, the result is either 1 or empty, depending on whether I<RHS> is nonmpty.
+If the trailing part (including the B<=> sign) is omitted, there is a special meaning:
+B<{*>I<VARIABLE>B<}> sets I<VARIABLE> to 1, B<{!*>I<VARIABLE>B<}> sets I<VARIABLE> to the empty string.
+.\" }}}
+
+.\" {{{ -------- Package properties
+.SS Package properties
+Names that refer to specific properties of the package that is currently
+printed. If used to print a property, the name B<must be enclosed in square brackets>
+(i.e. "<name>").
+.TP
+.BR name ", " category ", " homepage ", " licenses
+The name, category, homepage and licenses for the current package.
+.TP
+.BR "availableversions:I<VARIABLE>" ", " "availableversions:I<VARIABLE>:I<VARSLOTS>"
+For each version, print the content of the configuration/environment variable with name
+I<VARIABLE>, interpreting it as a format string.
+If the second form is used and at least one slot of the package is nontrivial,
+then I<VARSLOTS> is used instead of I<VARIABLE>, and the versions are sorted
+according to slots.
+
+To avoid a misunderstanding: It is not possible to enter the required format directly after the colon.
+Instead, the required format must be stored in a new variable, and I<VARIABLE> and I<VARSLOTS>
+are only the names of these variables.
+
+Useful examples for I<VARIABLE> are B<NAMEVERSION>, B<EQNAMEVERSION>,
+B<EQNAMEVERSION>, B<ANAMESLOT>, B<ANAMEASLOT>, B<NAMESLOT>, B<NAMEASLOT> or
+B<DATESORT>.
+Here, B<ANAMESLOT> and B<ANAMEASLOT> are meant to be used in the second form,
+i.e. in B<availableversions:ANAMESLOT:ANAMESLOT> or B<availableversions:ANAMEASLOT:ANAMEASLOT>
+(Mnemonic: B<A>SLOT prints the slot B<a>lways).
+Moreover, B<NAMESLOT>, B<NAMEASLOT> and B<DATESORT> makes sense only for installed versions.
+See B<coreq --dump> to see the variables in detail.
+.TP
+.BR "markedversions:I<VARIABLE>" ", " "markedversions:I<VARIABLE>:I<VARSLOTS>"
+This is analogous to B<availableversions> with the difference that only
+marked (and available) versions are printed.
+.TP
+.BR "bestversion:I<VARIABLE>" ", " "bestversion*:I<VARIABLE>" ", " "bestslotversions:I<VARIABLE>" ", " "bestslotversions*:I<VARIABLE>" ", " "bestslotupgradeversions:I<VARIABLE>" ", " "bestslotupgradeversions*:I<VARIABLE>"
+This is analogous to B<availableversions> with the difference that only the best version
+resp. the best versions of each slot are printed.
+For the variants with B<*> also unstable versions are accepted.
+For the variants with B<upgrade> only those versions are selected which
+probably will appear after the upgrade.
+.TP
+.B "installedversions:I<VARIABLE>"
+This is analogous to B<availableversions> with the difference that only
+installed versions are printed.
+.TP
+.BR first ", " last ", " slotfirst ", " slotlast ", " oneslot
+This must occur only in I<VARIABLE> in the context of version printing.
+You can use these flags to test whether you are currently printing the first
+or last version of the package (usually to output some additional text in these cases).
+Similarly, when the printing is sorted according to slots you can test whether
+the current version is the first or last of the current slot or if there is
+only one slot at all.
+All these properties are empty if the condition is not satisfied, otherwise 1.
+To ease reusing code, when printing is not sorted according to slots, then
+B<slotfirst>/B<slotlast> is equivalent to B<first>/B<last> and B<oneslot> is 1.
+.TP
+.BR srcuri ", " havesrcuri
+This must occur only in I<VARIABLE> in the context of version printing.
+It outputs the B<SRC_URI> of an available version or 1, if B<SRC_URI> is nonempty,
+respectively.
+.TP
+.BR eapi
+This must occur only in I<VARIABLE> in the context of version printing.
+It outputs the B<EAPI> of an available or installed version.
+.TP
+.BR slot ", " isslot ", " fullslot ", " isfullslot ", " subslot ", " issubslot
+This must occur only in I<VARIABLE> in the context of version printing.
+It outputs the slot/subslot/both of the current version.
+B<isslot>, B<isfullslot>, B<issubslot> just test whether the slot, fullslot, or subslot are trivial and outputs 1 in this case,
+otherwise nothing.
+.TP
+.BR overlayver ", " overlaynum ", " overlayvername ", " virtual
+This must occur only in I<VARIABLE> in the context of version printing.
+It outputs the overlay of the current version.
+B<overlayver> is the colored index of the overlay and empty if the whole package is from only one overlay;
+you should use B<overlaykey> to print the overlay in such a case.
+B<overlaynum>, in contrast, contains the number of the overlay
+without colors unconditionally (and is empty only if the version is not from an overlay).
+B<overlayplainname> is the label (name) (or path if the label is unknown or empty) of the overlay;
+B<overlayplainname*> considers also the main repository as an overlay, here.
+B<overlayvername> and B<overlayvername*> are analogous, but return an empty string
+if the whole package is from the same respository.
+B<virtual> is nonempty if and only if the version is from a virtual overlay.
+.TP
+.BR versionkeywords ", " versionkeywords* ", " versionekeywords
+This must occur only in I<VARIABLE> in the context of version printing.
+It outputs the full keywords of the current version.
+If the data is modified by the profile, the modified data is printed with
+B<versionkeywords*>. The special form B<versionekeywords> prints the latter
+if it differs from B<versionkeywords>; otherwise, it is empty.
+.TP
+.BR isbestupgrade ", " isbestupgrade* ", " isbestupgradeslot ", " isbestupgradeslot*
+This must occur only in I<VARIABLE> in the context of version printing.
+It returns 1 if the current version is the best resp. best in the current slot for upgrading.
+For the variants with B<*> also unstable versions are considered.
+.TP
+.BR installedversion ", " markedversion
+This must occur only in I<VARIABLE> in the context of version printing.
+It returns 1 or the empty string depending on whether the current available
+version is installed or marked, respectively.
+The test for B<markedversions> always fails in the context of <installedversions:...>.
+.TP
+.BR ishardmasked ", " washardmasked ", " isprofilemasked ", " wasprofilemasked ", " ismasked ", " wasmasked ", " isstable ", " wasstable ", " isunstable ", " wasunstable ", " isalienstable ", " wasalienstable ", " isalienunstable ", " wasalienunstable ", " ismissingkeyword ", " wasmissingkeyword ", " isminuskeyword ", " wasminuskeyword ", " isminusunstable ", " wasminusunstable  ", " isminusasterisk ", " wasminusasterisk
+This must occur only in I<VARIABLE> in the context of version printing.
+This returns 1 or empty depending whether the version has the current stability
+property according to the local or default configuration, respectively.
+.TP
+.B isbinary
+This must occur only in I<VARIABLE> in the context of version printing.
+It returns 1 or empty depending on whether there is a corresponding *.tbz2, *gpkg.tar, or *.xpak file for the version.
+.TP
+.B istbz
+This must occur only in I<VARIABLE> in the context of version printing.
+It returns 1 or empty depending on whether there is a corresponding *.tbz2 file for the version.
+.TP
+.B isgpkg
+This must occur only in I<VARIABLE> in the context of version printing.
+It returns 1 or empty depending on whether there is at least one corresponding *.gpkg.tar file for the version.
+.TP
+.B ispak
+This must occur only in I<VARIABLE> in the context of version printing.
+It returns 1 or empty depending on whether there is at least one corresponding *.xpak file for the version.
+.TP
+.B isgpkgmulti
+This must occur only in I<VARIABLE> in the context of version printing.
+It returns 1 or empty depending on whether there are at least two corresponding *.gpkg.tar files for the version.
+.TP
+.B ismultipak
+This must occur only in I<VARIABLE> in the context of version printing.
+It returns 1 or empty depending on whether there are at least two corresponding *.xpak files for the version.
+.TP
+.B gpkgcount
+This must occur only in I<VARIABLE> in the context of version printing.
+It returns the number of *.gpkg.tar files for the version or empty if there are none.
+.TP
+.B pakcount
+This must occur only in I<VARIABLE> in the context of version printing.
+It returns the number of *.xpak files for the version or empty if there are none.
+.TP
+.BR restrict ", " restrictfetch ", " restrictmirror ", " restrictprimaryuri ", " restrictbincheck ", " restrictstrip ", " restricttest ", " restrictuserpriv ", " restrictinstalledsources ", " restrictbindist ", " restrictparallel
+This must occur only in I<VARIABLE> in the context of version printing.
+It returns 1 or empty depending on whether some or the corresponding B<RESTRICT> attribute is set for the version.
+.TP
+.BR properties ", " propertiesinteractive ", " propertieslive ", " propertiesvirtual ", " propertiesset
+This must occur only in I<VARIABLE> in the context of version printing.
+It returns 1 or empty depending on whether some or the corresponding B<PROPERTIES> attribute is set for the version.
+.TP
+.BR depend ", " rdepend ", " pdepend ", " bdepend ", " depend* ", " rdepend* ", " pdepend* ", " bdepend* ", " idepend*
+This must occur only in I<VARIABLE> in the context of version printing.
+It returns the respective B<DEPEND>, B<RDEPEND>, B<PDEPEND>, B<BDEPEND>, B<IDEPEND> string of an available package
+(the string is shortened if possible if the variant with B<*> is used).
+This is empty unless B<DEP=true> is set (and was set when the cachefile was created).
+.TP
+.BR havedepend ", " haverdepend ", " havepdepend ", " havebdepend ", " haveidepend ", " havedeps
+This is like the above with the difference that only 1 is returned if the
+value of the corresponding string (resp. of at least one of these) is nonempty.
+.TP
+.BR havemaskreasons ", " maskreasons ", " maskreasons*
+This must occur only in I<VARIABLE> in the context of version printing.
+For available versions, B<maskreasons> outputs the mask reasons and B<havemaskreasons> whether there are some.
+Separators used are B<FORMAT_MASKREASONS_LINESKIP> and B<FORMAT_MASKREASONS_SEP>;
+for B<maskreasons*> separators used are <FORMAT_MASKREASONSS_LINESKIP> and B<FORMAT_MASKREASONSS_SEP>.
+.TP
+.BR haveuse ", " use ", " use* ", " use0
+This must occur only in I<VARIABLE> in the context of version printing.
+For available versions, B<use> outputs the B<IUSE> variable.
+For installed versions, B<use> outputs the B<USE> flags and whether they are set
+(in the later case, the content of B<FORMAT_BEFORE_SET_USE>, B<FORMAT_AFTER_SET_USE>, B<FORMAT_BEFORE_UNSET_USE>, B<FORMAT_AFTER_UNSET_USE>
+is printed at the appropriate places).
+The B<use*> variant treats B<USE_EXPAND> variables separately and outputs them,
+using the content of B<FORMAT_BEFORE_USE_EXPAND_START>, B<FORMAT_BEFORE_USE_EXPAND_END>,
+B<FORMAT_AFTER_USE_EXPAND>, B<FORMAT_BEFORE_IUSE_EXPAND_START>,
+B<FORMAT_BEFORE_IUSE_EXPAND_END> and B<FORMAT_AFTER_IUSE_EXPAND>
+at the appropriate places.
+The B<use0> variant suppresses the output of B<USE_EXPAND> variables.
+B<haveuse> can be used to test whether an output would be nonempty
+(in this case it is 1, otherwise empty).
+.TP
+.BR requireduse ", " haverequireduse
+This must occur only in I<VARIABLE> in the context of version printing.
+For available versions, it outputs the B<REQUIRED_USE> variable, or
+B<1> if that variable is not empty, respectively.
+This is empty unless B<REQUIRED_USE> is set (and was set when the cachefile was created).
+.TP
+.BR "date:I<VAR>"
+This must occur only in I<VARIABLE> in the context of version printing.
+It outputs the installation date; the strftime() format for the date is read from
+the variable I<VAR>.
+.TP
+.BR version, plainversion, revision
+This must occur only in I<VARIABLE> in the context of version printing.
+It outputs the version (man 5 ebuild: $PVR) in text form.
+plainversion outputs the version without revision ($PV),
+and revision only the revision ($PR).
+In contrast to corepkg, revision is empty if there was no revision specified.
+.TP
+.BR installed ", " best ", " best*
+Is 1 or empty, depending on whether at least one version of the package is installed
+or has a best stable or best unstable version.
+.TP
+.B versionlines
+Is 1 or empty, depending on whether the --versionlines flag was passed.
+.TP
+.B slotsorted
+Is 1 or empty, depending on whether the --versionsort flag was passed.
+.TP
+.B color
+Is 1 or empty, depending on whether colors/markers are printed.
+For instance if the output is redirected to a terminal and no opposite
+option is used, this will be empty.
+.TP
+.BR setnames ", " allsetnames
+The name of all local sets to which the package belongs, separated by spaces.
+With B<allsetnames> also the "system" and "profile" set names are included.
+.TP
+.B binary
+Is 1 or empty, depending on whether at least one version (available or installed) has a corresponding *.tbz2, *.gpkg.tar, or *.xpak file.
+See the remarks for B<--binary>.
+.TP
+.B mainrepo
+Is 1 or empty, depending on whether at least one available version belongs to the main repository 0 (typically: gentoo).
+.TP
+.BR overlaykey ", " overlayname
+If all versions are in the same overlay, "[overlaykey]" (in corresponding colors) or "overlaylabel" is output.
+.TP
+.BR havevirtual ", " havenonvirtual
+Is 1 or empty, depending on whether at least one available version is from a (non)virtual overlay.
+.TP
+.B system
+expands to 1 if the package is in @system
+.TP
+.B profile
+expands to 1 if the package is in @profile
+.TP
+.B world
+expands to 1 if the package is in the world file
+.TP
+.B world_sets
+expands to 1 if the package is in the world sets
+.TP
+.B marked
+expands to 1 if the package name was passed with the B<--pipe> option (no matter whether a version matches or not, see also B<havemarkedversion>).
+This is mainly only useful in tests.
+.TP
+.BR havemarkedversion
+Is 1 or empty, depending on whether at least one available version of the package is marked.
+Note that it is possible that a package is marked although none of its available versions is marked.
+.TP
+.BR slots ", " slotted
+expands to 1 if there are at least two slots resp. at least one nontrivial slot.
+.TP
+.BR colliuse ", "  colliuse* ", "  colliuse0 ", " havecolliuse
+The collected IUSE flags (i.e. their union) of all available versions
+of the package, separated by spaces.
+The B<colliuse*> variant outputs USE_EXPAND variables separately, using
+B<FORMAT_BEFORE_COLL_EXPAND_START>,
+B<FORMAT_BEFORE_COLL_EXPAND_END> and B<FORMAT_AFTER_COLL_EXPAND>
+at the appropriate places.
+The B<colliuse0> variant omits the output of USE_EXPAND variables.
+havecolliuse expands to 1 if colliuse is nonempty; this is faster than colliuse.
+.TP
+.BR havebest ", " havebest*
+Expands to 1 if the package has a best stable/unstable version.
+.TP
+.BR upgrade ", " upgradeorinstall ", " downgrade ", " recommend ", " recommendorinstall
+B<upgrade> expands to 1 if the package is installed and at least one slot can be upgraded
+(or the best stable version is a new slot and B<UPGRADE_TO_HIGHEST_SLOT> is true).
+The other variables test similarly whether the package can be upgraded or newly installed,
+should be downgraded, can/should be upgraded/downgraded,
+or can/should be upgraded/downgraded/installed, respectively.
+The variable B<RECOMMEND_LOCAL_MODE> determines whether these tests obey B<LOCAL_COREPKG_CONFIG>.
+.TP
+.BR bestupgrade ", " bestupgradeorinstall ", " bestdowngrade ", " bestrecommend ", " bestrecommendorinstall
+as above with the difference that only the best stable version of the package
+is taken into account (and not all slots).
+.TP
+.BR better ", " worse ", " differ ", " bestbetter ", " bestworse ", " bestdiffer
+this can only be used in conditionals in B<DIFF_FORMAT_CHANGED>.
+B<better> expands to 1 if the new package has a new slot or a better stable
+version (or the same best stable version but from a different overlay number)
+for some slot than the old package.
+B<worse> means analogously that the old package had at least one better slot
+or a slot which is not available in the new package.
+B<differ> means that not all best stable slots of the old and new package
+coincide.
+The corresponding B<best*> versions have an analogous meaning with the
+difference that only the best stable version is taken into account
+(and not all slots).
+The variable B<RECOMMEND_LOCAL_MODE> determines whether these tests obey B<LOCAL_COREPKG_CONFIG>.
+.TP
+.BR old... ", " new...
+this can only be used in B<DIFF_FORMAT_CHANGED>.
+You can prefix any property name with B<old> and B<new>, and the value
+corresponds to that property, taking the old resp. new data into account.
+If neither B<old> nor B<new> is specified, the new version is assumed.
+For example, B<oldavailableversions:VAR> will output the previous available
+versions (using the variable B<VAR> to determine the output format)
+while B<newavailableversions:VAR> and B<availableversions:VAR> both will print
+the available versions of the current (i.e. new) package.
+.\" }}}
+
+.\" {{{ -------- Escape sequences
+.SS Escape sequences
+.TP
+.B \\\\n \\\\r  \\\\t  \\\\b  \\\\a
+These are interpreted in the usual way as in printf.
+Within B<FORMATSTRING>, tabs are calculated into spaces,
+assuming that the B<FORMATSTRING> is in UTF8.
+
+.TP
+.B \\\\C\<I<COLUMN>>
+This special escape sequence is only admissible in B<FORMATSTRING>.
+Here, I<COLUMN> is a number (which must be enclosed in the braces).
+During output, this is interpreted by coreq in such a way that if
+the column I<COLUMN> is not yet reached during output of the current line,
+so many spaces are output that this is the case.
+Thus, in a sense, this can be considered as a powerful tabulator
+which does not leave the interpretation to the terminal.
+For the calculation of the length of the current line, it is assumed that
+the B<FORMATSTRING> is in UTF8.
+.\" }}}
+
+.\" {{{ -------- Colors
+.SS Colors
+.TP
+.BI ( COLORSTRING | COLORSTRING | ... )
+The effective I<COLORSTRING> chosen depends on B<COLORSCHEME?>.
+It should have the following form:
+
+.TP
+.IB MARKER_OR_COLOR ; MARKER_OR_COLOR ; ...
+B<MARKER_OR_COLOR> is either a marker attribute or a color name, optionally
+followed by B<,1> (or B<,0>) to specify that bright color should (not) be used.
+
+Available marker attributes are:
+I<none bold italic underline blink inverse>
+
+Available colors are:
+I<default black red green yellow blue purple cyan gray 0 ... 255>
+
+Note that I<gray> does not work as required on all terminals and
+that I<0> ... I<255> are interpreted usefully only on 88/256 color terminals.
+
+The first color in I<COLORSTRING> specifies the foreground color,
+the second the background color.
+
+If a foreground color is specified, all colors and attributes are reset.
+The empty string is defined as the color "default".
+In particular, B<()> means that all colors and attributes are reset.
+
+If you want that nothing is actually output or reset,
+specify the attribute B<(none)>.
+.\" }}}
+
+.\" {{{ -------- Example
+.SS Examples:
+
+\fBcoreq --format '{installed}(yellow,1;underline){else}(yellow,0){}<name>()\\n' ...\fR
+
+If the package B<...> is installed, print the name underlined in bright yellow,
+else in normal yellow.
+
+\fBINSTFORMAT='{first}:{}<version> <date:DATEFORMAT>{!last}\\n\\t{}' DATEFORMAT='%x' coreq --format '<category>/<name><installedversions:INSTFORMAT>\\n' 'autom*'\fR
+
+This will print for every B<autom*> package the category name, and if it is installed,
+it will also print the installed versions and the installation day.
+One could have obtained the same result by omitting B<{!last}\\t\\n{}> and writing instead B<{first}:{else}\\t\\n{}>,
+since it is of course the same whether B<\\t\\n> is printed at the end of each version except the last
+or at the beginning of each version except the first.
+
+B<FORMAT='{downgrade}%{FORMAT_ALL}{}' coreq -I>
+
+This will print all installed packages for which there are downgrade recommendations.
+Note that B<FORMAT='{downgrade}%{FORMAT}{}'> does not work, because this would be
+a self-referential definition in the delayed substitution:
+Of course, a variable cannot be defined by an expansion of itself.
+For this reason, the content of B<FORMAT> and similar variables has become
+very simple since coreq-0.13.4: It is just B<%{FORMAT_ALL}>
+(and similarly for other variables).
+So one can easily insert the full definition of the original value of
+B<FORMAT> (which we have done in the above example).
+
+Note that if you want to have compact output in the above example, you cannot
+just append the option B<-c>, because appending this option just has the
+effect that for the format string the variable B<FORMAT_COMPACT> is used
+instead of B<FORMAT>. So, to have compact output, you should use either
+
+B<FORMAT_COMPACT='{downgrade}%{FORMAT_ALL_COMPACT}{}' coreq -Ic>
+
+or even simpler and with the same effect:
+
+B<FORMAT='{downgrade}%{FORMAT_ALL_COMPACT}{}' coreq -I>
+
+A much simpler possibility to avoid the self-reference is in the above example
+usage of the B<--format> option:
+
+B<coreq --format '{downgrade}%{FORMAT}{}' -I>
+
+or, for compact output,
+
+B<coreq --format '{downgrade}%{FORMAT_COMPACT}{}' -I>
+
+respectively.
+.\" }}}
+.\" }}}
+
+.\" {{{ FILES
+.SH "FILES"
+.LP
+.\" {{{ -------- @SYSCONFDIR@/coreq-sync.conf
+.SS @SYSCONFDIR@/coreq-sync.conf
+This file stores commands and configurations to apply with B<coreq-sync>.
+Comment lines start with B<#>.
+Lines can have the following forms and will be
+executed in the given order before B<emerge --sync> is executed.
+
+Note that the content of the variable B<COREQ_SYNC_CONF> is appended to that file.
+By default, the latter expands to B<COREQ_SYNC_OPTS> so that also that variable is
+appended to that file. Both variables can be used to modify the defaults
+set in I<@SYSCONFDIR@/coreq-sync.conf>. Be aware that a lot code of these lines is
+evaluated when B<coreq-sync> is executed, so take care about security!
+.TP
+.I option(s)
+Use I<option(s)> as default for coreq-sync (in front of all other options).
+As usual, I<option(s)> must start with "B<->". I<option(s)> will be evaluated
+by the shell in the B<coreq-sync> script, so take care about security and be sure
+to quote shell command separators properly!
+.TP
+.I Name
+Call B<layman -s> I<Name>.
+Note that B<layman> is provided by B<app-corepkg/layman> to sync overlays.
+.TP
+.BR *
+Call B<layman -S> (i.e. all overlays are synced with layman).
+.TP
+.BI ! command
+Evaluate I<command> within the B<coreq-sync> shell script (in the same shell).
+I<command> must exit successfully or B<coreq-sync> will print a warning.
+(Thus, B<!layman> I<Name> is more or less equivalent to I<Name>.)
+Close e.g. the command with "; true" if you want that the exit status is ignored.
+The warning becomes even a fatal error with the option B<-F>.
+You can set B<FATAL_HOOKS> to a nonempty/empty value to force/cancel B<-F>
+for the currently and subsequently executed hooks.
+If you want only the current hook to exit with an error, you can call B<die> explicitly.
+
+You can use this feature to unpack e.g. an overlay before calling B<layman>
+or to apply local fixes after B<layman> was called.
+You can also set the variable B<have_changed=:> here to tell coreq-sync that some overlay has changed.
+(Otherwise coreq will stop with exit code 3 if the main corepkg tree did not change.)
+
+In contrast to earlier coreq versions, I<command> does not output anything
+(use einfo if you want that), and it is not evaluated within a subshell,
+i.e. you can also modify environment variables or begin/end redirection
+as you like.
+The disadvantage is that you can also easily override internal coreq-sync
+variables or functions by accident; if in doubt, put your command in
+braces (...) to start it in a subshell.
+.TP
+.BI !! command
+This is similar to B<!> I<command> with the difference that
+I<command> is unconditionally executed, i.e. even if
+options -d, -u, or -l are used.
+It is meant to set environment variables for the other programs.
+.TP
+.BI ~ command
+This is only important if coreq-sync options B<-s> or B<-2> are used.
+In this case, I<command> will be executed before the first call of B<rsync>;
+the output of I<command> is evaluated within the B<coreq-sync> shell.
+If I<command> or the evaluation of its output are not successful,
+B<coreq-sync> will print a warning (or error out if B<-F> is active,
+i.e. if B<FATAL_HOOKS> is nonempty).
+This can be used to execute e.g. B<keychain> and to return the content of
+the appropriate I<~/.keychain/*-sh> file or to return export-commands for
+the current B<SSH_AUTH_SOCK> and B<SSH_AGENT_PID>.
+It is also admissible that the output of I<command> is a command which
+modifies the variables B<COREPKG_RSYNC_OPTS>, B<COREPKG_RSYNC_EXTRA_OPTS>,
+B<PORTDIR>, B<PORTDIR_SERVER>, B<PORTDIR_CLIENT>, B<SERVER>, or B<CLIENT>.
+These variables are filled with defaults when I<command> is called and
+will later be used for the B<rsync> command(s) with their obvious meaning.
+.TP
+.BI @ command
+Adds a hook for I<command>; the actual execution of I<command> is postponed
+until B<emerge --sync> was (successfully) called.
+.TP
+.BI @@ command
+Adds a hook for I<command>; the actual execution of I<command> is postponed
+until B<emerge --sync> and the subsequent B<coreq-update> was (successfully) called.
+
+.TP
+Here is a B<schematic> overview of the order of hooks/commands:
+
+.BR !! " hooks"
+
+.BR "cp @COREQ_CACHEFILE@ @COREQ_PREVIOUS@"
+
+layman calls and B<!> hooks in order of I<@SYSCONFDIR@/coreq-sync.conf>
+
+.BR ~ " hooks"
+
+.BR "emerge --sync"
+
+.BR @ " hooks"
+
+.BR "coreq-update"
+
+.BR @@ " hooks"
+
+.BR coreq-diff
+
+.TP
+Some examples of useful lines in I<@SYSCONFDIR@/coreq-sync.conf>:
+.TP
+.B -F
+Always error out on layman/hook errors.
+This was always the case in earlier coreq versions.
+.TP
+.B -C --ignore-default-opts
+Use this line if you have --ask in EMERGE_DEFAULT_OPTS in /etc/corepkg/make.conf
+but do not want to get asked for coreq-sync.
+.TP
+.B -r -M
+Use this if you use e.g. B<PORTDIR_CACHE_METHOD=assign>, and
+B<FEATURES=metadata-transfer> is inactive or disabled
+(the latter is the default in newer corepkg versions).
+Depending on your needs you might want to use also B<-r> or B<-M> alone or
+replace B<-M> by the line
+.TP
+.BI @StatusInfo ... [ statusline ]
+Announce that the next command will be I<...>
+(sets hardstatus line and output info for user.)
+.TP
+.BI @Statusline ...
+As above, but set only hardstatus line.
+.TP
+.BI @einfo ...
+As above, but output only info to user.
+.TP
+.B @coreq-remote fetch1
+Download remote1 data with every call of B<coreq-sync>.
+.TP
+.B @emerge --regen
+to use B<emerge --regen> instead of B<emerge --metadata>.
+.TP
+.B @egencache --repo=local --update
+Update the metadata cache of the overlay with repository name "local"
+before coreq-update is called but after calling emerge --sync.
+This can make sense if you want to use cache method B<metadata-md5> or B<metadata-flat>
+for that overlay and want to make sure that this metadata cache is up-to-date.
+The disadvantage in case of B<metadata-flat> is that this B<egencache> command is executed even if
+"local" was not changed (which is usually the case for local repositories).
+.TP
+.B !egencache --repo=foo --update
+Update the metadata cache of the overlay with repository name "foo";
+this makes sense if you had earlier a line B<foo> or a line B<!command to update foo>
+for updating this repository (by layman or by some other command)
+and if you want to use cache method B<metadata-flat> for that overlay
+although the metadata cache is broken or not contained in that repository.
+.TP
+.B !!exec >/var/log/coreq-sync.log ; chown corepkg: /var/log/coreq-sync.log || true
+Send the output to a logfile (with correct permissions).
+The "true" at the end is to force continuing even if the "chown" failed.
+If you do not want to redirect the output of the final B<coreq-diff>, you might
+want to combine this with
+.TP
+.B @@exec >/dev/tty
+Output the B<coreq-diff> stat to the terminal, even if redirection occurred.
+.TP
+.B @@exit 0
+Do not execute B<coreq-diff> at all.
+.TP
+.B !!export FORCE_USECOLORS=${FORCE_USECOLORS:-true}
+Unless FORCE_USECOLORS is set differently in your environment, coreq output
+will be colored even if you use redirection.
+.TP
+.B ~keychain --quiet ~/.ssh/id_rsa ; cat ~/.keychain/"`hostname`-sh"
+.\" }}}
+
+.\" {{{ -------- @SYSCONFDIR@/coreqrc
+.SS @SYSCONFDIR@/coreqrc
+Global configuration file. The variables in B<~/.coreqrc> or from the environment
+can override the variables set in this file. See B<~/.coreqrc>.
+.\" }}}
+
+.\" {{{ -------- COREQRC
+.SS COREQRC
+If this environment variable is set, its value is used instead of the filename
+I<@SYSCONFDIR@/coreqrc> to read the configuration data. In this case, the file
+~/.coreqrc is ignored (but you can of course source it if you want it).
+
+.SS COREQ_SYNC_OPTS, COREQ_SYNC_CONF, COREQ_REMOTE_OPTS, COREQ_LAYMAN_OPTS, COREQ_TEST_OBSOLETE_OPTS
+Although these variables are usually set in ~/.coreqrc (and are therefore
+described in the corresponding section), these variables are pointed out
+here because they are exceptionally security relevant:
+They (or at least part of them) are evaluated by the shell if you call the
+scripts with the corresponding name. Thus, be sure that they are not compromised
+when you call these scripts with root permissions.
+.\" }}}
+
+.\" {{{ -------- ~/.coreqrc
+.SS ~/.coreqrc
+Per-user configuration file.
+The variables in this file can be overridden by environment variables.
+You can use a shell-like syntax to set the following variables.
+In particular, you can source other files and you can use auxiliary variables to set other variables.
+
+However, if you use auxiliary variables as usual, you will only see
+the substituted values with --dump or --dump-defaults and you cannot
+replace the inserted values e.g. by setting them in the environment.
+
+For this reason, you can refer to variables besides the usual shell-way also
+in the syntax B<%{>I<VARIABLE>B<}> (the braces here are not optional).
+This means that the substitution is delayed until all configuration files
+and environment variables are read, and the substitution will not show up
+with --dump or --dump-defaults.
+
+This concept is called delayed substitution/reference, and provides also
+some additional features:
+
+.\" {{{ -------- Special symbols
+.TP
+.B Special symbols for delayed substitution
+.RS
+
+.TP
+.B " %{%"
+This must be used if you need B<%{> in a variable text
+(otherwise delayed substitution would take place).
+
+.TP
+.BI * VARIABLE
+If a delayed reference uses a variable name starting with B<*>,
+this B<*> is replaced by B<COREQ_>, B<DIFF_>, B<UPDATE_>, or B<DROP_>,
+depending on whether it is used from B<coreq>/B<coreq-diff>/B<coreq-update>,
+or B<coreq-drop-permissions>, respectively.
+This way you can have different defaults for these programs.
+
+For example, the delayed reference B<%{*>I<VARIABLE>B<}> will insert
+the expansion of B<COREQ_>I<VARIABLE>, B<DIFF_>I<VARIABLE>, B<UPDATE_>I<VARIABLE>,
+or B<DROP_VARIABLE>, respectively.
+
+The B<\\> and B<*> attributes can be combined (order plays no role),
+and you can also combine it with an I<APPENDIX>.
+
+As a practical example, if you want that B<COREQ_USER> has the value "nobody"
+when called from B<coreq-drop-permissions> (e.g. from B<coreq-remote>)
+but the default value "corepkg" otherwise, you can set:
+
+B<COREQ_USER=%{*COREQ_USER}>
+
+B<COREQ_COREQ_USER=corepkg>
+
+B<DIFF_COREQ_USER=corepkg>
+
+B<UPDATE_COREQ_USER=corepkg>
+
+B<DROP_COREQ_USER=nobody>
+
+.TP
+B<\\>I<VARIABLE>
+If a delayed reference uses a variable name starting with B<\\>,
+all \\ or [\\n\\r\\t ] symbols of the (expanded)
+I<VARIABLE> content are considered as escaped.
+
+In particular, the delayed reference B<%{\\>I<VARIABLE>B<}> can be used in
+string list variables like B<CACHE_METHOD> or B<COREQ_LOCAL_SETS>,
+ensuring that I<VARIABLE> produces at most one entry "as is", even if it
+should contain spaces or \\ characters.
+
+The B<\\> and B<*> attributes can be combined (order plays no role),
+and you can also combine it with an I<APPENDIX>.
+
+.TP
+.BI * VARIABLE " " APPENDIX
+This is only recognized if I<APPENDIX> starts with one of the symbols B<,> or B<;>.
+In this case, B<APPENDIX> is appended to the content of B<VARIABLE> and in addition in front of all B<|> symbols within that content.
+(The B<APPENDIX> can be combined with the B<\\> and B<*> attributes.)
+B<APPENDIX> is taken as-is, and it must not contain the symbol B<}>.
+The purpose of B<APPENDIX> is to make writing colors simpler.
+Example:
+
+B<COLOR_DEFAULT=blue|27>
+
+B<FORMAT="(%{COLOR_DEFAULT,1)A (%{COLOR_DEFAULT;invert})B">
+
+B<BAD_FORMAT=(%{COLOR_DEFAULT},1;invert)A>
+
+In this example, B<FORMAT> will expand to
+
+.B (blue,1|27,1)A (blue;invert|27;invert)B
+
+while B<BAD_FORMAT> will expand to
+
+.B (blue|27,1;invert)A
+
+The latter is probably not what was intended if B<COLORSCHEME?=0>.
+.RE
+.\" }}}
+
+.\" {{{ -------- Conditional blocks as delayed reference
+.TP
+.B Conditional blocks in delayed references
+If you want to substitute several variables completely differently,
+depending on the state of a (Boolean) variable, you can use
+conditional blocks.
+
+This is somewhat analogous to Conditional Blocks in FORMATSTRING:
+If the referenced variable expands finally to the Boolean value true
+(B<true>/B<1>/B<yes>/B<y>/B<on>) (resp. to something nonempty if you
+preceed I<VARIABLE> with an additional B<?>) the result is true
+and the corresponding block of the string is expanded.
+Conditions can be negated so that the else-part is expanded if the
+condition is true, and the if-part if the condition is false.
+The else-part can be also be completely left out.
+The special variable names B<*>I<VARIABLE> (instead of I<VARIABLE>)
+can also be used in these conditionals.
+
+.RS
+.TP
+.BI %{? VARIABLE } TCODE %{}
+Expand I<TCODE> if I<VARIABLE> expands to true.
+
+.TP
+.BI %{?? VARIABLE } TCODE %{}
+Expand I<TCODE> if I<VARIABLE> expands to a nonempty string.
+
+.TP
+.BI %{! VARIABLE } TCODE %{}
+Expand I<TCODE> if I<VARIABLE> expands to false.
+
+.TP
+.BI %{!? VARIABLE } TCODE %{}
+Expand I<TCODE> if I<VARIABLE> expands to the empty string.
+
+.TP
+.BI %{? VARIABLE } TCODE %{else} FCODE %{}
+Expand I<TCODE> if I<VARIABLE> expands to true, otherwise I<FCODE>.
+
+.TP
+.BI %{?? VARIABLE } TCODE %{else} FCODE %{}
+Expand I<TCODE> if I<VARIABLE> expands to a nonempty string,
+otherwise I<FCODE>.
+
+.TP
+.BI %{! VARIABLE } TCODE %{else} FCODE %{}
+Expand I<TCODE> if I<VARIABLE> expands to false, otherwise I<FCODE>.
+
+.TP
+.BI %{!? VARIABLE } TCODE %{else} FCODE %{}
+Expand I<TCODE> if I<VARIABLE> expands to the empty string,
+otherwise I<FCODE>.
+
+A conditional block must occur completely within one variable,
+i.e. it is not possible to e.g. substitute the B<%{}> symbol
+from another variable via delayed reference (but in I<TCODE>/I<FCODE>
+delayed references can be used).
+.RE
+.\" }}}
+
+Note that any variables you add for delayed substitution are only output
+with --dump if they are actually used (i.e. referenced in some of the other variables).
+If you want to output them anyway, e.g. for comments or easier later change,
+you can collect references to them in the B<DUMMY> variable.
+
+The following variables do not contain those which are used only in delayed references.
+To get a full description of the latter (and of the defaults), please use B<coreq --dump>.
+
+Some remarks concerning the stability of names in future coreq versions:
+As far as possible and reasonable, it is attempted to keep all meanings of the names,
+at least for the variables in the subsequent list.
+For variables for delayed substitution, changes are more likely to occur.
+As a rule of thumb: The more "elementary" a variable is (e.g. a variable
+defining just a single character) the less likely is that it is changed or
+removed in a future coreq version.
+On the other hand, variables with delayed substitution in the "middle range"
+(that is, those using other variables for delayed substitution) are more likely
+to be changed in their meaning or to be removed - depending which extensions
+in the format will be necessary to implement future extensions of coreq.
+
+.TP
+.B DUMMY " " (string)
+This variable has no direct influence on the programs, but the content of this
+variable can be used to collect delayed references to (otherwise unused) variables
+so that they are printed with --dump or --dump-defaults.
+
+.TP
+.BR WIDETERM " " (true / false / auto / empty)
+This variable is only used for delayed substitution.
+It defines whether you have a wide terminal (bigger than 80 columns).
+In B<WIDETERM> is empty or B<auto> then B<COLUMNS> is used to set its value
+for delayed substitution.
+
+.TP
+.BR COLUMNS " " (integer / auto / empty)
+This defines the terminal width if B<WIDETERM> is empty.
+If B<COLUMNS> is empty or B<auto> then a heuristic is used for B<WIDETERM>.
+If the heuristic fails then the substituted value of B<WIDETERM> is empty
+(which acts as B<false> for delayed substitution).
+
+.TP
+.BR COREQ_SYNC_OPTS ", " COREQ_SYNC_CONF " " (string)
+The content of B<COREQ_SYNC_CONF> is appended to the file I<@SYSCONFDIR/coreq-sync.conf>
+See the description of that file for details.
+By default, B<COREQ_SYNC_CONF> is a delayed substitution of B<COREQ_SYNC_OPTS> so
+that typically you can also use B<COREQ_SYNC_OPTS> with the same purpose.
+Be aware that if one of these variables is compromised, almost anything can
+happen if you call B<coreq-sync> with root permissions, so be aware of security
+risks! Quote these variables carefully if you use them!
+
+.TP
+.BR COREQ_REMOTE_OPTS ", " COREQ_LAYMAN_OPTS ", " COREQ_TEST_OBSOLETE_OPTS " " (string)
+The content of this variable is evaluated and used as arguments for the scripts
+B<coreq-remote>, B<coreq-layman>, and B<coreq-test-obsolete>, respectively.
+So be sure to quote these variables correctly and be aware of security risks!
+
+.TP
+.BR COREQRC_SOURCE " " (string)
+This path is prepended to source commands in I<@SYSCONFDIR@/coreqrc>.
+It is meant to be set in the environment but can also be set in I<@SYSCONFDIR@/coreqrc>.
+In the latter case, it will override the setting from the environment as soon as it is read until all files are sourced.
+Note that when this variable takes effect, no delayed substitution is performed yet.
+
+.TP
+.BR COREQ_PREFIX " " (prefix-string) " (prefix-string means that this is a string, but if it has the value '/' it is changed to '')"
+
+This is essentially meant to be set in the environment if you want to use a chroot:
+It is prefixed to the path where I<@SYSCONFDIR@/coreqrc> is searched.
+If it is unset, the value of the environment variable B<COREPKG_CONFIGROOT>
+is prefixed.
+The default value (typically empty) of this variable is used, if neither is
+set in the environment.
+
+Moreover, this variable is used for delayed substitution to determine
+the prefix of a lot of paths in the subsequent variables;
+see B<coreq --dump> to see in detail in which other variables it occurs.
+
+.TP
+.BR EPREFIX " " (prefix-string)
+The default value of this variable stems from COREQ_PREFIX, appended with
+a configure-specific default (for prefix-corepkg).
+This variable has no meaning on its own, but it is used for
+delayed substitution to determine the prefix of a lot of paths in the
+subsequent variables (if their default is not changed);
+see B<coreq --dump> to see in detail in which other variables it occurs.
+In the current default, it influences all paths with the following exceptions:
+
+.TP
+.BR TMPDIR " " (string)
+This is used for delayed substitution in B<COREQ_TMPDIR>.
+Usually it is set by the environment variable.
+coreq exports this variable initialized with the value of B<COREQ_TMPDIR>.
+
+.TP
+.BR COREQ_TMPDIR " " (string)
+If this variable is nonempty, this directory is used instead of I</tmp>
+for temporary files. coreq exports this variable as B<TMPDIR>.
+The default is via delayed substitution to B<TMPDIR>.
+
+.RS
+.RS
+
+.B @BINDIR@/coreq-functions.sh
+
+.B ~/.coreqrc
+
+.BR "cachefile path" "(s) passed in the commandline"
+
+.BR COREPKG_PROFILE " (only the variable, not the link)"
+
+.B PORTDIR
+
+.B Overlay paths
+.RE
+
+The last three items can be modified by B<EPREFIX_TREE>.
+
+The purpose of B<EPREFIX> is to allow a quasi-chroot analogously to prefix-corepkg.
+.RS
+
+.BR ROOT " " (prefix-string)
+
+.BR EPREFIX_TREE " " (prefix-string)
+
+.BR EPREFIX_ROOT " " (prefix-string)
+.RE
+
+These are actually not internal variables of coreq but they are just used for
+delayed substitution for the following variables analogously to B<EPREFIX>
+(see above).
+
+The purpose of B<ROOT> is to follow roughly corepkg's usage of this variable.
+Note that variables in /etc/corepkg/make.conf do not influence coreq configuration variables.
+In particular, a B<ROOT=>I<something> command in /etc/corepkg/make.conf does not influence coreq.
+You must set it instead in the environment or in an coreq configuration file.
+
+You can easily customize to which paths the B<EPREFIX> or B<ROOT> variables apply:
+Simply use in the appropriate following variables either the delayed references
+B<%{EPREFIX}>, B<%{ROOT}>, nothing, or B<%{EPREFIX_ROOT}> (which in turn is
+defined as a delayed reference so that you can easily change what to do if
+B<EPREFIX> and B<ROOT> are both nonempty: You might e.g. concatenate these
+paths or use only one of them).
+You can of course also use other variables as delayed references,
+e.g. you might want to set
+
+.B COREQ_CACHEFILE=%{EPREFIX_PROFILE}@COREQ_CACHEFILE@
+
+if you feel that the coreq cachefile should depend (only) on the profile root.
+.RE
+
+.TP
+.BR COREPKG_CONFIGROOT " " (prefix-string)
+This path is prepended to the /etc paths.
+The purpose is to respect COREPKG_CONFIGROOT in an analogous way corepkg does.
+If you set this variable in the environment it will also change the path
+where I<@SYSCONFDIR@/coreqrc> is searched. (Note that reading I<@SYSCONFDIR@/coreqrc> occurs before
+delayed substitution takes effect.)
+
+.TP
+.BR MAKE_GLOBALS " " (string)
+If this file exists, it is used instead of
+B<%{COREPKG_CONFIGROOT}/etc/make.globals>
+The default value corresponds to >=corepkg-2.2* behavior.
+
+.TP
+.BR COREPKG_REPOS_CONF " " (string)
+This file is used to set the default repository information.
+The file I</etc/corepkg/repos.conf> is read only after this.
+
+.TP
+.BR COREPKG_REPOSITORIES " " (string)
+If this variable is nonempty, its content is used as by corepkg as a substitute
+for all repos.conf files.
+
+.TP
+.BR EPREFIX_COREPKG_EXEC " " (prefix-string)
+This path might be used as a prefix for I</usr/bin/ebuild>.
+
+.TP
+.BR EPREFIX_SOURCE " " (prefix-string)
+This path is prepended to paths occurring as the argument of source commands
+in /etc/corepkg/make.conf and /etc/make.globals.
+
+.TP
+.BR EPREFIX_INSTALLED " " (prefix-string)
+This is prepended to the path where coreq expects information about installed packages.
+
+.TP
+.BR EPREFIX_COREPKG_CACHE " " (prefix-string)
+This prefix is prepended to the corepkg cache.
+
+.TP
+.BR EPREFIX_ACCESS_OVERLAYS " " (prefix-string)
+This prefix is prepended to overlays when their files are accessed.
+
+.TP
+.BR EPREFIX_PORTDIR " " (prefix-string)
+This path is prepended to B<PORTDIR>.
+
+.TP
+.BR EPREFIX_OVERLAYS " " (prefix-string)
+This prefix is prepended to all entries of B<COREPKG_OVERLAY>.
+
+.TP
+.BR EPREFIX_PROFILE " " (prefix-string)
+This prefix is prepended to B<COREPKG_PROFILE> (the variable, not the link).
+
+.TP
+.BR EPREFIX_VIRTUAL " " (prefix-string)
+This is prepended to overlays in the coreq database to test whether they exist.
+
+.TP
+.BR COREQ_CACHEFILE " " (string)
+The coreq cachefile, usually B<%{EPREFIX}@COREQ_CACHEFILE@>
+
+.TP
+.BR COREQ_PREVIOUS " " (string)
+The previous coreq cachefile for coreq-diff and coreq-sync,
+usually B<%{EPREFIX}@COREQ_PREVIOUS@>
+
+.TP
+.BR COREQ_REMOTE1 ", " COREQ_REMOTE2 " " (string)
+The coreq cache used when B<-R> or B<-Z> is in effect.
+If the string is nonempty, coreq-remote uses this file for the output.
+The default value is B<%{EPREFIX}@COREQ_REMOTECACHEFILE1@>
+or B<%{EPREFIX}@COREQ_REMOTECACHEFILE2@>, respectively.
+
+.TP
+.BR REMOTE_DEFAULT " " (integer)
+The value 1, 2, or 0 means that coreq option B<-R>, B<-Z>, or neither is the default.
+
+.TP
+.BR COREQ_REMOTEARCHIVE1 ", "  COREQ_REMOTEARCHIVE2 " " (string)
+This is a local copy of the remote archive used by coreq-remote.
+If it is empty, only temporary files are used.
+
+.TP
+.BR EBUILD_DEPEND_TEMP " " (string)
+Path to the file which is generated by B<ebuild depend>.
+
+.TP
+.BR COREQ_WORLD " " (string)
+The file coreq considers as the world file. Note that usually
+this file is only readable if you are a member of the corepkg group.
+To avoid needing this permissions you can use B<SAVE_WORLD>.
+
+.TP
+.BR COREQ_WORLD_SETS " " (string)
+The file coreq considers as the world_sets file.
+The same remarks as for B<COREQ_WORLD> hold true.
+
+.TP
+.BR COREQ_LOCAL_SETS " " "(string list)" "(the meaning of string list is explained in the next paragraph)"
+This is a list of directories which contain locally defined sets.
+The directories are read in the given order; files with set-names which have
+been read earlier are ignored: In this sense earlier entries in
+B<COREQ_LOCAL_SETS> take precedence over later entries.
+
+Relative directories (i.e. those not starting with B</>) are understood relative to B<$PORTDIR>.
+Entries in B<COREQ_LOCAL_SETS> starting with the special symbol B<*> are interpreted in a special way:
+They are interpreted as several entries, the B<*> symbol being replaced successively by the paths
+to the overlays in reverse order (the latter in view of the fact that in a sense
+earlier entries of B<COREQ_LOCAL_SETS> override later entries while for
+B<PORTDIR_OVERLAY> one expects the converse).
+
+The default of this variable contains B</etc/corepkg/sets>, B</etc/corepkg/sets.coreq>, B<sets>
+(i.e. roughly B<$PORTDIR/sets> according to the previous paragraph),
+B<*/sets> (i.e. roughly B<$PORTIDR_OVERLAY/sets> according to the previous paragraph)
+as well as B<%{COREQ_LOCAL_SETS_ADD}>.
+The reason for the latter is that you can just add additional directories
+to the variable B<%{COREQ_LOCAL_SETS_ADD}> in I<@SYSCONFDIR@/coreqrc>.
+Reasons why you might want to do this is e.g. if you defined another multiset
+directory (e.g. for some overlay or for treatment with "world-candidate = False") in
+/etc/corepkg/sets.conf or in the sets.conf file of some overlay.
+
+For all string list variables, the possible separators between different entries are [ \\t\\r\\n].
+If you want to use such a separator within an entry, you have to escape it by B<\\>.
+Moreover, all B<\\> symbols have to be escaped analogously, since the escapes of escapes
+and escapes of the separator symbols are removed.
+If you want to insert a variable "as-is", you can make use of delayed substitution:
+B<%{\\>I<VAR>B<}> will insert the value of I<VAR> with all symbols from [\\ \\t\\r\\n] being escaped.
+(See delayed substitution for more details).
+
+.TP
+.BR EAPI_REGEX
+This regular expression matches the recognized EAPIs in .ebuild suffixes
+which will be recognized according to GLEP 55.
+You might need to modify this expression locally according to the installed
+corepkg version (in order to make sure that the installed corepkg can parse
+the corresponding EAPIs).
+An exceptional case is if that variable is empty: In this case all EAPI-suffixed
+ebuilds are ignored.
+
+.TP
+.BR SAVE_WORLD " " (true / false)
+If you set this to true, the information of your world file is stored in @COREQ_CACHEFILE@.
+Note that this means that anybody who can read this file has the information about
+the content of your world file.
+Make sure that this is really what you want if you set this to true.
+
+.TP
+.BR CURRENT_WORLD " " (true / false)
+If false, then the world file information stored in @COREQ_CACHEFILE@ is used,
+even if your current world file is readable.
+Otherwise, your current world file (if it is readable) overrides that information.
+
+.TP
+.BR COREQ_USER ", " COREQ_GROUP ", " COREQ_UID ", " COREQ_GID " " (string / integer)
+B<coreq>, B<coreq-diff>, B<coreq-update>, B<coreq-drop-permissions>, and B<coreq-remote>
+change to the permissions of B<COREQ_USER>/B<COREQ_GROUP>
+(using the ID-numbers B<COREQ_UID>/B<COREQ_GID> if the former have no valid name)
+as soon as possible.
+To avoid this change, use an invalid name (e.g. the empty name) and a
+non-positive ID-number.
+
+If B<COREQ_GROUP> is valid or B<COREQ_GID> is positive, then also the grouplist
+is changed according to the following rule:
+If B<COREQ_USER> is a valid name, the full grouplist of that user
+is chosen; otherwise, the grouplist is shrinked to a singleton.
+
+.TP
+.BR REQUIRE_DROP " " (true / false / root)
+If B<true>, it is required that the dropping of permissions
+according to B<COREQ_{USER,GROUP,UID,GID}> is successful, see B<DROP_FATAL>.
+If B<root>, this is required only if the current UID is 0.
+
+.TP
+.BR NODROP_FATAL " " (true / false)
+If the requirement of B<REQUIRE_DROP> is not met, a warning (B<false>) or
+an error (B<true>) is raised.
+
+.TP
+.BR COREPKG_ROOTPATH " " (string)
+If nonempty, this variable is passed unchanged to ebuild.sh for cache method B<ebuild*>.
+
+.TP
+.BR DEFAULT_ARCH " " (string)
+The default ARCH if none is specified by the profile.
+
+.TP
+.BR NOFOUND_STATUS " " (integer)
+This value is used as exit status if there are 0 matches.
+The value of B<COUNT_ONLY_PRINTED> is honoured.
+
+.TP
+.BR MOREFOUND_STATUS " " (integer)
+This value is used as exit status if there are 2 or more matches.
+The value of B<COUNT_ONLY_PRINTED> is honoured.
+
+.TP
+.BR COREQ_LIMIT ", " COREQ_LIMIT_COMPACT " " (integer)
+As a safety measurement for typos there are never more packages displayed
+than specified here:
+There are two different variables, depending on whether B<--compact> is active.
+There is no limit if the output is not sent to a terminal or if
+the value of the variable is B<0>.
+
+.TP
+.BR QUICKMODE " " (true / false)
+If true, coreq and coreq-diff will use B<--quick> by default.
+
+.TP
+.BR CAREMODE " " (true / false)
+If true, coreq and coreq-diff will use B<--care>.
+
+.TP
+.BR USE_BUILD_TIME " " (true / false)
+Whether to use the BUILD_TIME entry (if it exists) of the corepkg database
+instead of the directory timestamp (which usually is the installation time).
+The difference is usually only important for packages installed from *.tbz2,
+*.gpkg.tar, or *.xpak files, but in most cases the build time is more relevant
+(it is also more reliable).
+Unfortunately, the build time is available only for packages built and emerged
+with >=corepkg-2.2_rc63; you can use B<coreq-installed [no-]buildtime> to check
+for which versions this is (not) the case.
+Reading the build time is always slower than using the directory timestamp
+(even if the build time is not available).
+Thus, you might want to set this variable to B<false> if speed of coreq is
+more important to you than the buildtime information.
+
+.TP
+.BR QUIETMODE " " (true / false)
+If true, coreq and coreq-diff will use B<--quiet> by default.
+
+.TP
+.BR PRINT_APPEND " " (string)
+This string is appended to the output of B<--print>.
+Standard escape sequences in this string like \\n are interpreted.
+The default is a newline for reasonable output in an interactive shell.
+Note that command substitution in shell scripts removes all trailing spaces
+so that this newline does not harm (but trailing spaces of the variable would
+be removed in the shell script anyway).
+Hence, in order to read variables from coreq in a shell script without omitting
+trailing spaces, you should use a visible symbol for PRINT_APPEND and use
+for instance something like
+B<VAR=`PRINT_APPEND=x coreq --print VAR` ; VAR=${VAR%x}>
+
+.TP
+.BR DEFAULT_FORMAT " " (normal / compact / verbose)
+Defines whether B<--compact> or B<--verbose> is on by default.
+Since this variable can be changed by the user in B</etc/coreqrc> or B<~/.coreqrc>,
+this might have undesired side effects for scripts setting B<FORMAT> with the
+intention to get a fixed B<FORMATSTRING>: Such scripts should better use the
+B<--format> option (which ignores B<DEFAULT_FORMAT> since coreq-0.29.6),
+use the B<--normal> option (available since coreq-0.29.6),
+and/or export B<DEFAULT_FORMAT=normal> to override such user settings.
+
+.TP
+.BR DIFF_ONLY_INSTALLED " " (true / false)
+If true, coreq-diff will only consider version changes for installed packages.
+
+.TP
+.BR DIFF_NO_SLOTS " " (true / false)
+If true, coreq-diff will not consider slots for version changes.
+
+.TP
+.BR DIFF_SEPARATE_DELETED " " (true / false)
+If true, coreq-diff will print deleted packages in a section on their own.
+Otherwise, coreq-diff will mix deleted and changed packages "alphabetically".
+
+.TP
+.BR NO_RESTRICTIONS " " (true / false)
+If false, RESTRICTION and PROPERTIES data is output.
+
+.TP
+.BR RESTRICT_INSTALLED " " (true / false)
+If true, fetch and mirror restrictions for installed versions are calculated.
+
+.TP
+.BR CARE_RESTRICT_INSTALLED " " (true / false)
+If true, fetch and mirror restrictions for installed versions are
+always fetched from disk, even if it could be read from a corresponding version.
+This is slower but more reliable, i.e. it will also find out whether restrictions were changed.
+
+.TP
+.BR DEPS_INSTALLED " " (true / false)
+If true, depdendency information for installed versions are
+always fetched from disk, even if it could be read from a corresponding version.
+The option B<--deps-installed> does the same.
+
+.TP
+.BR DEP " " (true / false)
+If true, store/use B<DEPEND>, B<RDEPEND>, B<PDEPEND>, B<BDEPEND>, B<IDEPEND> (e.g. shown with coreq -lv).
+Usage of B<DEP> roughly doubles disk resp. memory requirements.
+
+.TP
+.BR SRC_URI " " (true / false)
+If true, store/use B<SRC_URI>.
+Usage of B<SRC_URI> roughly doubles disk resp. memory requirements.
+
+.TP
+.BR REQUIRED_USE " " (true / false)
+If true, store/use B<REQUIRED_USE> (e.g. shown with coreq -l).
+Usage of B<REQUIRED_USE> increases disk and memory requirements.
+
+.TP
+.BR FORMAT ", " FORMAT_COMPACT ", " FORMAT_VERBOSE " " (string)
+Define the normal, compact and verbose layout for results printed by B<coreq>.
+See B<FORMATSTRING>.
+If one of these variables is set in a script, it is recommended to set
+simultaneously the corresponding value of B<DEFAULT_FORMAT>.
+
+Since coreq-0.13.4 these variables just expand to delayed substitution of the
+variables B<FORMAT_ALL>, B<FORMAT_ALL_COMPACT>, or B<FORMAT_ALL_VERBOSE>,
+respectively.
+The intention of this simple definition is that it is very easy to refer
+to the default definition when you change the definition of B<FORMAT>.
+
+.TP
+.B FORMAT_TEST_OBSOLETE (string)
+The format used by the B<coreq-test-obsolete> script;
+the default value is the delayed substitution of B<FORMAT_ALL_COMPACT>.
+It is not admissible to use delayed substitution of B<FORMAT> here;
+if you want this use instead delayed substitution of B<FORMAT_ALL>.
+
+.TP
+.BR DIFF_FORMAT_NEW ", " DIFF_FORMAT_DELETE ", " DIFF_FORMAT_CHANGED " " (string)
+Define the format for packages that were added, removed or for which the highest
+stable versions has changed. This is only used by B<coreq-diff>.
+See B<FORMATSTRING>.
+Since coreq-0.13.4 these variables just expand to delayed substitution of the
+variables B<DIFF_FORMAT_ALL_NEW>, B<DIFF_FORMAT_ALL_DELETE>, or
+B<DIFF_FORMAT_ALL_CHANGED>, respectively.
+
+.TP
+.BR FORMAT_INSTALLATION_DATE ", " FORMAT_SHORT_INSTALLATION_DATE
+Define the strftime() format used to print the installation date (in normal resp. short form).
+
+.TP
+.BR FORMAT_INSTALLED_USE
+Define the printf-like format used to print useflags of installed packages.
+If this string is empty, the processing is slightly faster since then these data are not read.
+
+.TP
+.BR FORMAT_BEFORE_SET_USE ", " FORMAT_AFTER_SET_USE ", " FORMAT_BEFORE_UNSET_USE ", " FORMAT_AFTER_UNSET_USE
+These strings are printed before/after the set/unset USE flags of installed versions are printed.
+
+.TP
+.BR FORMAT_BEFORE_USE_EXPAND_START ", " FORMAT_BEFORE_USE_EXPAND_END ", " FORMAT_AFTER_USE_EXPAND ", " FORMAT_BEFORE_IUSE_EXPAND_START ", " FORMAT_BEFORE_IUSE_EXPAND_END ", " FORMAT_AFTER_IUSE_EXPAND
+These strings are printed at the start/end or after B<USE_EXPAND> variables
+are output with B<use*> for installed or available versions, respectively.
+
+.TP
+.BR FORMAT_BEFORE_COLL_EXPAND_START ", " FORMAT_BEFORE_COLL_EXPAND_END ", " FORMAT_AFTER_COLL_EXPAND
+These strings are printed at the start/end or after B<USE_EXPAND> variables
+are output with B<colliuse*>.
+
+.TP
+.BR FORMAT_MASKREASONS_LINESKIP ", " FORMAT_MASKREASONS_SEP ", "  FORMAT_MASKREASONSS_LINESKIP ", " FORMAT_MASKREASONSS_SEP
+There string are used as separator for new lines resp. new reasons for <maskreasons> and <maskreasons*>, respectively.
+
+.TP
+.BR COLOR_OVERLAYKEY ", " COLOR_VIRTUALKEY ", " COLOR_KEYEND ", " COLOR_OVERLAYNAME ", " COLOR_OVERLAYNAMEEND ", " COLOR_NUMBERTEXT ", " COLOR_NUMBERTEXTEND
+These colors are used before/after normal/virtual overlay keys,
+for printing the overlays at the end or when printing the number of packages.
+
+.TP
+.BR NOCOLORS " " (true / false)
+Do not use colors.
+
+.TP
+.BR NOSTATUSLINE " " (true / false)
+Do not update status line.
+
+.TP
+.BR NOPERCENTAGE " " (true / false)
+Do not show percentage progress.
+
+.TP
+.BR FORCE_COLORS " " (true / false)
+Use colors even when stdout is not a terminal.
+
+.TP
+.BR FORCE_STATUSLINE " " (true / false)
+Update the status line even when stdout is not a terminal.
+
+.TP
+.BR FORCE_PERCENTAGE " " (true / false)
+Show the percentage progress even when stdout is not a terminal.
+
+.TP
+.BR STYLE_VERSION_SORTED " " (true / false)
+Defines whether B<--versionsort> is on by default.
+
+.TP
+.BR STYLE_VERSION_LINES " " (true / false)
+Defines whether B<--versionlines> is on by default.
+
+.TP
+.BR DUP_PACKAGES_ONLY_OVERLAYS " " (true / false)
+Defines whether duplicate package checks occur only among overlays, i.e. a
+package is only considered as duplicate if it occurs in at least two
+different overlays.
+
+.TP
+.BR DUP_VERSIONS_ONLY_OVERLAYS " " (true / false)
+Defines whether duplicate version checks occur only among overlays, i.e. a
+version is only considered as duplicate if it occurs at least twice in
+overlays.
+
+.TP
+.BR DEFAULT_IS_OR " " (true / false)
+If several pattern arguments occur without logical concatenation (-a or -o),
+coreq assumes an implicit concatenation. If this variable is true, it assumes
+that this concatenation is -o (or), otherwise -a (and).
+
+.TP
+.BR OVERLAYS_LIST " " (all / all-if-used / all-used / all-used-renumbered / no)
+People with many different overlays do not want to see all overlays listed at
+the end but only those which are really used. Here, you can customize the
+behaviour. The value is interpreted as follows:
+
+.RS
+.TP
+.BR all-if-used / if-used / if
+Display all overlays, if at least one is used. This was the default behaviour
+before coreq-0.6.0.
+.TP
+.BR used-renumbered / renumber / renumbered / number
+Display only the overlays actually used, numbering them "correctly"
+(i.e. if only two overlays are needed, number them [1] and [2]).
+The disadvantage is that overlays get different numbers for different queries.
+However, the order of the numbering is consistent.
+.TP
+.BR all-used / only-used / used
+Display only the overlays actually used, keeping the numbering consistent
+over all queries (on the same database).
+.TP
+.BR no / false
+Never display a list of overlays.
+.TP
+anything else
+List all overlays for every query (even if not even one is needed).
+.RE
+
+.TP
+.BR TERM " " (string)
+The current terminal. Usually this is set by the environment variable.
+
+.TP
+.BR TERM_STATUSLINE " " (string)
+This is a list of (space-separated) words; if one of these words matches
+the beginning of TERM, it is assumed that the terminal supports a status line.
+
+.TP
+.BR TERM_SOFTSTATUSLINE " " (string)
+This is a list of (space-separated) words; if one of these words matches
+the beginning of TERM, and if the statusline is active, also a soft status line
+(used e.g. by screen but not by tmux) will be output.
+
+.TP
+.BR EXIT_STATUSLINE " " (string)
+If this is nonempty, it is used as the exit statusline.
+An optional leading space in this string is ignored.
+
+.TP
+.BR TERM_ALT1 ", " TERM_ALT2 ", " TERM_ALT3 " " "(string list)"
+This is a list of regular expressions; if one of it matches B<TERM>, then
+B<COLORSCHEME1>, B<COLORSCHEME2>, or B<COLORSCHEME3>, respectively,
+is used instead of B<COLORSCHEME0>, the biggest matching number taking precedence.
+
+You are of course free to assign any meaning, but the intention of the defaults is
+that no match means 8/16 colors, B<TERM_ALT1> specifies the 256 color terminals,
+B<TERM_ALT2> specifies 88 color terminals, and B<TERM_ALT3> is free for the user
+(therefore overriding everything else).
+
+The default expansion of B<TERM_ALT1> and B<TERM_ALT2> include the values of
+B<TERM_ALT1_ADD> and B<TERM_ALT2_ADD> via delayed substitution.
+So when you just want to add something to the default lists, add it to
+B<TERM_ALT?_ADD>.
+
+B<EXAMPLE 1:> If you want to force 8/16 colors on all terminals you can set
+B<TERM_ALT3=.> to select all terminals for the B<COLORSCHEME3> default
+(which is B<COLORSCHEME0>, see below).
+Users of Ethan Schoonover's B<solarized> colorscheme should only do this if
+they want to force keeping the original 16 solarized colors.
+Setting B<SOLARIZED> (see the separate description) has influence anyway.
+
+B<EXAMPLE 2:> If you want to tell coreq that TERM=rxvt means a 256 color terminal, set B<TERM_ALT1_ADD=rxvt>.
+(This is no longer the default, because there are rxvt versions which support only 88 colors and set TERM=rxvt;
+thus assuming 256 colors would produce completely broken colors.)
+.TP
+.BR SOLARIZED " " (true / light / dark / false)
+This variable is only used in delayed substitution in the default values of the B<COLORSCHEME?> variables:
+If B<SOLARIZED> is not B<false> (i.e. B<true>, B<light>, and B<dark>, are currently equivalent for coreq)
+then the default in these variables chooses a colorscheme which assumes that
+the terminal output uses Ethan Schoonover's Solarized colorscheme (light or dark).
+There is even a solarized scheme available for 256 colors: If your terminal supports it,
+additional colors besides the 16 solarized colors are used.
+This is somewhat against Ethan Schoonover's original philosophy about solarized,
+but coreq carries so much information in colors that this extension appears reasonable.
+It is attempted to keep the usage of additional colors as nonintrusive as possible,
+e.g. to use these colors mainly for single symbols/flags.
+.TP
+.BR COLORSCHEME0 ", " COLORSCHEME1 ", " COLORSCHEME2 ", " COLORSCHEME3 " " "(list of integers)"
+Which of these variables is actually used depends on which B<TERM_ALT?> matches B<TERM>;
+if none matches, then B<COLORSCHEME0> is used.
+
+The integer value of this variable determines the color scheme to be used;
+if the variable contains two integer numbers (separated by spaces)
+then the first/second number is used if darkmode is on/off (cf. B<DARK> and B<TERM_DARK>).
+
+The value 0 means that the first I<COLORSTRING> of each color specification is used;
+for higher numbers a correspondingly later I<COLORSTRING> is used.
+If the number is too high, the first I<COLORSTRING> is used.
+
+The default values of the B<COLORSCHEME?> variables honour the values of the variable B<SOLARIZED>:
+If B<SOLARIZED> is set then the default is to use a colorscheme which was developed based on
+Ethan Schoonover's Solarized system colors (both, light and dark mode are supported;
+in 256 color capable terminals additional colors were added).
+Note that this only gives a reasonable output if the terminal was previously
+configured to use the solarized colors as system colors.
+
+The numbers in the default settings are:
+
+0: Dark basic scheme (for black background)
+
+1: Dark scheme for 256 colors
+
+2: Light basic scheme (for white background)
+
+3: Light scheme for 256 colors
+
+4: Solarized extended for 256 colors (light or dark)
+
+5: Solarized original (16 colors, light or dark)
+
+The variables B<BG0>, B<BG1>, B<BG2>, B<BG3> are honoured by the defaults with
+delayed substitution to force the background color for the corresponding schemes.
+The default of the B<BG?> variables is "none": No background color should be forced.
+If you want to force the correct background colors, set the variables as follows:
+
+B<BG0=black>
+
+B<BG1=black>
+
+B<BG2=white>
+
+B<BG3=white>
+
+(Depending on your coreq version, some of these are even the defaults).
+However, this can have undesired effects on transparent terminals or when scrolling is necessary, see the B<BUGS> section.
+For these side effects it can be desirable/undesirable - depending on your taste and terminal - to set
+B<RESET_ALL_LINES=false> or B<RESET_ALL_LINES=true> (the default can depend on the coreq version).
+
+The default values of the B<COLORSCHEME?> variables are:
+
+B<COLORSCHEME0>: 0 2; meant for 8/16 color terminals
+
+B<COLORSCHEME1>: 1 3; meant for 256 color terminals
+
+B<COLORSCHEME2>: as B<COLORSCHEME0>, meant for 88 color terminals
+
+B<COLORSCHEME3>: as B<COLORSCHEME0>, meant to be a sane default, to be modified by the user.
+
+.TP
+.BR DARK " " (true / false / auto)
+The value of this variable determines whether darkmode is on/off for the color scheme selection in the B<COLORSCHEME?> variables.
+For the value B<auto> the result depends on a heuristic based on B<TERM_DARK> and B<COLORFGBG_DARK>, see below.
+
+.TP
+.B TERM_DARK " " (string list)
+This is a list of pairs of the form I<regular-expresssion 1> I<dark-mode 1> I<regular-expresssion 2> I<dark-mode 2> ... where I<dark-mode> is one of B<true>, B<false>, B<true*>, B<false*>;
+optionally, a default I<dark-mode> can be specified as a last entry (if none is specified, the default is B<true*>).
+If B<DARK=auto> this is used to determine the darkmode as follows:
+
+The first B<regular-expresssion> matching B<TERM> is considered, and the corresponding B<dark-mode> describes what to do
+(if no B<regular expression> matches then B<dark-mode> is assumed to be B<true>):
+The values B<true> (or B<true*>) and B<false> (or B<false*>) mean that the darkmode is on or off, respectively.
+However, for B<true*> and B<false*> the variable B<COLORFGBG> is respected in addition:
+If B<COLORFGBG> is nonempty then the darkmode is on or off, depending on whether B<COLORFGBG> matches an expression from B<COLORFGBG_DARK>.
+Note that B<COLORFGBG> is an environment variable set by some terminals like B<rxvt> or B<konsole> which describes the background color.
+
+.TP
+.B COLORFGBG_DARK " " (string list)
+This is a list of regular expressions.
+It is only used if B<DARK=auto>, the matching I<dark-mode> in B<DARK_TERM> is B<true*> or B<false*>, and B<COLORFGBG> is nonempty.
+In this case, the resulting darkmode is on or off, depending on whether B<COLORFGBG> matches an element of this list.
+Note that B<COLORFGBG> is an environment variable set by some terminals like B<rxvt> or B<konsole> which describes the background color.
+
+.TP
+.BR LEVENSHTEIN_DISTANCE " " (integer)
+Set default levenshtein-distance.
+
+.TP
+.BR UPDATE_VERBOSE " " (true / false)
+Whether coreq-update -v is on by default (output of cache method per version).
+
+.TP
+.BR EXCLUDE_OVERLAY " " "(string list)"
+Set a list of wildcard patterns for overlay paths that are excluded from the index.
+See the B<coreq-update> option B<--exclude-overlay>.
+
+.TP
+.BR ADD_OVERLAY " " "(string list)"
+Set a list of overlays that are added to the index.
+See the B<coreq-update> option B<--add-overlay>.
+
+.TP
+.BR EXPORT_PORTDIR_OVERLAY " " (true / false)
+If true and overlays are excluded/added, a correspondingly modified
+B<PORTDIR_OVERLAY> is exported.
+This means that in a sense also the corresponding eclasses of these overlay
+are excluded/added for cache methods coreq and coreq*.
+
+.TP
+.BR CACHE_METHOD_PARSE " " (string)
+This string is appended to all cache methods using parse/parse*/ebuild/ebuild*.
+Its default contains B<#metadata-md5#metadata-flat>.
+Unless you have a very special setup this is always what you want:
+It means that if a current metadata (in a metadata/*cache subdirectory)
+is available for the ebuild,
+this is used instead of parsing/executing the ebuild.
+
+The latter is in principle not completely reliable (parsing) or
+rather slow (executing), i.e. the metadata
+(if available and up-to-date) is always preferable.
+For more details see the section B<SPEEDUP>.
+
+.TP
+.BR PORTDIR_CACHE_METHOD ", " OVERLAY_CACHE_METHOD " " (string)
+Set the type of the cache used by corepkg and for overlays.
+B<PORTDIR_CACHE_METHOD> defaults to I<@PORTDIR_CACHE_METHOD@>,
+B<OVERLAY_CACHE_METHOD> to I<parse|ebuild*>.
+
+For speed reasons it is preferable to use metadata also for overlays.
+More details can be found in the section B<SPEEDUP>.
+
+B<Security Warning:>
+If you do not completely trust the .ebuilds in your overlays,
+you should set B<OVERLAY_CACHE_METHOD=parse>.
+
+You might want to set temporarily B<OVERLAY_CACHE_METHOD=coreq*::~> -
+as will be explained later, coreq will then take by default the overlay data
+from the previous coreq database.
+
+The available cache methods are described below.
+You might want to specify a different cache method only for some overlays.
+This can be done with the following variables:
+
+.TP
+.BR CACHE_METHOD ", " OVERRIDE_CACHE_METHOD " " "(string list)"
+These variables are string lists of the form "I<overlay> I<method> I<overlay> I<method> ...".
+The cache method of I<overlay> is set to the subsequent I<method>,
+thus overriding the default settings of B<OVERLAY_CACHE_METHOD>
+(or of B<PORTDIR_CACHE_METHOD> if I<overlay> is the B<PORTDIR> directory).
+I<overlay> is interpreted as a wildcard pattern which should match the I<path> (symbolic links resolved) of the overlay
+(it is not possible to refer to repository's name here - you must use the true I<path>).
+Later entries override earlier ones: The last matching entry takes precedence.
+
+.RS
+The difference between B<CACHE_METHOD> and B<OVERRIDE_CACHE_METHOD> is that
+the former applies immediately while the latter can also be used to
+extend/override the changes made implicitly if B<KEEP_VIRTUALS> is used
+(see below).
+
+The default definitions of B<CACHE_METHOD> and B<OVERRIDE_CACHE_METHOD>
+contain B<%{ADD_CACHE_METHOD}> and B<%{ADD_OVERRIDE_CACHE_METHOD}>, respectively.
+According to the mechanism of delayed substitution explained in another section,
+this means that the variables B<ADD_CACHE_METHOD> or
+B<ADD_OVERRIDE_CACHE_METHOD> can also be used to override the cache method locally.
+If you modify B<CACHE_METHOD> or B<OVERRIDE_CACHE_METHOD> in I<@SYSCONFDIR@/coreqrc>,
+it is recommended to add " B<%{ADD_CACHE_METHOD}>" or
+" B<%{ADD_OVERRIDE_CACHE_METHOD}>" (note the space in front of B<%>)
+at the end of the respective modified definitions, so that these variables
+can still be used for local overriding.
+
+The following cache methods are available:
+
+.TP
+.BR metadata-flat " or " metadata-flat:I<PATH>
+Use the metadata-cache located inside the corepkg-tree ($PORTDIR/metadata/cache).
+.RS
+If you provide I<PATH>, it overrides the above path; in this case, it must be
+the full path (i.e. no prefix is used). You might want to provide I<PATH> if
+you use some package manager to generate the metadata in the corresponding
+directory.
+.RE
+.TP
+.BR metadata-md5 " or " metadata-md5:I<PATH>
+This is similar to B<metadata-flat> with the difference that the files within
+($PORTDIR/metadata/md5-cache) are used where an md5sum is used instead of the
+timestamp to check whether the metadata is up-to-date.
+This should be the preferred method for overlays if the overlay supports it,
+that is, if its B<metadata/layout.conf> file contains the line
+B<cache-format=md5-dict>.
+(Note that only corepkg reads B<metadata/layout.conf>; coreq does not.)
+.TP
+.BR metadata-assign " or " metadata-assign:I<PATH>
+This is similar to B<metadata-flat> with the difference that the files within
+the metadata cache are expected to be in an "assignment format"
+(TYPE=value) which is the case in some alt-gentoo trees.
+.TP
+.BR metadata-md5-or-flat ", " metadata-md5-or-flat:I<PATH>
+This is similar to B<metadata-flat> with the difference that it is first
+attempted to find each category in $PORTDIR/metadata/md5-cache.
+If I<PATH> is specified, this method is equivalent to B<metadata-md5>:I<PATH>.
+.TP
+.BR metadata-md5-or-assign ", " metadata-md5-or-assign:I<PATH>
+This is similar to B<metadata-assign> with the difference that it is first
+attempted to find each category in $PORTDIR/metadata/md5-cache.
+If I<PATH> is specified, this method is equivalent to B<metadata-md5>:I<PATH>.
+.TP
+.B sqlite
+This is an extremely fast cache method if you are using corepkg with the
+sqlite backend, see
+http://wikigentoo.ksiezyc.pl/TIP_speed_up_corepkg_with_sqlite.htm
+or
+https://wiki.gentoo.org/wiki//etc/corepkg/modules
+(older links to this topic were
+I<http://gentoo-wiki.com/TIP_speed_up_corepkg_with_sqlite>
+or
+I<http://gentoo-wiki.info/TIP_speed_up_corepkg_with_sqlite>
+or
+I<http://en.gentoo-wiki.com/wiki/CorePkg_SQLite_Cache>
+though apparently none of these do work anymore).
+
+Note that in contrast to the default B<metadata> cache method you must
+use B<emerge --metadata> before you call B<coreq-update> with this method.
+
+.RS
+Since the support of this cache method requires B<sqlite> to be installed,
+this method is not necessarily compiled in.
+You must have emerged B<coreq> with the appropriate USE flag
+(or in a manual installation used I<./configure --with-sqlite>
+before compilation) if you want support for this method.
+
+As for all other cache methods, only those categories enabled by
+profile/category (in the main tree or some overlay) are read.
+If you do not want this, use B<sqlite*> (see below).
+.RE
+.TP
+.B sqlite*
+This is analogous to the cache method B<sqlite> with the difference that
+all categories found in the file are added, even those categories which
+were not enabled by some profile/categories file.
+.TP
+.BR flat " or " flat:I<PATH>
+This is similar to B<metadata-flat> with the difference that the metadata is
+expected in the directory I<PATH>I<$COREPKG_OR_OVERLAY_DIR>.
+If I<PATH> is omitted, it defaults to B</var/cache/edb/dep>.
+
+.RS
+You can use this cache method with <corepkg-2.1 and the default backend.
+.RE
+.TP
+.BR assign " or " assign:I<PATH>
+This is analogous to B<flat> with the difference that the files are
+expected to be in an "assignment format" (TYPE=value).
+This is the case if you use corepkg-2.1 with the default backend.
+
+.RS
+If you are using >=corepkg-2.1 and the default backend,
+you might want to use this one if you do not have access to the corepkg
+tree when you run coreq-update.
+Note that in contrast to the default B<metadata-*> cache methods you must
+run B<emerge --metadata> before you call B<coreq-update> with this method.
+You will probably want to use a corresponding option in coreq-sync in this case.
+.RE
+.TP
+.BR repo-flat " or " repo-flat:I<PATH> " or " repo-assign " or " repo-assign:I<PATH>
+This is analogous to B<flat>/B<assign> with the difference that the metadata is
+expected in the directory I<PATH>B</>I<$repo_name>.
+If I<$repo_name> is empty, the name B<x->I<XXX> is assumed where I<XXX>
+is the last nonzero path component of the corepkg/overlay directory.
+This corresponds to the naming scheme of paludis.
+If this gives a wrong path for some overlay, you can still manually override
+this with e.g.
+.BI "OVERRIDE_CACHE_METHOD='" bad_overlay " " metadata-assign ":" correct_path "'".
+.TP
+.BR parse "[" # metadata-method "]..."
+Get the information from the ebuilds, parsing it using some heuristics.
+Hence, this method has no security risk but possibly some other problems.
+For example, if variables are only set in eclasses, this method will not see them.
+Examples of problems with this method is missing SLOT information for
+typical ebuilds from kde-base or stupid version numbers for gcc cross-compilers.
+This is the cache-method B<none> from older coreq versions (before 0.11.1).
+
+.RS
+It is optionally possible to append one or several strings of the form
+B<#>I<metadata-method> where I<metadata-method> is any of the above mentioned
+cache methods (excluding B<sqlite>).
+In this case, the metadata-methods are used to check whether they contain
+newer information than the ebuild.
+If this is the case, the metadata is used instead of the ebuild
+(the first matching metadata wins).
+
+Usually this is what you want, especially for overlays, since the metadata
+is more reliable than the results of cache method B<parse>.
+Of course, this is only useful if the overlay I<foo> contains metadata
+which is regularly updated by the overlay maintainer using
+
+.B egencache --repo=I<foo> --update
+
+(whether this is done for layman overlays depends on the overlay maintainer;
+for your local overlays you can of course use the above command manually).
+
+Since this is usually what you want, the string in B<CACHE_METHOD_PARSE>
+is appended by default to the cache method B<parse>.
+
+Of course, if you know in advance that the metadata information of the
+overlay is up-to-date, it is (slightly) faster to use directly to use
+the corresponding metadata method (usually B<metadata-flat>).
+The latter makes sense if you e.g. call B<egencache> from a script which you
+use to sync the overlay (e.g. in coreq-sync).
+.RE
+.TP
+.BR parse* "[" # "metadata-method]..."
+This is essentially the same as cache method B<parse> with the difference
+that variables are not expanded in variable definitions.
+This is the cache-method B<none*> from older coreq versions (before 0.11.1)
+and cache-method B<none> from very old coreq versions (before 0.7.1)
+.TP
+.BR ebuild "[" # "metadata-method]..."
+If no corepkg cache is available (e.g. for overlays)
+this is the most compatible but also the slowest method.
+The information is obtained via "/usr/bin/ebuild ... depend" from the ebuild.
+Since all ebuilds will get executed by bash, this may be a security risk
+if you do not trust all ".ebuild" scripts or your environment variables.
+Intentionally, the environment is not cleared before the actual execution
+so that you can pass further variables to the ebuild.
+However, this can also lead to unexpected behaviour or even a security risk
+since many bash scripts may be tricked with strange environments.
+Use B<env -i coreq-update> when this causes problems.
+
+.RS
+.B Do not use this method if you do not completely trust all .ebuilds for which the method applies!
+
+Concerning the optional appendices B<#>I<metadata-method>, see the description of the cache method B<parse>.
+Note that if corresponding metadata is available this will be essentially faster than executing the ebuild.
+.RE
+.TP
+.BR ebuild* "[" # "metadata-method]..."
+This is a slightly faster and slightly less compatible version of B<ebuild>:
+The information is obtained via the undocumented "/usr/lib/corepkg/ebuild.sh".
+Thus, instead of executing a python program for each ".ebuild" as for
+cache-method B<ebuild>, "only" a lengthy shell-script and the ebuild itself
+is executed (hence, also this method is unsafe if you do not trust all
+".ebuild" scripts).
+Most environment variables except for corepkg variables and PATH are cleared;
+COREPKG_ROOTPATH is exported;
+some .ebuild-specific variables like $P are set when the ebuild is executed.
+This method is not quite as compatible as the method B<ebuild>, and its
+success may depend more on the corepkg version.
+However, this method is considerably faster than B<ebuild> and stable
+enough to treat e.g. typical ebuilds from kde-base.
+
+.RS
+.B Do not use this method if you do not completely trust all .ebuilds for which the method applies!
+.RE
+.TP
+.BR parse|ebuild ", " parse*|ebuild ", " parse|ebuild* ", " parse*|ebuild*  " [" # "metadata-method]..."
+This is a mixture of B<parse>/B<parse*> and B<ebuild>/B<ebuild*>.
+Each ebuild is first scanned as with method B<parse>/B<parse*>.
+If the obtained result has missing information or appears strange,
+the ebuild is treated as with cache method B<ebuild>/B<ebuild*>.
+As a rule of thumb, this method is much faster than B<ebuild>/B<ebuild*>
+but still much slower than B<parse>/B<parse*>.
+It has the same security risks as B<ebuild>/B<ebuild*>, of course.
+
+.RS
+.B Do not use this method if you do not completely trust all .ebuilds for which the method applies!
+.RE
+.TP
+.BR coreq "  or   "  coreq:I<FILE> "  or  " coreq:I<FILE>:I<overlay>
+Use the cachefile I<FILE> previously generated by B<coreq-update>.
+If omitted or empty, I<FILE> defaults to @COREQ_CACHEFILE@.
+
+.RS
+As for all other cache methods, only those categories enabled by
+profile/category (in the main tree or some overlay) are read.
+If you do not want this, use B<coreq*> (see below).
+
+If I<overlay> is not given or empty, then only the "main" tree in I<FILE> is read -
+overlays within I<FILE> are ignored.
+Otherwise only the part corresponding to I<overlay> is read from I<FILE>.
+Here, "corresponding" means the first overlay from I<FILE> matching the wildcard pattern I<overlay> is used.
+"Matching" means that first the label is tested, then the path and finally also the number
+of the overlay within I<FILE>. Note that I<overlay> has in general no relation with the current overlay
+names or order - only the names/order stored in I<FILE> play a role here.
+
+There are two exceptional values for I<overlay> which are treated by different rules:
+
+If I<overlay> has the special value "~", then the name of the current overlay label
+is used implicitly as the I<overlay> argument;
+If the current overlay label is empty or does not match, then the current overlay path is used instead.
+
+If I<overlay> has the special value "*", then B<all> overlays in I<FILE> are read.
+Note this is usually not what you want since it means that if I<FILE> originally contained several overlays,
+this overlay structure will appear "flattened".
+.RE
+.TP
+.BR coreq* "  or   "  coreq*:I<FILE> "  or  " coreq*:I<FILE>:I<overlay>
+This is analogous to the cache method B<coreq> with the difference that
+all categories found in I<FILE> are added, even those categories which
+were not enabled by some profile/categories file.
+
+.RS
+This cache method is useful if I<FILE> contains information for some
+overlay directory for which the corresponding profile/categories on
+the local machine is unknown or not necessarily up-to-date.
+
+This is used for B<coreq-remote>.
+
+Note that in particular with B<PORTDIR_CACHE_METHOD=coreq*::~>,
+the overlay data is by default just "copied" from the previous coreq cachefile.
+.RE
+.RE
+
+.TP
+.BR KEEP_VIRTUALS " " (true / false)
+If true, coreq-update will keep all virtual overlays from the previous database
+if that existed.
+This has the same effect as appending for each virtual overlay of the previous
+database the entry "I<overlay-name>" to B<ADD_OVERLAY> and appending a
+corresponding entry "I<overlay> coreq*::I<overlay>" to B<CACHE_METHOD>.
+Note that this means that this option might override settings made in
+B<CACHE_METHOD>, but it might be overridden by settings from
+B<OVERRIDE_CACHE_METHOD>.
+.TP
+.BR REPO_NAMES
+This variable is a string list of the form "I<dir-pattern> I<overlay-label> I<dir-pattern> I<overlay-label> ...".
+When a new cachefile is created, the overlay matching I<dir-pattern> obtains the label I<overlay-label>,
+independent of the content of its profiles/repo_name file.
+This variable can also associate label names to virtual overlays which do not possess such a file.
+In particular, this variable also overrides overlay labels set by KEEP_VIRTUALS.
+Later entries override earlier ones: The last matching entry takes precedence.
+.TP
+.BR LOCAL_COREPKG_CONFIG " " (true / false)
+If false, /etc/corepkg and B<ACCEPT_KEYWORDS> (from make.conf or the environment) are ignored.
+Since coreq-0.7.9, it is recommended to leave this value "true",
+because setting it to "false" will just hide some informations.
+.TP
+.BR ALWAYS_ACCEPT_KEYWORDS " " (true / false)
+If true, B<ACCEPT_KEYWORDS> is used even without B<LOCAL_COREPKG_CONFIG>,
+e.g. to determine the `default' stability.
+.TP
+.BR UPGRADE_LOCAL_MODE " " (+ " or " local / - " or " non-local "/anything else" )
+If this variable is B<+> / B<->, the B<--upgrade> option of coreq will always
+match as if B<LOCAL_COREPKG_CONFIG> was set to B<true> / B<false>.
+.TP
+.BR RECOMMEND_LOCAL_MODE " " (+ "  or " local / - " or " non-local "/anything else" )
+If this variable is B<+> / B<-> the upgrade/downgrade recommendations
+as well as in coreq-diff the tests for version changes will act as is
+B<LOCAL_COREPKG_CONFIG> was set to B<true> / B<false>.
+.TP
+.BR UPGRADE_TO_HIGHEST_SLOT " " (true / false)
+If true, all upgrade tests will give a positive result for an installed
+package for which not the slot with the best stable version is installed.
+Exceptions to this general policy can be specified in
+B</etc/corepkg/package.slot_upgrade_forbid> or
+B</etc/corepkg/package.slot_upgrade_allow>, respectively.
+.TP
+.BR RECURSIVE_SETS " " (true / false)
+If true, then sets and packages which are contained in an included set
+are considered as part of the parent set.
+.TP
+.BR XML_KEYWORDS (full / effective / both / true / full* / effective* / none / false)
+With --xml, this variable decides whether full/effective (or both) types of B<KEYWORDS> are printed for each versions.
+Here, "full" is the B<KEYWORDS> string as specified in the ebuild and "effective" means its modification by the profile.
+The values B<full*>/B<effective*> are similar to B<full>/B<effective>, but both types are printed if their values differ.
+B<true>/B<false> are equivalent to B<full*>/B<none>.
+.TP
+.BR XML_OVERLAY " " (true / false)
+With --xml, this variable decides whether the overlay (i.e. its path) is output for each version.
+This has no influence for versions from overlays without label (repository name):
+For those versions the overlay is output unconditionally.
+.TP
+.BR SORT_INST_USE_ALPHA " " (true / false)
+If B<true>, print the useflags of installed packages in alphabetical order.
+Otherwise, first those useflags are printed (in alphabetical order) which
+were set when the package was emerged, then the others are printed
+(in alphabetical order).
+.TP
+.BR CHECK_INSTALLED_OVERLAYS " " (true / false / repository)
+If B<true>, always check from which overlay a package was installed.
+If B<false>, only packages with versions in at least two trees are checked,
+i.e. only packages for which it appears reasonable from the database that
+it might have been installed from a different overlay.
+However, this information might be false if such a package was removed
+from an overlay or if a whole overlay is not in the database anymore.
+
+The special value B<repository> is a reasonable compromise:
+If repository data was stored during emerge (this is the case only with current
+corepkg versions; you can use B<coreq-installed [no-]repository> to check
+for which versions this is (not) the case) then this repository data is always used.
+Only if it is unreadable or does not match, the behaviour for that version
+is the same as in case B<CHECK_INSTALLED_OVERLAYS=false>.
+
+Especially in connection with option -T (if B<NONEXISTENT_IF_OTHER_OVERLAY>
+is true) and with option -J the speed increase is enormously if you set this
+variable to B<false> or B<repository>, but you should be aware that the
+information used about the installed overlay is not completely reliable
+(for versions installed with old corepkg versions).
+In particular, the option -T will not detect if an installed version of
+a package actually stems from a redundant overlay if in the current database
+all versions of this package stem from one (other) location.
+.TP
+.BR PRINT_COUNT_ALWAYS " " (true / false / never)
+If true, always print the number of matches in the last line, even if this
+number is 0 or 1.
+If B<PRINT_COUNT_ALWAYS=never>, then this last line is omitted completely.
+Both is normally not useful but might simplify writing certain scripts
+parsing the output of coreq.
+.TP
+.BR COUNT_ONLY_PRINTED " " (true / false)
+If false, print only the number of matches, independently of whether the
+matches actually lead to some output.
+This might be useful for certain scripts if you are only interested in the
+number of matches and use e.g. B<FORMAT=''> to speed things up.
+.TP
+.\" {{{ Default match fields and algorithms
+.BR DEFAULT_MATCH_FIELD " " "(string list)"
+This is a list of strings of the form I<regular_expression>[\\n\\r\\t ]I<match_field>
+which is used to determine the default match field.
+The search pattern from the command line is matched against all the I<regular_expression>
+values in this list in the given order.
+For the first match, the corresponding I<match_field> value is used as the default match field.
+You can specify a last I<match_field> (without a I<regular_expression>) in this list which is
+used as the default fallback if all matches failed; if there is no such entry, then B<name> is assumed.
+It may be convenient to use delayed substitution ${\\VAR} for I<regular_expression>
+to avoid manually inserting additional escapes.
+
+The possible values for I<match_field> are B<name>, B<category>, B<category/name>
+(or B<category-name>), B<description>, B<license>, B<homepage>, B<set>, B<eapi>, B<installed-eapi>,
+B<slot>, B<installed-slot>, B<use> (or B<iuse>), B<with-use> (or B<installed-with-use>),
+B<without-use> (or B<installed-without-use>), B<src-uri> (or B<srcuri>),
+B<deps>, B<depend>, B<rdepend>, B<pdepend>, B<bdepend>, B<idepend>, or B<error>,
+corresponding to the analogous command line option for the match field.
+The special value B<error> means that coreq stops with an error message claiming
+that a match field is not autodetected and must be specified explicitly.
+
+For testing scripts, it is recommended to use B<DEFAULT_MATCH_FIELD=error> so
+that scripts do not rely on particular defaults of that variable: This default
+has already changed several times in the history of coreq and probably will also
+eventually change in the future.
+.TP
+.BR DEFAULT_MATCH_ALGORITHM " " "(string list)"
+This is a list of strings of the form B<(>I<match_field_specification>B<)>I<regular_expression>[\\n\\r\\t ]I<match_algorithm>
+which is used to determine the default match algorithm.
+
+The interpretation is essentially analogous to B<DEFAULT_MATCH_FIELD> with the main difference that I<match_algorithm>
+specifies the default match algorithm chosen.
+The possible values for I<match_algorithm> are B<regex>, B<regexcase>,
+B<pattern>, B<substring>, B<begin>, B<end>, B<exact>, B<fuzzy>, or B<error>
+which correspond to the analogous command line option for the match algorithm.
+The special value B<error> means that coreq stops with an error message claiming
+that a match algorithm is not autodetected and must be specified explicitly.
+If no other default match algorithm default is specified, then B<regex> is used.
+
+In each string one of the two parts B<(>I<match_field_specification>B<)> and I<regular_expression> can be omitted.
+If neither is omitted, they must both match simultaneously for the algorithm to be selected.
+The I<match_field_specification> refers to the effectively selected match field(s),
+according to the following rules.
+
+I<match_field_specification> is a concatenation of words of the form
+B<|>I<match_field>, B<&>I<match_field>, and B<!>I<match_field>,
+where I<match_field> can have the same values as in B<DEFAULT_MATCH_FIELD> (except for B<error>).
+The order of these words plays no role.
+
+coreq combines all I<match_field> values with the same leading symbol
+(B<|>, B<&>, or B<!>) and thus obtains three (possibly empty) families of match fields.
+Now I<match_field_specification> matches if all of the following holds:
+
+1. If the first family (B<|>) is nonempty, at least one match field of that family is effectively selected (think of a logical "or").
+
+2. At least all match fields of the second family (B<&>) are effectively selected (think of a logical "and").
+
+3. If the third family (B<!>) is nonempty, at most match fields from that family are selected (think of a logical "not (... or ... or ...)").
+
+Thus, for instance, to specify that exactly all of B<depend>, B<rdepend>, B<pdepend>, B<bdepend>, B<idepend> are
+selected (i.e. B<--deps>) and no other field is selected, you can use either of
+
+.B (&deps!deps)
+
+.B (&depend&rdepend&pdepend&bdepend&idepend!depend!rdepend!pdepend!bdepend!idepend)
+
+On the other hand, if you want to specify that at least one of B<depend>, B<rdepend>, B<pdepend>, B<bdepend>, B<idepend> are selected
+and no other than these fields are selected, you can use either of
+
+.B (|deps!deps)
+
+.B (|depend|rdepend|pdepend|bdepend|idepend!depend!rdepend!pdepend!bdepend!idepend)
+
+For testing scripts, it is recommended to use B<DEFAULT_MATCH_ALGORIRTHM=error>
+so that scripts do not rely on particular defaults of that variable: This default
+has already changed several times in the history of coreq and probably will also
+eventually change in the future.
+.TP
+.\" }}}
+.\" {{{ Definition of Redundancy
+.BR TEST_FOR_EMPTY " " (true / false)
+Defines whether empty entries in /etc/corepkg/package.* are shown with -t.
+.TP
+.BR TEST_KEYWORDS " " (true / false)
+Defines whether /etc/corepkg/package.{accept_,}keywords is tested with -t.
+.TP
+.BR TEST_MASK " " (true / false)
+Defines whether /etc/corepkg/package.mask is tested with -t.
+.TP
+.BR TEST_UNMASK " " (true / false)
+Defines whether /etc/corepkg/package.unmask is tested with -t.
+.TP
+.BR TEST_USE " " (true / false)
+Defines whether /etc/corepkg/package.use is tested with -t.
+.TP
+.BR TEST_ENV " " (true / false)
+Defines whether /etc/corepkg/package.env is tested with -t.
+.TP
+.BR TEST_LICENSE " " (true / false)
+Defines whether /etc/corepkg/package.license is tested with -t.
+.TP
+.BR TEST_RESTRICT " " (true / false)
+Defines whether /etc/corepkg/package.accept_restrict is tested with -t.
+.TP
+.BR TEST_CFLAGS " " (true / false)
+Defines whether /etc/corepkg/package.cflags is tested with -t.
+.TP
+.BR TEST_REMOVED " " (true / false)
+Defines whether removed packages are tested with -t.
+.TP
+.BR TEST_FOR_NONEXISTENT " " (true / false)
+Defines whether non-existent installed versions are positive for -T.
+What is considered as non-existent is defined by the B<NONEXISTENT_IF>-variables.
+.TP
+.BR TEST_FOR_REDUNDANCY " " (true / false)
+Defines whether redundant entries in /etc/corepkg/package.* are positive for -T.
+What is considered as redundant is defined by the B<REDUNDANT_IF>-variables.
+.TP
+.BR ACCEPT_KEYWORDS_AS_ARCH " " (full / true / false)
+If full or true modify ARCH by ACCEPT_KEYWORDS.
+This determines which keywords are considered as ARCH or OTHERARCH.
+The value full also influences the original ARCH keywording.
+.TP
+.BR NONEXISTENT_IF_OTHER_OVERLAY " " (true / false)
+Defines whether versions are non-existent for TEST_FOR_NONEXISTENT
+if they come from a different overlay than the installed version.
+.TP
+.BR NONEXISTENT_IF_MASKED " " (true / false)
+Defines whether masked versions are non-existent for TEST_FOR_NONEXISTENT.
+.TP
+.BR REDUNDANT_IF_DOUBLE " " (string)
+Applies if /etc/corepkg/package.{accept_,}keywords lists the same keyword twice
+for some/all (un-/installed) versions.
+
+.RS
+B<string> describes which versions should be tested.
+It can have the following values:
+.TP
+.BR no " or " false
+Do not test for this type of redundancy.
+.TP
+.B some
+It suffices that the redundancy occurs for some version in the database.
+.TP
+\fBall\fR
+The redundancy must occur for all versions in the database.
+.TP
+.B some-installed
+It suffices that the redundancy occurs for some installed version.
+Uninstalled versions are ignored for this test.
+.TP
+.B all-installed
+The redundancy must occurs at least for all installed versions of the package.
+If no version is installed, it must occur at least once.
+.TP
+.B some-uninstalled
+It suffices that the redundancy occurs for some uninstalled version.
+Installed versions are ignored for this test.
+.TP
+.B all-uninstalled
+The redundancy must occurs at least for all uninstalled versions.
+If all versions in the database are installed, it must occur at least once.
+.TP
+.BR "-" "some of the above  or  " "+" "some of the above"
+The test only applies if in addition no version (in case B<->)
+resp. at least some version (in case B<+>) of the package is installed.
+.TP
+.RB "some of the above  " or "  some of the above"
+The result is positive if at least one of the two tests is positive.
+Instead of "B<or>"  also the symbols "B<|>" or "B<||>" can be used.
+.RE
+
+.TP
+.BR REDUNDANT_IF_DOUBLE_LINE " " (string ", see above")
+Applies if /etc/corepkg/package.{accept_,}keywords has two lines for identical targets,
+i.e. such that corepkg would drop the first of these lines.
+Note that lines with targets B<foo/bar> and B<=foo/bar-1> are considered as
+different in this context by corepkg (and thus also by coreq)
+even if B<foo/bar> would apply to version B<1>.
+The latter redundancy can be found implicitly with B<REDUNDANT_IF_DOUBLE_LINE>,
+B<REDUNDANT_IF_MIXED>, and B<REDUNDANT_IF_STRANGE>.
+.TP
+.BR REDUNDANT_IF_MIXED " " (string ", see above")
+Applies if /etc/corepkg/package.{accept_,}keywords lists two different keywords,
+e.g. ~ARCH and *, for the versions in question.
+.TP
+.BR REDUNDANT_IF_WEAKER " " (string ", see above")
+Applies if /etc/corepkg/package.{accept_,}keywords lists a keywords which can
+be replaced by a weaker keyword, e.g. ** or ~OTHERARCH or OTHERARCH
+in place of ~ARCH, or ~OTHERARCH in place of OTHERARCH,
+for the versions in question.
+.TP
+.BR REDUNDANT_IF_STRANGE " " (string ", see above")
+Applies if /etc/corepkg/package.{accept_,}keywords lists a strange keyword,
+e.g. UNKNOWNARCH (unknown to the .ebuild and ARCH) or -OTHERARCH,
+for the versions in question.
+.TP
+.BR REDUNDANT_IF_NO_CHANGE " " (string ", see above")
+Applies if /etc/corepkg/package.{accept_,}keywords provides keywords which do not
+change the availability keywords status for the versions in question.
+.TP
+.BR REDUNDANT_IF_MASK_NO_CHANGE " " (string ", see above")
+Applies if /etc/corepkg/package.mask contains entries
+which do not change the mask status for the versions in question.
+.TP
+.BR REDUNDANT_IF_UNMASK_NO_CHANGE " " (string ", see above")
+Applies if /etc/corepkg/package.unmask contains entries
+which do not change the mask status for the versions in question.
+.TP
+.BR REDUNDANT_IF_DOUBLE_MASKED " " (string ", see above")
+Applies if /etc/corepkg/package.mask matches twice
+for the versions in question.
+.TP
+.BR REDUNDANT_IF_DOUBLE_UNMASKED " " (string ", see above")
+Applies if /etc/corepkg/package.unmask matches twice
+for the versions in question.
+.TP
+.BR REDUNDANT_IF_DOUBLE_USE " " (string ", see above")
+Applies if /etc/corepkg/package.use matches twice
+for the versions in question.
+.TP
+.BR REDUNDANT_IF_DOUBLE_ENV " " (string ", see above")
+Applies if /etc/corepkg/package.env matches twice
+for the versions in question.
+.TP
+.BR REDUNDANT_IF_DOUBLE_LICENSE " " (string ", see above")
+Applies if /etc/corepkg/package.license matches twice
+for the versions in question.
+.TP
+.BR REDUNDANT_IF_DOUBLE_RESTRICT " " (string ", see above")
+Applies if /etc/corepkg/package.accept_restrict matches twice
+for the versions in question.
+.TP
+.BR REDUNDANT_IF_DOUBLE_CFLAGS " " (string ", see above")
+Applies if /etc/corepkg/package.cflags matches twice
+for the versions in question.
+Note that this file is not supported by corepkg, but you might e.g. have built some
+support for it in your personal /etc/corepkg/bashrc file.
+Of course, this means that also no format for /etc/corepkg/package.cflags is defined.
+coreq assumes that the format is analogous to /etc/corepkg/package.{keywords,use}
+(i.e. an entry is at most one line, with the matching version(s) at the beginning).
+As the other /etc/corepkg/package.* files, /etc/corepkg/package.cflags may also be a directory tree;
+in this case, all non-hidden files/subdirectories in this tree are read recursively,
+resolving all symbolic links.
+.TP
+.BR REDUNDANT_IF_IN_KEYWORDS " " (string ", see above")
+Applies if /etc/corepkg/package.{accept_,}keywords contains a nonempty entry matching the versions in question
+(to find empty entries use -t).
+Of course, one will certainly not consider all matches as a redundancy
+(although one might misuse this option to simply list all matches).
+However, one might consider matching but non-installed packages as redundant.
+Hence, typically one might want to set this variable to the value B<-some> or the equivalent value B<-some-uninstalled>
+(or to B<false> if one thinks that entries for uninstalled packages are "normal" and not redundant).
+.TP
+.BR REDUNDANT_IF_IN_MASK " " (string ", see above")
+This is analogous to B<REDUNDANT_IF_IN_KEYWORDS>, but for /etc/corepkg/package.mask.
+.TP
+.BR REDUNDANT_IF_IN_UNMASK " " (string ", see above")
+This is analogous to B<REDUNDANT_IF_IN_KEYWORDS>, but for /etc/corepkg/package.unmask.
+.TP
+.BR REDUNDANT_IF_IN_USE " " (string ", see above")
+This is analogous to B<REDUNDANT_IF_IN_KEYWORDS>, but for /etc/corepkg/package.use.
+.TP
+.BR REDUNDANT_IF_IN_ENV " " (string ", see above")
+This is analogous to B<REDUNDANT_IF_IN_KEYWORDS>, but for /etc/corepkg/package.env.
+.TP
+.BR REDUNDANT_IF_IN_LICENSE " " (string ", see above")
+This is analogous to B<REDUNDANT_IF_IN_KEYWORDS>, but for /etc/corepkg/package.license.
+.TP
+.BR REDUNDANT_IF_IN_RESTRICT " " (string ", see above")
+This is analogous to B<REDUNDANT_IF_IN_KEYWORDS>, but for /etc/corepkg/package.accept_restrict.
+.TP
+.BR REDUNDANT_IF_IN_CFLAGS " " (string ", see above")
+This is analogous to B<REDUNDANT_IF_IN_KEYWORDS>, but for /etc/corepkg/package.cflags.
+See the above comments about this file.
+.\" }}}
+.\" {{{ Various file lists:
+.TP
+.BR SLOT_UPGRADE_FORBID " " "(string list)"
+This is a list of filenames/dirnames which serve as /etc/corepkg/package.slot_upgrade_forbid
+.TP
+.BR SLOT_UPGRADE_ALLOW " " "(string list)"
+This is a list of filenames/dirnames which serve as /etc/corepkg/package.slot_upgrade_allow
+.TP
+.BR KEYWORDS_NONEXISTENT " " "(string list)"
+This is a list of filenames/dirnames which serve as /etc/corepkg/package.{accept_,}keywords.nonexistent
+.TP
+.BR MASK_NONEXISTENT " " "(string list)"
+This is a list of filenames/dirnames which serve as /etc/corepkg/package.mask.nonexistent
+.TP
+.BR UNMASK_NONEXISTENT " " "(string list)"
+This is a list of filenames/dirnames which serve as /etc/corepkg/package.unmask.nonexistent
+.TP
+.BR USE_NONEXISTENT " " "(string list)"
+This is a list of filenames/dirnames which serve as /etc/corepkg/package.use.nonexistent
+.TP
+.BR ENV_NONEXISTENT " " "(string list)"
+This is a list of filenames/dirnames which serve as /etc/corepkg/package.env.nonexistent
+.TP
+.BR LICENSE_NONEXISTENT " " "(string list)"
+This is a list of filenames/dirnames which serve as /etc/corepkg/package.license.nonexistent
+.TP
+.BR RESTRICT_NONEXISTENT " " "(string list)"
+This is a list of filenames/dirnames which serve as /etc/corepkg/package.accept_restrict.nonexistent
+.TP
+.BR CFLAGS_NONEXISTENT " " "(string list)"
+This is a list of filenames/dirnames which serve as /etc/corepkg/package.cflags.nonexistent
+.TP
+.BR INSTALLED_NONEXISTENT " " "(string list)"
+This is a list of filenames/dirnames which serve as /etc/corepkg/package.installed.nonexistent
+.TP
+.BR PACKAGE_NOWARN " " "(string list)"
+This is a list of filenames/dirnames which serves as /etc/corepkg/package.nowarn
+.\" }}}
+.\" }}}
+
+.\" {{{ /etc/corepkg/sets.coreq
+.SS /etc/corepkg/sets.coreq
+This is a directory analogous to B</etc/corepkg/sets> (see the corepkg manpage).
+Since corepkg has some ways to define package sets which are not available for coreq,
+you can use this directory to store (static) sets which you want that coreq knows anyway
+(e.g. so that set entries in /etc/corepkg/package.{accept_,}keywords can be treated properly).
+.\" }}}
+
+.\" {{{ /etc/corepkg/package.slot_upgrade*
+.SS /etc/corepkg/package.slot_upgrade_forbid
+.SS /etc/corepkg/package.slot_upgrade_allow
+Similarly as all other /etc/corepkg/package.*, this can be a file or directory.
+The entries of this file are of the form "category/name" (separated by newlines).
+The corresponding packages are treated as exceptions for B<UPGRADE_TO_HIGHEST_SLOT>.
+.\" }}}
+
+.\" {{{ /etc/corepkg/package.*.nonexistent
+.SS /etc/corepkg/package.accept_keywords.nonexistent
+.SS /etc/corepkg/package.keywords.nonexistent
+.SS /etc/corepkg/package.mask.nonexistent
+.SS /etc/corepkg/package.unmask.nonexistent
+.SS /etc/corepkg/package.use.nonexistent
+.SS /etc/corepkg/package.env.nonexistent
+.SS /etc/corepkg/package.license.nonexistent
+.SS /etc/corepkg/package.accept_restrict.nonexistent
+.SS /etc/corepkg/package.cflags.nonexistent
+Similarly as /etc/corepkg/package.*, this can be a file or a directory.
+If an entry (separated by space or newline) matches the first word of a line
+in the corresponding /etc/corepkg/package.* file,
+this line is excluded from the -t tests (for names not in the database).
+You can use this to eliminate certain warning from -t.
+
+.SS /etc/corepkg/package.installed.nonexistent
+This is similar to the other /etc/corepkg/package.*.nonexistent files/dirs
+with the difference that it eliminates messages from -t about installed
+packages which had been removed from the database.
+The entries of this file are of the form "category/name", but you can also
+omit the "category/" part (although this is not recommended).
+.\" }}}
+
+.\" {{{ /etc/corepkg/package.nowarn
+.SS /etc/corepkg/package.nowarn
+Similarly as /etc/corepkg/package.*, this can be a file or a directory.
+With this file/dir you can switch off test for -T for particular packages.
+The format of the file is similarly to /etc/corepkg/package.use with the
+difference that you can switch on/off tests.
+Exactly those lines apply for which at least one matching version is available.
+For example, the lines
+
+.B sys-kernel/*-sources no_change weaker
+
+.B >sys-kernel/hardened-sources-2.6.40 -weaker
+
+in this file will cause that -T does not find the package
+sys-kernel/*-sources if the only cause for it would be that
+B<REDUNDANT_IF_NO_CHANGE> or B<REDUNDANT_IF_WEAKER> is set.
+An exception to this rule is only made for B<REDUNDANT_IF_WEAKER> and for
+hardened-sources, if the latter is available at least in version 2.6.40.
+The order in the file plays no role: The "-" always takes precedence if it
+occurs somewhere.
+
+You can list a package several times in this file; the listed tests are
+then cumulative for the corresponding package.
+
+Available tests are
+B<in_keywords>, B<no_change>, B<double>, B<mixed>, B<weaker>, B<double_line>,
+B<in_mask>, B<mask_no_change>, B<double_masked>,
+B<in_unmask>, B<unmask_no_change>, B<double_unmasked>,
+B<in_use>, B<double_use>,
+B<in_env>, B<double_env>,
+B<in_license>, B<double_license>,
+B<in_restrict>, B<double_restrict>,
+B<in_cflags>, B<double_cflags>,
+the meaning corresponding to the according B<REDUNDNANT_IF_*> variable.
+
+In addition there are the tests B<nonexistent>, B<masked>, B<other_overlay>
+which correspond to the respective variables
+B<TEST_FOR_NONEXISTENT>, B<NONEXISTENT_IF_MASKED>, B<NONEXISTENT_IF_OTHER_OVERLAY>.
+.\" }}}
+
+.\" {{{ -------- @COREQ_CACHEFILE@
+.SS @COREQ_CACHEFILE@
+This is the binary database for coreq.
+The path can be changed with the B<COREQ_CACHEFILE> variable
+(which by default honours B<EPREFIX> via delayed reference).
+.\" }}}
+
+.\" {{{ -------- @COREQ_PREVIOUS@
+.SS @COREQ_PREVIOUS@
+This is the previous version of @COREQ_CACHEFILE@, used by coreq-diff and coreq-sync.
+The path can be changed with the B<COREQ_PREVIOUS> variable
+(which by default honours B<EPREFIX> via delayed reference).
+.\" }}}
+
+.\" {{{ -------- @COREQ_REMOTEARCHIVE1@ @COREQ_REMOTEARCHIVE2@
+.SS @COREQ_REMOTEARCHIVE1@ @COREQ_REMOTEARCHIVE2@
+This is a local copy of the remote archive, used by coreq-remote.
+The path can be changed with the B<COREQ_REMOTEARCHIVE1> or B<COREQ_REMOTEARCHIVE1>
+variable, respectively (which by default honour B<EPREFIX> via delayed reference).
+.\" }}}
+.\" }}}
+
+.\" {{{ masked-packages
+.SH masked-packages
+B<masked-packages> is a helper tool for scripts which can match the arguments
+against a list of masked packages or versions.
+The masks are specified by the options and expected to be in the
+same format as in /etc/corepkg/package.mask
+The arguments must be in the form
+I<category>B</>I<name>B<->I<version>[B<:>I<slot>][B<::>I<repo>].
+By default, the arguments matching a mask are printed.
+
+.SS Examples:
+.TP
+.B masked-packages -q --file /etc/corepkg/package.accept_keywords app-corepkg/coreq-99999999::mv
+Returns successfully if an entry from B</etc/corepkg/package.accept_keywords>
+matches for the version B<app-corepkg/coreq-99999999::mv>.
+.TP
+.B masked-packages -m '=a/b-1*:1' -m '=c/d-1' a/b-0:1 a/b-1.1:1 a/b-1.2 c/d-1:2
+Outputs only B<a/b-1.1:1> and B<c/d-1:2> since the other arguments do not
+match in version or slot, respectively.
+
+.SS Options
+.TP
+.BR -h ", " --help
+Print a help screen and exit.
+.TP
+.BR -q ", " --quiet "   (toggle)"
+Do not print the arguments matching a mask, but instead show by the exit status
+whether an argument was matching.
+More precisely, the exit status is only successful if at least one argument is matching.
+.TP
+.BR -Q ", " --nowarn "   (toggle)"
+Do not print warnings concerning bad syntax.
+.TP
+.BR -m ", " --mask " " I<MASK>
+Add I<MASK> to the list of masks.
+.TP
+.BR -f ", " --file " " I<FILE>
+Add the lines of I<FILE> to the list of masks.
+I<FILE> can also be empty, B<-> or a directory:
+An empty filename or B<-> means that standard input is used;
+a directory is read recursively.
+.TP
+.BR -F ", " --read-file " " I<FILE>
+Add words from I<FILE> to the list of arguments.
+I<FILE> can also be empty, B<-> or a directory:
+An empty filename or B<-> means that standard input is used;
+a directory is read recursively.
+.\" }}}
+
+.\" {{{ versionsort
+.SH versionsort
+B<versionsort> is a helper tool for scripts which serves two purposes.
+It cuts the version strings and certain non-alphanumeric garbage
+from its arguments and interprets the arguments
+themselves as version strings (depending on some heuristics).
+Then it outputs the version strings in a sorted order, according to the
+corepkg rules of version sorting.
+If there is more than one argument, each version (including the last one)
+is followed by a newline.
+For example,
+
+.RS
+.B versionsort '>=gcc-4.4' 4.4_alpha0 '<sys-devel/gcc-4.05' 4.5
+.RE
+
+will output
+
+.RS
+.B 4.05
+
+.B 4.4_alpha0
+
+.B 4.4
+
+.B 4.5
+.RE
+
+If you pass only one argument, versionsort is more sloppy about the version rules;
+even if the version part is not completely correct, it is guaranteed
+in this case that the output is string-equal to the version part.
+Thus, you can use versionsort with one argument to split the package name
+from the version part in a shell script by
+
+.RS
+B<split=1-font-adobe-75dpi-1.3-r1>
+
+B<version=`versionsort "X$split"`; name=${split%"-$version"}>
+.RE
+
+Although currently it makes no difference, it is safer in such a case
+(concerning possible future extensions of the version format)
+to let the argument(s) start with a non-number (like B<X> in the above example)
+to make sure that versionsort will really cut the version from the argument
+and cannot misinterpret the whole argument as a version.
+
+Since coreq-0.25.6, versionsort supports some options:
+With B<-n>, B<-p>, B<-f>,  B<-v>, B<-r>, B<-V> only the name (without version appendix),
+name with version (without revision appendix), name with version including revision appendix,
+the pure version (without revision appendix),  the revision, or
+version including appendix corresponding to the argument will be output, respectively.
+(Since coreq-0.29.5 an arbitrary number of arguments is admissible after these options;
+if more than one argument is specified, on each output a newline is appended.)
+For example, after
+
+.RS
+B<split=1-font-adobe-75dpi-1.3-r1>
+
+B<PN=`versionsort -n "$split"`>
+
+B<P=`versionsort -p "$split"`>
+
+B<PF=`versionsort -f "$split"`>
+
+B<PV=`versionsort -v "X$split"`>
+
+B<PR=`versionsort -r "X$split"`>
+
+B<PVR=`versionsort -V "X$split"`>
+.RE
+
+the variables B<PN>, B<P>, B<PF>,  B<PV>, B<PR>, and B<PVR> have an analogous meaning as in ebuilds, namely
+B<1-font-adobe-75dpi>, B<1-font-adobe-75dpi-1.3>, B<1-font-adobe-75dpi-1.3-r1>, B<1.3>, B<r1>, or B<1.3-r1>, respectively.
+(if B<-r1> would not have been specified, B<PR> would be empty: This differs from ebuilds).
+
+Be aware that B<versionsort> expects only for the options B<-n>, B<p>, and B<-f> that the argument contains a package name:
+For all other options (or without option), it is made clear by prepending of "X" that the argument is not a "pure" version number.
+.\" }}}
+
+
+.\" {{{ BUGS
+.SH "BUGS (and sort of FAQ)"
+.LP
+For bugreports use either I<@PACKAGE_BUGREPORT@> or Gentoo's bugzilla I<https://bugs.gentoo.org/>
+
+Many cache methods are slowly in principle:
+Please use the hints given in the separate section B<SPEEDUP> below.
+
+coreq cannot reliably detect the color capabilities and background color of your terminal.
+Here are a few simple methods how you can avoid some undesired color problems
+(to understand details of these methods look up the above description of the variables
+B<TERM_ALT?>, B<SOLARIZED>, B<COLORSCHEME?>, B<DARK>, B<TERM_DARK>, and B<COLORFGBG_DARK>.)
+
+.TP
+1. Use the color scheme corresponding to your actual background color by setting B<DARK=true> or B<DARK=false> in I<@SYSCONFDIR@/coreqrc> (or adapt the heuristics in B<TERM_DARK> to your system.)
+
+.TP
+2. Force the desired background color (or avoid to set it) by setting B<BG0=black>, B<BG1=black>, B<BG2=white>, B<BG3=white> (or B<BG0=none>, B<BG1=none>, B<BG2=none>, B<BG3=none>) in I<@SYSCONFDIR@/coreqrc>. Note that forcing of the background color usually makes transparent terminals non-transparent and, moreover, can cause on some terminals some new scrolled-in lines to be in this background color. In order to (not) reset the forced background color before every newline you can set B<RESET_ALL_LINES=false> or B<RESET_ALL_LINES=true>, respectively (the default can depend on the coreq version).
+
+.TP
+3. Force a desired color scheme on all terminals by setting B<TERM_ALT3=.> in I<@SYSCONFDIR@/coreqrc>; you may want to combine this with setting B<COLORSCHEME3=0> (or B<=1>, ..., B<=5>). Note that the color schemes selected by the numbers 0 and 2 are very poor since they use only the few system colors and thus different things cannot always be distinguished by different colors. However, this can make sense e.g. if you frequently use different terminals and want to get used to only one scheme or if you want to force Ethan Schoonover's B<original> solarized colorscheme. However, solarized users should in any case set B<SOLARIZED> and use colorscheme 5 (or 4):
+
+.TP
+4. If you have configured your terminals to use Ethan Schoonover's Solarized colorscheme (light or dark) just set B<SOLARIZED=true> (or light or dark - all is equivalent concerning coreq). Only use the previous hint additionally if you do not like that there are additional colors used in 256 color capable terminals.
+
+.TP
+5. If you use rxvt which can do 256 colors but which does not set TERM=rxvt-256color or TERM=rxvt-unicode-256color, put B<TERM_ALT1_ADD=rxvt> to I<@SYSCONFDIR@/coreqrc>.
+
+.LP
+coreq does not and probably never will support dependencies and/or useflags.
+In particular, this means that coreq -u output will be in general different
+from the output of an emerge update command.
+You should rely only on the latter for your system.
+This holds in particular also for the upgrades of packages with slots.
+The variable B<UPGRADE_TO_HIGHEST_SLOT> and manual exceptions
+in B</etc/corepkg/package.slot_upgrade_forbid> or
+B</etc/corepkg/package.slot_upgrade_allow>, respectively, can be used to
+manually work around some of these shortcomings somewhat.
+
+coreq does not and never will fully support all sets which corepkg does support.
+Currently, it appears that even the proposed way of PROPERTIES=set to put
+packages in the tree will never be supported by coreq (because coreq would need
+full support for dependencies and useflags to handle these).
+As a workaround you can manually define such additional sets in
+B</etc/corepkg/sets.coreq>.
+Moreover, coreq does not and probably never will support reading of sets.conf files.
+If you specified additional B<sets/> directories e.g. in some overlay, you must
+add these additional directories manually to the B<COREQ_LOCAL_SETS> variable
+in I<@SYSCONFDIR@/coreqrc>.
+The easiest way to do the latter is to put an entry like
+
+B<COREQ_LOCAL_SETS_ADD=">I</path/to/overlay1/sets> I</path/to/overlay2/sets> I<...>B<">
+
+into I<@SYSCONFDIR@/coreqrc> (see the description of B<COREQ_LOCAL_SETS> above).
+
+coreq-diff does never consider /etc/corepkg/profile. (Reason: The saved database
+contains only the masking state according to the original profile, but not the
+profile itself.
+On the other hand, /etc/corepkg/profile can only be interpreted when the
+profile is known.)
+
+The output with the default B<OVERLAYS_LIST=all-used-renumbered> is confusing when one wants
+to use the overlay number in some coreq variable/command-argument.
+
+There is no cache method setting which gets information from overlays
+(for which no corepkg cache metadata is available) fast and reliable -
+you must always choose between one of these two extremes.
+The default is the fast one, but it shows often false slots and has other problems.
+
+All the B<EPREFIX>/B<ROOT> stuff is confusing.
+In particular, by the mere fact of allowing much of these variables,
+coreq will always be vulnerable to local attacks if it is called with a possibly unsafe environment.
+
+The previous default B<KEEP_VIRTUALS=true> used to confuse people.
+However, with the new default, nobody will find out that this feature exists.
+:(
+
+There are too many features: The documentation and configuration has become too complicated.
+On the other hand, there are still many things which cannot be configured...
+.\" }}}
+
+.\" {{{ SPEEDUP
+.SH "SPEEDUP"
+.LP
+All non-metadata cache methods for B<coreq-update> are either non-reliable (B<parse>, B<parse*>) or rather slow and insecure (B<ebuild>, B<ebuild*>).
+For this reason, it is recommended to generate and use metadata for the main corepkg tree as well as for all its overlays.
+The defaults of coreq are such that this metadata is used if available (see B<CACHE_METHOD_PARSE>) (configuration is only necessary if you use the sqlite backend of corepkg).
+Essentially, there are two types of possible metadata which can be used:
+
+.TP
+1. Metadata stored in each tree/overlay.
+
+This metadata is in the metadata/cache or metadata/md5-cache subdirectory of $PORTDIR or of the overlay's directory.
+
+.TP
+2. Metadata stored by corepkg for each tree/overlay in I</var/cache/edb/>
+
+This metadata is updated with B<emerge --metadata> (and its format depends on whether corepkg uses the sqlite backend).
+
+.LP
+The disadvantage of using metadata is that it has to be generated/updated before calling B<coreq-update>
+if the corresponding tree/overlay is updated and,
+in case of metadata in I</var/cache/edb>, that it takes additional space.
+
+Fortunately, you do not have to care about metadata in the main tree, since
+the metadata/{md5-,}cache subdirectory of $PORTDIR is automatically updated with B<emerge --sync>.
+However, your local overlays and several overlays updated by layman (or maybe in a different way)
+do not contain metadata (and even if they do, this metadata is not always up-to-date),
+and thus metadata for these overlays should be generated to speed up B<coreq-update>.
+
+Be aware that generating metadata is a security risk, since all ebuilds of the tree are executed when doing so!
+However, you must be trusting the overlays anyway if you use them...
+
+I do B<not> recommend to use B<emerge --metadata> (although this could be automatically
+called at the correct time by using B<coreq-sync> with the B<-M> option: put e.g. the line B<-M> into B</etc/coreq-sync.conf>),
+because it would be a waste of disk space to store the metadata of the whole corepkg tree in duplicate into I</var/cache/edb>.
+
+Instead, I B<do> recommend to update the metadata in the overlays at each B<coreq-sync>.
+This can also be automatically updated at the correct time, but it requires a more complicated setup:
+
+For a local overlay, for simplicity assume it is in I</usr/local/corepkg>
+(and that this path is contained in B<PORTDIR_OVERLAY>), the procedure is as follows:
+
+First you must give your overlay a name if you have not already done so:
+Put into the file I</usr/local/corepkg/profiles/repo_name> (creating it if necessary)
+the name of your overlay.
+(This step should always be done for overlays, independent of coreq or metadata).
+I assume in the following that this name is I<my_local_overlay>.
+
+Second, you should specify which type of metadata you want: Put into the file
+I</usr/local/corepkg/metadata/layout.conf> (creating it if necessary) the line
+
+B<cache-formats = md5-dict>
+
+and, unless you have a reason not to do so, also the line
+
+B<thin-manifests = true>
+
+The former tells corepkg to create/read only the metadata in
+I</usr/local/corepkg/metadata/md5-cache> (which is the new method and should be preferred over the other).
+The other line is not really related with metadata but just means that the Manifest files
+in your overlay will/need not contain checksums of files from I</usr/local/corepkg>.
+
+Now, whenever you want, the metadata can be updated by calling
+
+B<egencache --repo=>I<my_local_overlay> B<--update>
+
+or (unless the overlay provides an up-to-date I<profile/use.desc>)
+
+B<egencache --repo=>I<my_local_overlay> B<--update --update-use-local-desc>
+
+Note that if the overlay uses eclasses from the main tree, the above command should be
+executed also if these eclasses change, i.e. after each B<emerge --sync>.
+To call the above command automatically at the right time there are several
+methods:
+
+One method is to put an executable shell script into the directory
+I</etc/corepkg/repo.postsync.d/> which calls B<egencache>
+in the appropriate manner in dependence of the repository name B<$1>.
+For instance, you can generate an executable file
+I</etc/corepkg/repo.postsync.d/50-egencache> with the following content:
+
+.RS
+#!/bin/sh
+
+[ -z "$1" ] && exit
+
+case $1 in
+
+# For repositories "mv" and "local" update also profile/use.desc:
+
+mv|local)
+
+.RS
+    exec egencache "--repo=$1" --update --update-use-local-desc;;
+.RE
+
+# For all other repositories only update the metadata:
+
+*)
+
+.RS
+    exec egencache "--repo=$1" --update;;
+.RE
+
+esac
+.RE
+
+If the above shell script is executable, B<egencache> will be called after
+every B<emerge --sync>.
+
+An alternative is to call B<egencache> automatically (only) at each call of B<coreq-sync>.
+To do the latter, put e.g. the following lines into I</etc/coreq-sync.conf>:
+
+B<@StatusInfo 'Updating metadata for> I<my_local_overlay>B<'>
+
+B<@egencache --repo=>I<my_local_overlay> B<--update --update-use-local-desc>
+
+In a similar manner, you can also treat e.g. overlays managed by layman:
+For each layman overlay which you use you should put corresponding calls
+to B<egencache> into I</etc/coreq-sync.conf> (however, please be warned again
+that this is a security risk since it means that the ebuilds in the overlays
+will be executed with B<coreq-sync>).
+
+No matter which method you use: For layman overlays there is an additional problem.
+Depending on the version control system of the overlay, layman might refuse to sync
+if you have written data into the metadata/ subdirectory, or layman
+might remove this subdirectory during syncing.
+
+For overlays managed by git, this problem can be solved as follows:
+Create in the main directory of that overlay the file I<.gitignore>
+(if it does not already exist) and add to it the lines:
+
+B</.gitignore>
+
+B</metadata/>
+
+This will cause that the file .gitignore itself as well as the
+subdirectory metadata (and its content) are ignored (and thus not updated)
+by git/layman but only by your above call.
+.\" }}}
+
+.\" {{{ INSTALLATION
+.SH "INSTALLATION"
+It is Gentoo policy to not modify user's B<CXXFLAGS> and B<LDFLAGS>.
+It is also Gentoo policy to not change default configs if this can be configured
+in another way.
+
+For this reason, many USE-flags have been removed in recent gentoo ebuilds.
+For this reason, very likely your B<./configure> settings for coreq are
+B<not appropriate> for coreq. The maintainer of coreq B<strongly> recommends to export
+
+.B EXTRA_ECONF="--enable-security --enable-new-dialect --enable-strong-optimization"
+
+(At the end of this section it is explained how to do this most conveniently.)
+The purpose of this is to modify B<CXXFLAGS> and B<LDFLAGS> in a way which highly optimizes coreq
+(and usually essentially decreases the binary size and corresponding memory usage) and
+which sets them such that it is reasonably safe (concerning *FLAGS) to run most code as root.
+Of course, some of the chosen *FLAGS are somewhat experimental, but the coreq code
+tries hard to support all of them.
+Anyway, if this is too experimental for you, you can replace B<--enable-strong-optimization>
+by B<--enable-optimization>. You can also remove B<--enable-new-dialect>.
+Both of these modifications will usually result in less optimized code.
+Conversely, you can replace B<--enable-security> by B<--enable-strong-security>
+which will choose some (experimental) *FLAGS (if available) which will increase
+the security at the cost of a considerable loss of speed.
+
+If you compile for a low-memory system, it might also be advisable to add
+
+.B --without-dep-default
+
+.B --without-src-uri-default
+
+and/or
+
+.B --without-required-use-default
+
+to the above B<EXTRA_ECONF>. The latter is similar to setting B<DEP=false> and/or B<REQUIRED_USE=false>
+in some file in B</etc/coreqrc/> and thus decreases memory usage of coreq by
+disabling storing of the corresponding data. Some more specialized options you might want to add to
+B<EXTRA_ECONF> are
+
+.B --enable-warnings --enable-strong-warnings --debugging
+
+with their obvious meaning concerning *FLAGS.
+Further B<EXTRA_ECONF> arguments which had previously been accessible through USE-flags are
+
+.BR --enable-swap-remote " (exchange the role of the two remote adresses used for " coreq-remote ")"
+
+.BR --enable-separate-tools " (build separate small binaries for the tools instead of linking them into the coreq binaries)"
+
+The coreq maintainer recommends to configure your package manager to export the
+desired B<EXTRA_ECONF> automatically when emerging coreq.
+For corepkg, this can be done as follows. Put the line
+
+.B app-corepkg/coreq coreq-extra-econf.conf
+
+into the file I</etc/corepkg/package.env> or into some file of that directory
+(creating this file/directory if it did not exist yet), and then create the
+file I</etc/corepkg/env/coreq-extra-econf.conf> with the corresponding line
+B<EXTRA_ECONF=">I<...>B<">.
+
+Alternatively, install coreq from the mv overlay.
+This also gives you the experimental option to build coreq using the meson build system (instead of autotools).
+If this build system works on your system, this is recommended because it is faster and works nicer with ccache than autotools.
+At the time of writing this text, it is not possible to use meson with the ebuild from the main gentoo repository.
+.\" }}}
+
+.\" {{{ HISTORY
+.SH "HISTORY"
+.LP
+B<coreq> was formerly known as B<corepkgdb>. The name was changed because a part of
+corepkg is also called corepkgdb, which was a bit confusing for everyone.
+
+The functionality of coreq-update was once triggered by using the -u switch on coreq.
+It was than separated to provide better maintainability.
+Thus B<update-coreq> came to life.
+Meanwhile, it is the same executable with functionality distinguished by its call name.
+and the original name update-coreq was renamed into B<coreq-update>.
+
+Also B<coreq-diff> was previously called B<diff-coreq>,
+B<coreq-remote> was previously called B<update-coreq-remote>,
+B<coreq-layman> was previously called B<update-coreq-layman>, and
+B<coreq-functions.sh> was previously called B<functions-coreq.sh> (and much earlier B<update-coreq-functions.sh>).
+The reason for all these renamings is to have a more consistent naming scheme:
+All programs belonging to coreq now start with coreq-* (with the exception of
+B<versionsort> which is more or less just an independent tool).
+
+If you cannot get accustomed to this new naming scheme or have scripts depending
+on the old names, you can use symbolic links for the original names;
+this is explicitly supported and is not intended to be deprecated.
+
+Previously, there was a B<./configure> option to install such symlinks
+or a reminder about their removal automatically, but this support has been
+removed as of coreq-0.24.0.
+
+Since the introduction of the %{*VARIABLE} syntax in coreq-0.8.0, it is not
+reasonable anymore to use different variable names for coreq and coreq-diff.
+Hence, all corresponding B<DIFF_*> variables have vanished.
+
+The cache method B<metadata-flat> was previously just called B<metadata>.
+The cache method B<assign> was previously called B<backport> or B<corepkg-2.1>.
+The cache method B<flat> had previously the name B<corepkg-2.0> which was even preferred.
+Anyway, the obsolete names are still supported.
+
+corepkg-2.1 and corepkg-2.1.1 doesn't remove the old dep-cache, thus coreq might
+find packages that are not in corepkg anymore if the B<flat>/B<assign>
+cache method is used.
+To circumvent this, coreq-sync used to delete the old cache
+(rm -rf /var/cache/edb/dep/*).
+Since most people have no need to use this cache method anymore and
+deleting the old cache slows down the next corepkg run, this is
+not the default anymore (but still available as an option which can be
+put into I<@SYSCONFDIR@/coreq-sync.conf>).
+
+coreq-sync used to default to gensync instead of layman.
+See the description of I<@SYSCONFDIR@/coreq-sync.conf> how you can still use the
+deprecated gensync if you want to.
+
+coreq-sync no longer supports logging; options -v and -V have been removed.
+This avoids problems like no visible output with EMERGE_DEFAULT_OPTS=--ask.
+You should now use redirection when you want to use coreq-sync in a cronjob.
+
+The mechanism described now by B<DEFAULT_MATCH_FIELD> has changed.
+The previous (less powerful) B<MATCH_.*_IF> and B<MATCH_ORDER> variables
+are not supported anymore.
+
+The B<ADD_CACHE_METHOD> and B<ADD_OVERRIDE_CACHE_METHOD> variables are no longer
+built-ins but only used implicitly in delayed substitution in the default of
+B<CACHE_METHOD> and B<OVERRIDE_CACHE_METHOD>.
+In particular, setting the latter variables in I<@SYSCONFDIR@/coreqrc> without adding
+the delayed substitution " B<%{ADD_CACHE_METHOD}>" or " B<%{ADD_OVERRIDE_CACHE_METHOD}>",
+respectively, will prevent the former variables to have any meaning.
+
+Before coreq-0.18.0, customizable version output properties like
+.BI "<installedversions:" "VAR" ">"
+or
+.BI "<availableversions:" "VAR" ">"
+did not exist.
+Instead there was a chaos of parameters for
+.B "<installedversions:*>"
+and a bulk of variants for printing available or installed versions for
+feeding the output to scripts like
+.BR "<fullvailableversions>"
+etc.
+Now all this has vanished: The variables B<NAMEVERSIONS>, B<EQNAMEVERSION>,
+B<ANAMESLOT>, B<ANAMEASLOT>, B<NAMESLOT>, B<NAMEASLOT>, and B<DATESORT>
+take the role of all the earlier variants (where B<DATESORT> demonstrates
+a related example that was previously not available).
+See the description of these variables in B<coreq --dump> for details.
+To see the effect of such an example try e.g.
+
+.B coreq --format '<availableversions:ANAMESLOT:ANAMESLOT>' --pure-packages gcc
+
+See also the comments for the B<-I> option.
+
+Since coreq-0.20.0 the logical connectives for EXPRESSIONs have changed dramatically:
+Not only braces are now possible, also chains with B<-a> and B<-o> are now treated
+left-associative as most users would intuitively expect.
+The negation B<--not> is now treated as a logical operation starting a new BRACE_OR_TEST
+and no longer considered as part of TEST_OPTIONS (which was a source of confusion for many users).
+Now B<--pipe> is really handled as part of TEST_OPTIONS and does not implicitly introduce logical connectives.
+
+With coreq-0.20.1 all the previously used files /etc/corepkg/package.*.nowarn
+are no longer supported by default: They were replaced by the single file/dir
+/etc/corepkg/package.nowarn. If you still want to use the previous files, set
+B<OBSOLETE_NOWARN=true> in the environment. See the description of the variable
+B<PACKAGE_NOWARN> (in the output of B<coreq --dump>) to understand why this works.
+
+B<coreq-installed> was part of B<coreq-test-obsolete> before coreq-0.22.4 which was
+rather confusing for users and for maintaining, since their task has nothing in common.
+
+The default error-behavior of B<coreq-sync> has changed in coreq-0.23.10:
+Previously, the B<-F> option was automatic and could not be disabled.
+
+In <coreq-0.25.6 there was a B<NEWLINE> variable which could add a magic newline after a package output.
+This hack had been only introduced to deal with obsolete FORMAT strings and has finally been removed.
+
+The variables B<COLORSTRING>, B<COLORSTRING_ALT>, and B<TERM_ALT> have been replaced by the
+more flexible variables B<COLORSTRING?> and B<TERM_ALT?>.
+
+In B<coreq-remote> before coreq-0.28.5 the current option B<-x> was on by default.
+This would still be a reasonable default, but some users were confused by the feature
+(some even believed it is a bug) so that it is now necessary to configure this default
+manually (by setting B<COREQ_REMOTE_OPTS=-x> in I</etc/coreqrc>).
+
+The tool B<coreq-header> did not exist before coreq-0.28.6; instead coreq had the options
+B<--is-current>, B<--print-overlay-path>, B<--print-overlay-label>, B<--print-overlay-data>
+which are now redundant and have been removed.
+
+Since coreq-0.29.6 the options B<--format-verbose> and B<--format-compact> have been removed,
+because their effect can be better obtained by exporting the environment variables
+B<FORMAT_VERBOSE> or B<FORMAT_COMPACT>, respectively.
+Instead, the option B<--format> overrides now the B<FORMATSTRING> independently
+of the chosen format.
+
+Since coreq-0.29.6 the options B<--verbose> and B<--compact> are no longer toggling;
+for switching off, there is the new option B<--normal>.
+
+B<coreq-functions.sh> could previously only be sourced; only since coreq-0.32.2,
+B<coreq-functions.sh> is also a program whose output is meant to be used with "eval".
+.\" }}}
+
+.\" {{{ TRANSLATION
+.SH "TRANSLATION"
+.LP
+For a simple fixed translation of the default B<FORMATSTRING> to your language,
+it suffices to set the variables starting with I18N_... in your B</etc/coreqrc> or B<~/.coreqrc>:
+Redirect the output of B<coreq --dump-defaults> to a file to get a list of all variables.
+Some of the last ones are those starting with I18N_.... you are looking for.
+
+The variables starting with I18N_COLUMN_.... are special and can be used to
+adopt the columns to a new layout which might be necessary due to different
+lengths of the translations. (Note that the column counting will be garbled
+if you do not use UTF8 encoding for your language).
+You can see the default values of that variables in the corresponding
+variables C_COLUMN_.... which appear nearby (but which should not be modified
+for the purpose of translation).
+Normally, it should be sufficient to redefine B<I18N_COLUMN_CONTENT> and
+B<I18N_INST_COLUMN_CONTENT> to appropriate numbers.
+To make sure that all columns are correct, you should finally consider the
+output of all of the commands
+
+coreq -vxe binutils
+
+coreq -ve binutils
+
+coreq -le binutils -oe sun-jdk
+
+coreq -xle binutils
+
+coreq -vle binutils
+
+coreq -xvle binutils
+
+coreq -vle sun-jdk
+
+Here, binutils means an B<installed> and B<slotted> package, while
+sun-jdk means a B<masked> (with an explanation in package.mask) package.
+
+Once you have your translation finished, you can send the changed
+variables to the coreq maintainer or to coreq on github or - even better:
+Add your language to po/LINGUAS, call contrib/make to generate a corresponding
+po/*.po file, and add your translation to that data in the file which refers to
+src/coreqrc/def_i18n.cc
+
+Of course, you are welcome to translate also other texts in that file:
+People might acknowledge even partial translations of the most important messages.
+
+You can send your new po/*.po file to the coreq maintainer or, even better:
+You can put your changes to github and make a pull request.
+
+The ebuild has removed many previous USE-flags to follow gentoo policy.
+Therefore, the maintainer strongly recommends the usage of B<EXTRA_ECONF> for installation,
+see Section B<INSTALLATION>.
+.\" }}}
+
+.\" {{{ AUTHORS
+.SH "AUTHORS"
+.LP
+Main authors of the programm:
+
+Martin V\(:ath <martin at mvath.de> (developer, current maintainer)
+
+Emil Beinroth <emilbeinroth at gmx.net> (developer, previous maintainer)
+
+
+Wolfgang Frisch <xororand at users.sourceforge.net> (inactive developer, initial author)
+
+Roland Wittmann <linuxcommando at users.sourceforge.net> (inactive developer)
+
+Many other contributors can be found in the B<AUTHORS> file.
+.\" }}}
+
+.\" {{{ SEE ALSO
+.SH "SEE ALSO"
+.BR corepkg (5),
+.\" Match-algorithms
+.BR fnmatch (3),
+.BR regex (7),
+.\" Other search-utils
+.BR emerge (1),
+.BR esearch (1),
+.BR qsearch (1),
+.\" Related software .. e.g. stuff we use
+.BR layman (8)
+.LP
+The coreq homepage I<@PACKAGE_URL@> provides further information and links.
+.\" }}}
+.\" vim:set tw=90 expandtab foldenable foldmethod=marker foldlevel=0 :

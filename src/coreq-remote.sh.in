@@ -1,0 +1,450 @@
+#!/usr/bin/env sh
+# This script is part of the coreq project and distributed under the
+# terms of the GNU General Public License v2.
+#
+# Author and Copyright (c):
+#   Martin V\"ath <martin@mvath.de>
+#
+# It can be used to fetch the "standard" overlay data and add it to the
+# coreq database. (@PACKAGE_STRING@).
+set -u
+
+if coreq_funcs=`./coreq-functions.sh.in 2>/dev/null`
+then	eval "$coreq_funcs"
+else	echo "${0##*/}: cannot find coreq-functions.sh" >&2
+	exit 1
+fi
+ReadFunctions
+
+my_getopts='KvqxXLl:a:kiHh'
+
+set -f
+eval "Push -c opt `coreq-update --print COREQ_REMOTE_OPTS`"
+Push opt ${1+"$@"}
+eval "set -- a $opt"
+shift
+
+drop_permissions=:
+OPTIND=1
+while getopts "$my_getopts" opt
+do	case $opt in
+	K)	drop_permissions=false
+		break;;
+	k)	drop_permissions=false;;
+	i)	drop_permissions=:;;
+	'?')	Exit 1;;
+	*)	:;;
+	esac
+done
+if $drop_permissions
+then	prg=./coreq-drop-permissions
+	me=./coreq-remote.sh.in
+	exec "$prg" -- "$me" -K ${1+"$@"}
+	die "`eval_gettext 'failed to execute ${prg}'`"
+fi
+
+addr1='@DEFAULT_REMOTE_PATH1@'
+addr2='@DEFAULT_REMOTE_PATH2@'
+ReadVar archive1 COREQ_REMOTEARCHIVE1
+ReadVar archive2 COREQ_REMOTEARCHIVE2
+ReadVar local_layman LOCAL_LAYMAN
+
+Usage() {
+	n=${0##*/}
+	p='@PACKAGE_STRING@'
+	f1=$archive1
+	f2=$archive2
+	[ -n "${f:+}" ] || f=`gettext 'temporary file'`
+	eval_gettext 'Usage: ${n} [options] command
+Get data from a remote database for ${p}.
+The following commands are provided:
+
+update1 (=update) or update2:
+        Fetch the coreq-caches of some overlays, store them locally in
+        COREQ_REMOTEARCHIVE1 (${f1}) or
+        COREQ_REMOTEARCHIVE2 (${f2}),
+        respectively and add them to the coreq database.
+        If COREQ_REMOTE1 or COREQ_REMOTE2, respectively, is nonempty the output
+        goes to that separate database.
+        You can use coreq -R or coreq -Z or set REMOTE_DEFAULT=1 or 2
+        to access this alternative database.
+        If COREQ_REMOTE1 or COREQ_REMOTE2 is empty the output is added to
+        COREQ_CACHEFILE.
+        In this case, to keep the remote data across coreq-update calls
+        you might want to set KEEP_VIRTUALS=true in /etc/coreqrc
+add1 (=add) or add2:
+        Only do the second task (add COREQ_REMOTEARCHIVE? without fetching).
+        If COREQ_REMOTE? is nonempty, it makes sense to call this regularly
+        after coreq-update so that coreq -R? will show synchronized data.
+fetch1 (=fetch) or fetch2:
+        Only do the first task (fetch coreq-caches to COREQ_REMOTEARCHIVE).
+        If you want to download the most current remote data at every call of
+        coreq-sync put e.g. the following lines to your /etc/coreq-sync.conf:
+        @StatusInfo "Downloading remote1"
+        @coreq-remote fetch1
+remove: Remove all temporarily added virtual overlays from the coreq database.
+        This makes only sense if COREQ_REMOTE? is empty.
+        The effect is similar to
+        	KEEP_VIRTUALS=false coreq-update
+        but faster (using previous cachefile where possible).
+
+Options can be specified in the coreq (or environment) variable COREQ_REMOTE_OPTS.
+This data is evalued, so be aware of security risks.
+Moreover, "--" in this variable will exclude further command line options.
+The following options are available:
+
+-k      Keep permissions: Without this option, coreq-drop-permissions is used to
+        drop permissions immediately to that of COREQ_USER
+-K      As -k, but cannot be reset with -i
+-X      Exclude remote overlays which are also local. See -L/-l
+-x      Exclude local overlays which are available remotely. See -L/-l
+-L      For -x/-X the "storage" path is found heuristically.
+        With -L the path actually used is printed (and coreq-remote exits).
+        Set LOCAL_LAYMAN or use option -l to override the heuristics.
+-l PATH Use PATH as LOCAL_LAYMAN
+-a ADDR Use ADDR as remote database address instead of:
+        ${addr1}
+        ${addr2}
+-i      Ignore all previous options (e.g. ignore COREQ_REMOTE_OPTS).
+-v      Verbose (default)
+-H      Suppress status line update
+-q      Quiet'
+	echo
+	exitcode=${1:-1}
+	Exit $exitcode
+}
+
+DefaultOpts() {
+	addr=
+	verbose=:
+	statusline=:
+	keep=false
+	excludelocal=false
+	excluderemote=false
+	excludedebug=false
+}
+
+DefaultOpts
+OPTIND=1
+while getopts "$my_getopts" opt
+do	case $opt in
+	i)	DefaultOpts;;
+	[kK])	:;;
+	v)	verbose=:;;
+	q)	verbose=false;;
+	x)	excludelocal=:;;
+	X)	excluderemote=:;;
+	L)	excludedebug=:;;
+	l)	local_layman=$OPTARG;;
+	a)	addr=$OPTARG;;
+	H)	statusline=false;;
+	'?')	Exit 1;;
+	*)	Usage 0;;
+	esac
+done
+[ $OPTIND -le 1 ] || shift `Expr $OPTIND - 1`
+$statusline || {
+	NOSTATUSLINE=true
+	export NOSTATUSLINE
+}
+
+SanitizeLocalLayman() {
+	normalize_resolve=false NormalizeNames local_layman \
+		|| die "`gettext '$LOCAL_LAYMAN must not be empty'`"
+	[ -z "${relative:++}" ] || \
+		die "`gettext '$LOCAL_LAYMAN must start with /'`"
+}
+
+PrintLaymanStorage() {
+	printf '%s\n%s\n' 'from layman.config import BareConfig' \
+	"print(BareConfig(read_configfile=True)['storage'])" \
+		| python -- ${1+"$@"} 2>/dev/null
+}
+
+PrintLaymanStorageOld() {
+	printf '%s\n%s\n' 'from layman.config import Config' \
+	"print(Config()['storage'])" | python -- ${1+"$@"} 2>/dev/null
+}
+
+InitLocalLayman() {
+	[ -n "${local_layman:++}" ] && return
+	local_layman=`PrintLaymanStorage` || local_layman=
+	if [ -z "${local_layman:++}" ]
+	then	local_layman=`PrintLaymanStorageOld` || local_layman=
+	fi
+	GetPortdir
+	for i in \
+		"$local_layman" \
+		'/usr/local/corepkg/layman' \
+		"${local_portdir:-/}local/layman/make.conf" \
+		"${local_portdir%/*/}/layman/make.conf" \
+		'/var/lib/layman'
+	do	[ -n "${i:++}" ] && test -d "$i" && local_layman=$i \
+			&& return
+	done
+	return 1
+}
+if $excluderemote || $excludelocal || $excludedebug
+then	InitLocalLayman && SanitizeLocalLayman || {
+		ewarn "`gettext 'cannot determine useful $LOCAL_LAYMAN'`"
+		if $excludedebug
+		then	[ -n "${local_layman:++}" ] && Echo "$local_layman"
+			Exit 1
+		fi
+		excludelocal=false
+		excluderemote=false
+	}
+	if $excludedebug
+	then	Echo "$local_layman"
+		Exit
+	fi
+fi
+
+CdDir() {
+	cd "$1" >/dev/null && return
+	a=$1
+	die "`eval_gettext 'cannot cd to ${a}'`"
+}
+
+tmpdir=
+exitcode=0
+Cleanup() {
+	trap : EXIT HUP INT TERM
+	if [ -n "${tmpdir:++}" ]
+	then	test -d "$tmpdir" && rm -rf -- "$tmpdir"
+	fi
+	tmpdir=
+	trap - EXIT HUP INT TERM
+	Exit $exitcode
+}
+MakeTempDir() {
+	trap Cleanup EXIT HUP INT TERM
+	AssignTemp tmpdir -d
+	chmod -- a+rx "$tmpdir"
+}
+
+tmpfile=
+FetchTemp() {
+	coreqcachesname=${addr##*/}
+	[ -z "${coreqcachesname:++}" ] && die "`gettext
+'remote address is not properly set.
+Please specify a valid remote file with option -a.
+The default should have been set with ./configure --remote-file'`"
+	MakeTempDir
+	tmpfile=$tmpdir/$coreqcachesname
+	[ -n "${archive:++}" ] && test -e "$archive" \
+		&& cp -p -- "$archive" "$tmpfile" >/dev/null 2>&1
+	Statusline "`pgettext 'Statusline coreq-remote' 'Downloading remote data'`"
+	(
+		CdDir "$tmpdir" || die "`gettext 'cannot cd to tempdir'`"
+		umask 002
+		set -- a wget -N
+		shift
+		$verbose || {
+			set -- a ${1+"$@"} --no-verbose
+			shift
+		}
+		set -- a ${1+"$@"} -- "$addr"
+		shift
+		if $verbose
+		then	"$@"
+		else	a=`"$@" 2>&1` || {
+				Echo "$a" >&2
+				false
+			}
+		fi || die "`gettext 'failed: '` $*"
+	) || {
+		exitcode=$?
+		exit $exitcode
+	}
+}
+
+BugReport() {
+	printf '\n\n'
+	gettext \
+'Probably your coreq cachefile was *not* updated successfully.
+Unless the above messages suggest another cause or you specified a
+wrong filename, the most likely cause of this is that the server uses
+another coreq version than you or produced broken data. Please check whether
+COREQ_REMOTEARCHIVE is a valid *.tar.bz2 archive containing coreq cachefiles
+(you can download it using fetch).
+If this is not the case (but was freshly downloaded), please report a bug.
+Note that the archive is *not* broken if only the cachefile format versions
+differ: In that case only report a bug if the coreq cachefile format versions
+in the downloaded file are *older* than that of the most current ~x86 coreq
+version in the corepkg tree (but first retry after several days before
+reporting such a bug to give the server maintainers a chance to upgrade
+after a version bump of coreq).
+Conversely, if the downloaded versions are even newer than that supported by
+your coreq, you will have to upgrade to the most current ~x86 version of coreq
+to use coreq-remote: This inconvenience cannot be avoided and is not a bug!'
+}
+
+AddArchive() {
+	a=$1
+	CdDir "$2"
+	RunCommand "`pgettext 'Statusline coreq-remote' 'Unpacking data'`" \
+		"`gettext 'Unpacking data'`" tar xjf "$a" || {
+		msg=`eval_gettext 'cannot unpack ${a}'`
+		msg=$msg`BugReport`
+		die "$msg"
+	}
+	ClearUpdateArgs
+	AddLocalMethods
+	Push -c coreqoverlay
+	Push -c method
+	Statusline "`pgettext 'Statusline coreq-remote' 'Analyzing'`"
+	set +f
+	chmod a+r *
+	for i in *
+	do	p=$2/$i
+		Replace -g p '\' '\\'
+		Replace -g p ':' '\:'
+		Push coreqoverlay "-f$p" "-o" ''
+		Push method "coreq*:$p:0"
+	done
+	set -f
+	eval "set -- a $coreqoverlay"
+	shift
+	quoter_pipe -- coreq-header ${1+"$@"} || exitcode=1
+	failcount=0
+	success=false
+	eval "set -- a $method"
+	shift
+	currnum=$#
+	eval "set -- a $method $quoter_pipe"
+	shift
+	while [ $# -gt $currnum ]
+	do	i=$1
+		shift
+		eval l=\${$currnum}
+		currnum=`Expr $currnum + 1`
+		eval name=\${$currnum}
+		[ -n "$l$name" ] || {
+			p=${i##*/}
+			p=${p%:*}
+			ewarn "`eval_gettext \
+				'file ${p} of ${a} contains no overlay'`"
+			failcount=`Expr $failcount + 1`
+			continue
+		}
+		success=:
+		name=${name##*/}
+		$excludelocal && AddExcludes "$local_layman/$name"
+		$excluderemote && \
+			test -r "$local_layman/$name" && continue
+		virtual=layman/$name
+		! $verbose || printf '%s -> %s\n' "$virtual" "${l:-no repo-name}"
+		AddMethod "$virtual" "$i"
+		AddOverlays "$virtual"
+		[ -n "${l:++}" ] && AddRepoName "$virtual" "$l"
+	done
+	msg=
+	if [ $exitcode -ne 0 ]
+	then	msg=`eval_gettext 'could not read all coreq cachefiles of ${a}'`
+	elif ! $success
+	then	msg=`eval_gettext 'no file in ${a} contains an overlay'`
+	elif [ $failcount -gt 0 ]
+	then	ewarn "`eval_ngettext \
+			'${failcount} file in ${a} contains no overlay' \
+			'${failcount} files in ${a} contain no overlay' \
+			${failcount}`"
+	fi
+	die_on_update_failure=false
+	ReadVar $coreq_remote_var
+	eval coreq_remote=\$$coreq_remote_var
+	(
+		if [ -n "${coreq_remote:++}" ]
+		then	einfo "`eval_gettext \
+				'Output to remote database ${coreq_remote}'`"
+			AddUpdateArgs '-o' "$coreq_remote"
+			umask 002
+		fi
+		KEEP_VIRTUALS=true
+		export KEEP_VIRTUALS
+		CallUpdate
+	) || {
+		exitcode=$?
+		msg=`gettext 'coreq-update failed'; \
+			[ -z "${msg:++}" ] || printf '\n%s' "$msg"`
+	}
+	[ -z "${msg:++}" ] && return
+	msg=$msg`BugReport`
+	die "$msg"
+}
+
+CheckTemp() {
+	[ -n "${archive:++}" ] || die "`gettext \
+			'A temporary file makes only sense for update mode'`"
+}
+
+FetchFile() {
+	FetchTemp
+	file=$archive
+	if [ -z "${file:++}" ]
+	then	file=$tmpfile
+		return
+	fi
+	cp -p -- "$tmpfile" "$file" || die "`eval_gettext \
+		'cannot copy temporary file to ${file}'`"
+}
+
+
+Fetch() {
+	CheckTemp
+	FetchFile
+}
+
+Add() {
+	CheckQuoter
+	CheckTemp
+	test -r "$archive" || \
+		die "`eval_gettext 'cannot read ${archive}'`"
+	MakeTempDir
+	AddArchive "$archive" "$tmpdir"
+}
+
+Remove() {
+	ClearUpdateArgs
+	AddLocalMethods
+	KEEP_VIRTUALS=false
+	export KEEP_VIRTUALS
+	CallUpdate
+}
+
+Update() {
+	CheckQuoter
+	FetchFile
+	if [ -z "${tmpdir:++}" ]
+	then	MakeTempDir
+		tmpsup=$tmpdir
+	else	tmpsub=$tmpdir/1
+		mkdir -m 700 -- "$tmpsub" \
+			|| die "`eval_gettext 'mkdir ${tmpsub} failed'`"
+	fi
+	AddArchive "$file" "$tmpsub"
+}
+
+number=1
+case ${1-} in
+*2)
+	number=2;;
+esac
+[ -n "${addr:++}" ] || eval addr=\${addr$number}
+eval archive=\${archive$number}
+coreq_remote_var=COREQ_REMOTE$number
+
+case ${1-} in
+update|update[12])
+	Update;;
+fetch|fetch[12])
+	Fetch;;
+add|add[12])
+	Add;;
+remove)
+	Remove;;
+*)
+	Usage;;
+esac
+
+Exit 0

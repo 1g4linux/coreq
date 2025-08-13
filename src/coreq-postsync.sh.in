@@ -1,0 +1,42 @@
+#!/usr/bin/env sh
+# This script is part of the coreq project and distributed under the
+# terms of the GNU General Public License v2.
+#
+# Author and Copyright (c):
+#   Martin V\"ath <martin@mvath.de>
+#
+set -u
+[ -z "${COREQ_SYNC_RUNNING:++}" ] || exit 0
+if [ "${1-}" != '--self' ]
+then	prg=./coreq-drop-permissions
+	me=./coreq-postsync.sh.in
+	exec "$prg" -- "$me" '--self' ${1+"$@"}
+	exit
+fi
+shift
+if coreq_funcs=`./coreq-functions.sh.in 2>/dev/null`
+then	eval "$coreq_funcs"
+else	echo "${0##*/}: cannot find coreq-functions.sh" >&2
+	exit 1
+fi
+ReadFunctions
+ReadVar coreqcache COREQ_CACHEFILE
+ReadVar coreqprevious COREQ_PREVIOUS
+CopyToPrevious() {
+	test -e "$coreqcache" || return 0
+	StatusInfo "`eval_pgettext 'coreq-sync' \
+			'Copying old database to ${coreqprevious}'`" \
+		"`eval_pgettext 'Statusline coreq-sync' \
+		'Copying old database to ${coreqprevious}'`"
+	cp -p -- "$coreqcache" "$coreqprevious" || \
+		die "`eval_pgettext 'coreq-sync' \
+			'Could not copy database to ${coreqprevious}'`"
+}
+CoreqUpdate() {
+	StatusInfo "`eval_pgettext 'coreq-sync' 'Running coreq-update'`" \
+		 "`eval_pgettext 'Statusline coreq-sync' 'Running coreq-update'`"
+	coreq-update || die "`eval_pgettext 'coreq-sync' 'coreq-update failed'`"
+}
+CopyToPrevious
+CoreqUpdate
+Exit 0
