@@ -1440,10 +1440,13 @@ eprefix_default = get_option('eprefix-default')
 eprefix_default_msg = ''
 if eprefix_default == 'auto'
 	eprefix_default = ''
-	r = run_command('portageq', 'envvar', 'EPREFIX', check : false)
-	if r.returncode() == 0
-		eprefix_default = r.stdout().strip()
-		eprefix_default_msg = ' (auto)'
+	q = find_program('corepkgq', 'portageq', required : false)
+	if q.found()
+		r = run_command(q, 'envvar', 'EPREFIX', check : false)
+		if r.returncode() == 0
+			eprefix_default = r.stdout().strip()
+			eprefix_default_msg = ' (auto)'
+		endif
 	endif
 endif
 result += [ 'eprefix-default=' + eprefix_default + eprefix_default_msg ]
