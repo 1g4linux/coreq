@@ -257,31 +257,39 @@ Replace() {
 	[ -n "${replace_count:++}" ]
 }
 
-SourcePush() {
-	coreqf_source=`push.sh 2>/dev/null` || die \
-"`gettext 'push.sh from https://github.com/vaeth/push/ is needed'`"
-	eval "$coreqf_source"
-}
-
 Push() {
-	SourcePush
-	Push "$@"
-}
-
-CheckQuoter() {
-	command -v quoter >/dev/null 2>&1 || die \
-"`gettext 'Installation of https://github.com/vaeth/quoter/ is needed'`"
-}
-
-SourceQuoterPiper() {
-	coreqf_source=`quoter_pipe.sh 2>/dev/null` || die \
-"`gettext 'quoter_pipe.sh from https://github.com/vaeth/quoter/ is needed'`"
-	eval "$coreqf_source"
+	coreqf_Push_comp=:
+	case ${1-} in
+	-c)	shift
+		eval "$1="
+		coreqf_Push_comp=false;;
+	esac
+	coreqf_Push_var=$1
+	shift
+	for coreqf_Push_arg
+	do	coreqf_Push_qarg=$coreqf_Push_arg
+		case $coreqf_Push_qarg in
+		*[!a-zA-Z0-9_+,./:-]*)
+			coreqf_Push_qarg=`printf '%s\n' "$coreqf_Push_qarg" | sed "s/'/'\\\\\\\\''/g; 1s/^/'/; \$s/\$/'/"`;;
+		esac
+		if $coreqf_Push_comp
+		then	eval "$coreqf_Push_var=\"\${$coreqf_Push_var:+\"\$$coreqf_Push_var\" }$coreqf_Push_qarg\""
+		else	eval "$coreqf_Push_var=\"\$$coreqf_Push_var\$coreqf_Push_qarg\""
+			coreqf_Push_comp=:
+		fi
+	done
 }
 
 quoter_pipe() {
-	SourceQuoterPiper
-	quoter_pipe ${1+"$@"}
+	for coreqf_quoter_arg
+	do	case $coreqf_quoter_arg in
+		*[!a-zA-Z0-9_+,./:-]*)
+			printf '%s\n' "$coreqf_quoter_arg" | sed "s/'/'\\\\\\\\''/g; 1s/^/'/; \$s/\$/'/" | tr '\n' ' ';;
+		*)
+			printf '%s ' "$coreqf_quoter_arg";;
+		esac
+	done
+	echo
 }
 
 # PushEscaped [-c] VAR Arg [name of IFS type variable]
