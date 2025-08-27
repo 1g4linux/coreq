@@ -24,65 +24,53 @@
 #include "corepkg/package.h"
 
 class Category : public coreq::ptr_container<std::set<PackagePtr> > {
-	public:
-		typedef coreq::ptr_container<std::set<PackagePtr> > super;
+ public:
+  typedef coreq::ptr_container<std::set<PackagePtr> > super;
 
-		static void init_static();
+  static void init_static();
 
-		Category() {
-		}
+  Category() {}
 
-		~Category() {
-			delete_and_clear();
-		}
+  ~Category() { delete_and_clear(); }
 
-		iterator find(const std::string& pkg_name);
-		const_iterator find(const std::string& pkg_name) const;
+  iterator find(const std::string& pkg_name);
+  const_iterator find(const std::string& pkg_name) const;
 
-		Package *findPackage(const std::string& pkg_name) const {
-			const_iterator i(find(pkg_name));
-			return ((i == end()) ? NULLPTR : static_cast<Package *>(*i));
-		}
+  Package* findPackage(const std::string& pkg_name) const {
+    const_iterator i(find(pkg_name));
+    return ((i == end()) ? NULLPTR : static_cast<Package*>(*i));
+  }
 
-		ATTRIBUTE_NONNULL_ void addPackage(Package *pkg) {
-			insert(PackagePtr(pkg));
-		}
+  ATTRIBUTE_NONNULL_ void addPackage(Package* pkg) { insert(PackagePtr(pkg)); }
 
-		Package *addPackage(const std::string cat_name, const std::string& pkg_name);
+  Package* addPackage(const std::string cat_name, const std::string& pkg_name);
 };
 
 class PackageTree : public std::map<std::string, Category*> {
-	public:
-		typedef std::map<std::string, Category*> Categories;
-		using Categories::begin;
-		using Categories::end;
+ public:
+  typedef std::map<std::string, Category*> Categories;
+  using Categories::begin;
+  using Categories::end;
 
-		PackageTree() {
-		}
+  PackageTree() {}
 
-		explicit PackageTree(const WordVec& cat_vec) {
-			insert(cat_vec);
-		}
+  explicit PackageTree(const WordVec& cat_vec) { insert(cat_vec); }
 
-		~PackageTree();
+  ~PackageTree();
 
-		ATTRIBUTE_PURE Category *find(const std::string& cat_name) const;
+  ATTRIBUTE_PURE Category* find(const std::string& cat_name) const;
 
-		Category& insert(const std::string& cat_name);
+  Category& insert(const std::string& cat_name);
 
-		void insert(const WordVec& cat_vec);
+  void insert(const WordVec& cat_vec);
 
-		Category& operator[](const std::string& cat_name) {
-			return insert(cat_name);
-		}
+  Category& operator[](const std::string& cat_name) { return insert(cat_name); }
 
-		ATTRIBUTE_PURE Package *findPackage(const std::string& cat_name, const std::string& pkg_name) const;
+  ATTRIBUTE_PURE Package* findPackage(const std::string& cat_name, const std::string& pkg_name) const;
 
-		ATTRIBUTE_PURE coreq::Treesize countPackages() const;
+  ATTRIBUTE_PURE coreq::Treesize countPackages() const;
 
-		coreq::Catsize countCategories() const {
-			return size();
-		}
+  coreq::Catsize countCategories() const { return size(); }
 };
 
 #endif  // SRC_COREPKG_PACKAGETREE_H_

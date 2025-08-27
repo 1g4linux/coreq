@@ -16,46 +16,46 @@
 @return true if something has changed
 **/
 bool SetsList::add_system() {
-	if(have_system) {
-		return false;
-	}
-	return (have_system = true);
+  if (have_system) {
+    return false;
+  }
+  return (have_system = true);
 }
 
 bool SetsList::has(SetsIndex i) const {
-	return (std::find(begin(), end(), i) != end());
+  return (std::find(begin(), end(), i) != end());
 }
 
 /**
 @return true if something has changed
 **/
 bool SetsList::add(SetsIndex i) {
-	if(has(i)) {
-		return false;
-	}
-	PUSH_BACK(MOVE(i));
-	return true;
+  if (has(i)) {
+    return false;
+  }
+  PUSH_BACK(MOVE(i));
+  return true;
 }
 
 /**
 @return true if something has changed
 **/
 bool SetsList::add(const SetsList& l) {
-	bool r(false);
-	if(l.has_system()) {
-		if(add_system()) {
-			r = true;
-		}
-	}
-	for(SetsList::const_iterator it(l.begin()); it != l.end(); ++it) {
-		if(add(*it)) {
-			r = true;
-		}
-	}
-	return r;
+  bool r(false);
+  if (l.has_system()) {
+    if (add_system()) {
+      r = true;
+    }
+  }
+  for (SetsList::const_iterator it(l.begin()); it != l.end(); ++it) {
+    if (add(*it)) {
+      r = true;
+    }
+  }
+  return r;
 }
 
 void SetsList::clear() {
-	super::clear();
-	have_system = false;
+  super::clear();
+  have_system = false;
 }

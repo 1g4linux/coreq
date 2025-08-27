@@ -23,32 +23,30 @@
 
 using std::string;
 
-bool CacheTable::addCache(const char *eprefixcache, const char *eprefixport, const char *directory, const string& cache_name, const OverrideVector *override_vector, string *errtext) {
-	for(CacheTable::iterator it(begin()); likely(it != end()); ++it) {
-		if(same_filenames(directory, (it->getPath()).c_str())) {
-			return true;
-		}
-	}
-	const char *cache_method(cache_name.c_str());
-	if(unlikely(override_vector != NULLPTR)) {
-		for(OverrideVector::const_reverse_iterator it(override_vector->rbegin());
-			unlikely(it != override_vector->rend()); ++it) {
-			if(same_filenames((it->first).c_str(), directory, true)) {
-				cache_method = (it->second).c_str();
-				break;
-			}
-		}
-	}
-	BasicCache *cache(get_cache(cache_method, m_appending));
-	if(unlikely(cache == NULLPTR)) {
-		if(errtext != NULLPTR) {
-			*errtext = coreq::format(_("unknown cache %s for directory %s"))
-				% cache_method % directory;
-			return false;
-		}
-	}
+bool CacheTable::addCache(const char* eprefixcache, const char* eprefixport, const char* directory, const string& cache_name, const OverrideVector* override_vector, string* errtext) {
+  for (CacheTable::iterator it(begin()); likely(it != end()); ++it) {
+    if (same_filenames(directory, (it->getPath()).c_str())) {
+      return true;
+    }
+  }
+  const char* cache_method(cache_name.c_str());
+  if (unlikely(override_vector != NULLPTR)) {
+    for (OverrideVector::const_reverse_iterator it(override_vector->rbegin()); unlikely(it != override_vector->rend()); ++it) {
+      if (same_filenames((it->first).c_str(), directory, true)) {
+        cache_method = (it->second).c_str();
+        break;
+      }
+    }
+  }
+  BasicCache* cache(get_cache(cache_method, m_appending));
+  if (unlikely(cache == NULLPTR)) {
+    if (errtext != NULLPTR) {
+      *errtext = coreq::format(_("unknown cache %s for directory %s")) % cache_method % directory;
+      return false;
+    }
+  }
 
-	cache->setScheme(eprefixcache, eprefixport, directory);
-	PUSH_BACK(MOVE(cache));
-	return true;
+  cache->setScheme(eprefixcache, eprefixport, directory);
+  PUSH_BACK(MOVE(cache));
+  return true;
 }

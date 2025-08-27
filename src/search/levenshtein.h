@@ -24,6 +24,6 @@ Reference: http://www.merriampark.com/ld.htm
 @param str_b string b
 @return Levenshtein distance of strings a and b
 **/
-ATTRIBUTE_NONNULL_ ATTRIBUTE_PURE Levenshtein get_levenshtein_distance(const char *str_a, const char *str_b);
+ATTRIBUTE_NONNULL_ ATTRIBUTE_PURE Levenshtein get_levenshtein_distance(const char* str_a, const char* str_b);
 
 #endif  // SRC_SEARCH_LEVENSHTEIN_H_

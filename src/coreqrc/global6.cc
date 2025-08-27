@@ -12,7 +12,7 @@
 
 #define DEFAULT_PART 6
 
-void fill_defaults_part_6(CoreqRc *coreqrc) {
+void fill_defaults_part_6(CoreqRc* coreqrc) {
 #include "coreqrc/defaults.cc"  // NOLINT(build/include)
 #include "coreqrc/def_i18n.cc"  // NOLINT(build/include)
 }

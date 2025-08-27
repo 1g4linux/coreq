@@ -14,28 +14,28 @@
 #include "coreqTk/null.h"
 #include "coreqrc/coreqrc.h"
 
-static CoreqRc *static_coreqrc = NULLPTR;
+static CoreqRc* static_coreqrc = NULLPTR;
 
 /**
 Must be called exactly once before get_coreqrc() can be used
 **/
-CoreqRc& get_coreqrc(const char *varprefix) {
-	coreq_assert_static(static_coreqrc == NULLPTR);
-	static_coreqrc = new CoreqRc(varprefix);
+CoreqRc& get_coreqrc(const char* varprefix) {
+  coreq_assert_static(static_coreqrc == NULLPTR);
+  static_coreqrc = new CoreqRc(varprefix);
 
 #ifdef JUMBO_BUILD
-	fill_defaults(static_coreqrc);
+  fill_defaults(static_coreqrc);
 #else
-	fill_defaults_part_1(static_coreqrc);
-	fill_defaults_part_2(static_coreqrc);
-	fill_defaults_part_3(static_coreqrc);
-	fill_defaults_part_4(static_coreqrc);
-	fill_defaults_part_5(static_coreqrc);
-	fill_defaults_part_6(static_coreqrc);
+  fill_defaults_part_1(static_coreqrc);
+  fill_defaults_part_2(static_coreqrc);
+  fill_defaults_part_3(static_coreqrc);
+  fill_defaults_part_4(static_coreqrc);
+  fill_defaults_part_5(static_coreqrc);
+  fill_defaults_part_6(static_coreqrc);
 #endif
 
-	static_coreqrc->read();
-	return *static_coreqrc;
+  static_coreqrc->read();
+  return *static_coreqrc;
 }
 
 /**
@@ -43,6 +43,6 @@ CoreqRc& get_coreqrc(const char *varprefix) {
 This can be called everywhere!
 **/
 CoreqRc& get_coreqrc() {
-	coreq_assert_static(static_coreqrc != NULLPTR);
-	return *static_coreqrc;
+  coreq_assert_static(static_coreqrc != NULLPTR);
+  return *static_coreqrc;
 }

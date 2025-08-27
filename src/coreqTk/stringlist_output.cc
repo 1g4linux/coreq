@@ -12,15 +12,15 @@
 #include "coreqTk/outputstring.h"
 #include "coreqTk/stringtypes.h"
 
-void StringListContent::append_to_string(OutputString *s, const OutputString& skip) const {
-	bool sep(false);
-	for(WordVec::const_iterator it(m_list.begin());
-		likely(it != m_list.end()); ++it) {
-		if(sep) {
-			s->append(skip);
-		} else {
-			sep = true;
-		}
-		s->append_smart(*it);
-	}
+void StringListContent::append_to_string(OutputString* s, const OutputString& skip) const {
+  bool sep(false);
+  for (WordVec::const_iterator it(m_list.begin()); likely(it != m_list.end()); ++it) {
+    if (sep) {
+      s->append(skip);
+    }
+    else {
+      sep = true;
+    }
+    s->append_smart(*it);
+  }
 }

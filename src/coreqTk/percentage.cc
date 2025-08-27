@@ -21,107 +21,104 @@ static string percent_to_string(PercentStatus::Percentage i);
 static string percent_to_string(PercentStatus::Percentage i, string::size_type wanted);
 
 static string percent_to_string(PercentStatus::Percentage i) {
-	return (coreq::format() % i);
+  return (coreq::format() % i);
 }
 
 static string percent_to_string(PercentStatus::Percentage i, string::size_type wanted) {
-	string s(percent_to_string(i));
-	if(s.size() < wanted) {
-		return string(wanted - s.size(), ' ') + s;
-	}
-	return s;
+  string s(percent_to_string(i));
+  if (s.size() < wanted) {
+    return string(wanted - s.size(), ' ') + s;
+  }
+  return s;
 }
 
 void PercentStatus::init() {
-	m_finished = false;
-	m_size = 0;
-	m_total = m_current = 0;
-	m_format.clear();
-	m_append.clear();
-	m_total_s.clear();
+  m_finished = false;
+  m_size = 0;
+  m_total = m_current = 0;
+  m_format.clear();
+  m_append.clear();
+  m_total_s.clear();
 }
 
 void PercentStatus::init(const string& header) {
-	m_verbose = false;
-	m_format = header;
-	reprint();
+  m_verbose = false;
+  m_format = header;
+  reprint();
 }
 
 void PercentStatus::init(const string& format, Percentage total) {
-	m_verbose = true;
-	m_format = format;
-	m_total = total;
-	m_total_s = percent_to_string(total);
-	reprint();
+  m_verbose = true;
+  m_format = format;
+  m_total = total;
+  m_total_s = percent_to_string(total);
+  reprint();
 }
 
 void PercentStatus::next(const string& append_string) {
-	m_append = append_string;
-	next();
-	reprint();
+  m_append = append_string;
+  next();
+  reprint();
 }
 
 void PercentStatus::next() {
-	if((!m_verbose) || m_finished) {
-		return;
-	}
-	if(m_current != m_total) {
-		++m_current;
-		if(m_current == m_total) {
-			m_finished = true;
-		}
-	}
+  if ((!m_verbose) || m_finished) {
+    return;
+  }
+  if (m_current != m_total) {
+    ++m_current;
+    if (m_current == m_total) {
+      m_finished = true;
+    }
+  }
 }
 
 void PercentStatus::finish(const string& append_string) {
-	m_append.clear();
-	m_finished = true;
-	if(m_verbose) {
-		reprint();
-	}
-	coreq::say(true) % append_string;
+  m_append.clear();
+  m_finished = true;
+  if (m_verbose) {
+    reprint();
+  }
+  coreq::say(true) % append_string;
 }
 
 void PercentStatus::reprint() {
-	string out;
-	if(m_verbose) {
-		if(m_finished) {
-			out.assign(coreq::format(m_format)
-				% m_total_s
-				% m_total_s
-				% "100");
-		} else {
-			Percentage p(0);
-			if(likely(m_total != 0)) {
-				p = (m_current * 100) / m_total;
-			}
-			out.assign(coreq::format(m_format)
-				% percent_to_string(m_current, m_total_s.size())
-				% m_total_s
-				% percent_to_string(p, 3));
-		}
-	} else {
-		out.assign(m_format);
-	}
-	out.append(m_append);
-	if(m_size == 0) {
-		coreq::print(true) % out;
-		m_size = out.size();
-	} else {
-		if(out.size() < m_size) {
-			string::size_type difference = m_size - out.size();
-			m_size = out.size();
-			out.append(difference, ' ');
-			out.append(difference, '\b');
-		} else {
-			m_size = out.size();
-		}
-		coreq::print("\r%s", true) % out;
-	}
+  string out;
+  if (m_verbose) {
+    if (m_finished) {
+      out.assign(coreq::format(m_format) % m_total_s % m_total_s % "100");
+    }
+    else {
+      Percentage p(0);
+      if (likely(m_total != 0)) {
+        p = (m_current * 100) / m_total;
+      }
+      out.assign(coreq::format(m_format) % percent_to_string(m_current, m_total_s.size()) % m_total_s % percent_to_string(p, 3));
+    }
+  }
+  else {
+    out.assign(m_format);
+  }
+  out.append(m_append);
+  if (m_size == 0) {
+    coreq::print(true) % out;
+    m_size = out.size();
+  }
+  else {
+    if (out.size() < m_size) {
+      string::size_type difference = m_size - out.size();
+      m_size = out.size();
+      out.append(difference, ' ');
+      out.append(difference, '\b');
+    }
+    else {
+      m_size = out.size();
+    }
+    coreq::print("\r%s", true) % out;
+  }
 }
 
 void PercentStatus::interprint_start() {
-	coreq::say_empty(true);
-	m_size = 0;
+  coreq::say_empty(true);
+  m_size = 0;
 }
-

@@ -41,80 +41,80 @@ that our calculated index really is correct in all cases...
 */
 
 Version::SavedKeyIndex SetStability::keyword_index(bool get_local) const {
-	if(get_local) {
-		return Version::SAVEKEY_ACCEPT;
-	}
-	if(m_always_accept_keywords) {
-		return Version::SAVEKEY_ACCEPT;
-	}
-	return Version::SAVEKEY_ARCH;
+  if (get_local) {
+    return Version::SAVEKEY_ACCEPT;
+  }
+  if (m_always_accept_keywords) {
+    return Version::SAVEKEY_ACCEPT;
+  }
+  return Version::SAVEKEY_ARCH;
 }
 
 Version::SavedMaskIndex SetStability::mask_index(bool get_local) const {
-	if(m_filemask_is_profile) {
-		return Version::SAVEMASK_FILE;
-	}
-	if(get_local) {
-		return Version::SAVEMASK_USERPROFILE;
-	}
-	return Version::SAVEMASK_PROFILE;
+  if (m_filemask_is_profile) {
+    return Version::SAVEMASK_FILE;
+  }
+  if (get_local) {
+    return Version::SAVEMASK_USERPROFILE;
+  }
+  return Version::SAVEMASK_PROFILE;
 }
 
 #endif
 
-void SetStability::set_stability(bool get_local, Package *package) const {
-	if(get_local) {
-		corepkgsettings->user_config->setMasks(package, m_filemask_is_profile);
-		corepkgsettings->user_config->setKeyflags(package);
-	} else {
-		corepkgsettings->setMasks(package, m_filemask_is_profile);
-		corepkgsettings->setKeyflags(package, m_always_accept_keywords);
-	}
+void SetStability::set_stability(bool get_local, Package* package) const {
+  if (get_local) {
+    corepkgsettings->user_config->setMasks(package, m_filemask_is_profile);
+    corepkgsettings->user_config->setKeyflags(package);
+  }
+  else {
+    corepkgsettings->setMasks(package, m_filemask_is_profile);
+    corepkgsettings->setKeyflags(package, m_always_accept_keywords);
+  }
 }
 
-void SetStability::calc_version_flags(bool get_local, MaskFlags *maskflags, KeywordsFlags *keyflags, const Version *v, Package *p) const {
+void SetStability::calc_version_flags(bool get_local, MaskFlags* maskflags, KeywordsFlags* keyflags, const Version* v, Package* p) const {
 #ifndef ALWAYS_RECALCULATE_STABILITY
-	// Can we avoid the calculation by getting the saved flags?
-	Version::SavedMaskIndex mi(mask_index(get_local));
-	Version::SavedKeyIndex ki(keyword_index(get_local));
-	if(likely(v->have_saved_masks[mi] && v->have_saved_keywords[ki])) {
-		if(maskflags != NULLPTR) {
-			*maskflags = v->saved_masks[mi];
-		}
-		if(keyflags != NULLPTR) {
-			*keyflags = v->saved_keywords[ki];
-		}
-		return;
-	}
-	// No, the flags are not saved yet, we must calculate them:
+  // Can we avoid the calculation by getting the saved flags?
+  Version::SavedMaskIndex mi(mask_index(get_local));
+  Version::SavedKeyIndex ki(keyword_index(get_local));
+  if (likely(v->have_saved_masks[mi] && v->have_saved_keywords[ki])) {
+    if (maskflags != NULLPTR) {
+      *maskflags = v->saved_masks[mi];
+    }
+    if (keyflags != NULLPTR) {
+      *keyflags = v->saved_keywords[ki];
+    }
+    return;
+  }
+  // No, the flags are not saved yet, we must calculate them:
 #endif
-	PackageSave saved(p);
-	set_stability(get_local, p);
-	if(maskflags != NULLPTR) {
-		*maskflags = v->maskflags;
-	}
-	if(keyflags != NULLPTR) {
-		*keyflags = v->keyflags;
-	}
-	saved.restore(p);
+  PackageSave saved(p);
+  set_stability(get_local, p);
+  if (maskflags != NULLPTR) {
+    *maskflags = v->maskflags;
+  }
+  if (keyflags != NULLPTR) {
+    *keyflags = v->keyflags;
+  }
+  saved.restore(p);
 #ifndef ALWAYS_RECALCULATE_STABILITY
 #ifndef NDEBUG
 #ifdef COREQ_PARANOIC_ASSERT
-	/*
-	The next test should actually be unnecessary.
-	But in the above calculation of keyword_index or mask_index
-	there might easily be a forgotten case (in particular, since
-	it might have been forgotten to update these functions when
-	another change was made).
-	So we test at least at run-time that for the current version
-	the correct index with the correct result was set.
-	*/
-	if(!(v->have_saved_masks[mi]) || !(v->have_saved_keywords[ki]) ||
-		((maskflags != NULLPTR) && (v->saved_masks[mi]) != *maskflags) ||
-		((keyflags != NULLPTR) && ((v->saved_keywords[ki]) != *keyflags))) {
-		coreq::say_error(_("internal error: SetStability calculates wrong index"));
-		std::exit(EXIT_FAILURE);
-	}
+  /*
+  The next test should actually be unnecessary.
+  But in the above calculation of keyword_index or mask_index
+  there might easily be a forgotten case (in particular, since
+  it might have been forgotten to update these functions when
+  another change was made).
+  So we test at least at run-time that for the current version
+  the correct index with the correct result was set.
+  */
+  if (!(v->have_saved_masks[mi]) || !(v->have_saved_keywords[ki]) || ((maskflags != NULLPTR) && (v->saved_masks[mi]) != *maskflags) ||
+      ((keyflags != NULLPTR) && ((v->saved_keywords[ki]) != *keyflags))) {
+    coreq::say_error(_("internal error: SetStability calculates wrong index"));
+    std::exit(EXIT_FAILURE);
+  }
 #endif
 #endif
 #endif

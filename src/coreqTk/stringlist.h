@@ -37,73 +37,66 @@ ATTRIBUTE_PURE inline static bool operator==(const StringListContent& a, const S
 ATTRIBUTE_PURE inline static bool operator!=(const StringListContent& a, const StringListContent& b);
 
 class StringListContent {
-		friend bool operator<(const StringListContent& a, const StringListContent& b);
-		friend bool operator>(const StringListContent& a, const StringListContent& b);
-		friend bool operator<=(const StringListContent& a, const StringListContent& b);
-		friend bool operator>=(const StringListContent& a, const StringListContent& b);
-		friend bool operator==(const StringListContent& a, const StringListContent& b);
-		friend bool operator!=(const StringListContent& a, const StringListContent& b);
-		friend class StringList;
-	private:
-		WordVec m_list;
+  friend bool operator<(const StringListContent& a, const StringListContent& b);
+  friend bool operator>(const StringListContent& a, const StringListContent& b);
+  friend bool operator<=(const StringListContent& a, const StringListContent& b);
+  friend bool operator>=(const StringListContent& a, const StringListContent& b);
+  friend bool operator==(const StringListContent& a, const StringListContent& b);
+  friend bool operator!=(const StringListContent& a, const StringListContent& b);
+  friend class StringList;
 
-	protected:
+ private:
+  WordVec m_list;
+
+ protected:
 #ifdef STRINGLIST_FREE
-		uint32_t usage;
+  uint32_t usage;
 #endif
-		void finalize();
+  void finalize();
 
-		bool empty() {
-			return m_list.empty();
-		}
+  bool empty() { return m_list.empty(); }
 
-		void push_back(const std::string& s) {
-			m_list.PUSH_BACK(s);
-		}
+  void push_back(const std::string& s) { m_list.PUSH_BACK(s); }
 
 #ifdef HAVE_MOVE
-		void push_back(std::string&& s) {
-			m_list.PUSH_BACK(MOVE(s));
-		}
+  void push_back(std::string&& s) { m_list.PUSH_BACK(MOVE(s)); }
 #endif
 
-		ATTRIBUTE_NONNULL_ void append_to_string(OutputString *s, const OutputString& skip) const;
+  ATTRIBUTE_NONNULL_ void append_to_string(OutputString* s, const OutputString& skip) const;
 
-		const WordVec *asWordVecPtr() const {
-			return &m_list;
-		}
+  const WordVec* asWordVecPtr() const { return &m_list; }
 };
 
 inline static bool operator<(const StringListContent& a, const StringListContent& b) {
-WZERO_AS_NULL_POINTER_CONSTANT_OFF
-	return (a.m_list < b.m_list);
-WZERO_AS_NULL_POINTER_CONSTANT_ON
+  WZERO_AS_NULL_POINTER_CONSTANT_OFF
+  return (a.m_list < b.m_list);
+  WZERO_AS_NULL_POINTER_CONSTANT_ON
 }
 
 inline static bool operator>(const StringListContent& a, const StringListContent& b) {
-WZERO_AS_NULL_POINTER_CONSTANT_OFF
-	return (a.m_list > b.m_list);
-WZERO_AS_NULL_POINTER_CONSTANT_ON
+  WZERO_AS_NULL_POINTER_CONSTANT_OFF
+  return (a.m_list > b.m_list);
+  WZERO_AS_NULL_POINTER_CONSTANT_ON
 }
 
 inline static bool operator<=(const StringListContent& a, const StringListContent& b) {
-WZERO_AS_NULL_POINTER_CONSTANT_OFF
-	return (a.m_list <= b.m_list);
-WZERO_AS_NULL_POINTER_CONSTANT_ON
+  WZERO_AS_NULL_POINTER_CONSTANT_OFF
+  return (a.m_list <= b.m_list);
+  WZERO_AS_NULL_POINTER_CONSTANT_ON
 }
 
 inline static bool operator>=(const StringListContent& a, const StringListContent& b) {
-WZERO_AS_NULL_POINTER_CONSTANT_OFF
-	return (a.m_list >= b.m_list);
-WZERO_AS_NULL_POINTER_CONSTANT_ON
+  WZERO_AS_NULL_POINTER_CONSTANT_OFF
+  return (a.m_list >= b.m_list);
+  WZERO_AS_NULL_POINTER_CONSTANT_ON
 }
 
 inline static bool operator==(const StringListContent& a, const StringListContent& b) {
-	return (a.m_list == b.m_list);
+  return (a.m_list == b.m_list);
 }
 
 inline static bool operator!=(const StringListContent& a, const StringListContent& b) {
-	return (a.m_list != b.m_list);
+  return (a.m_list != b.m_list);
 }
 
 ATTRIBUTE_PURE inline static bool operator<(const StringList& a, const StringList& b);
@@ -114,80 +107,73 @@ ATTRIBUTE_PURE inline static bool operator==(const StringList& a, const StringLi
 ATTRIBUTE_PURE inline static bool operator!=(const StringList& a, const StringList& b);
 
 class StringList {
-		friend bool operator<(const StringList& a, const StringList& b);
-		friend bool operator>(const StringList& a, const StringList& b);
-		friend bool operator<=(const StringList& a, const StringList& b);
-		friend bool operator>=(const StringList& a, const StringList& b);
-		friend bool operator==(const StringList& a, const StringList& b);
-		friend bool operator!=(const StringList& a, const StringList& b);
+  friend bool operator<(const StringList& a, const StringList& b);
+  friend bool operator>(const StringList& a, const StringList& b);
+  friend bool operator<=(const StringList& a, const StringList& b);
+  friend bool operator>=(const StringList& a, const StringList& b);
+  friend bool operator==(const StringList& a, const StringList& b);
+  friend bool operator!=(const StringList& a, const StringList& b);
 
-	private:
-		StringListContent *ptr;
+ private:
+  StringListContent* ptr;
 
-	public:
-		StringList() : ptr(NULLPTR) {
-		}
+ public:
+  StringList() : ptr(NULLPTR) {}
 
 #ifdef STRINGLIST_FREE
-		StringList(const StringList& s);
-		StringList& operator=(const StringList& s);
-		~StringList();
+  StringList(const StringList& s);
+  StringList& operator=(const StringList& s);
+  ~StringList();
 #ifdef HAVE_MOVE
-		StringList(StringList&& s) NOEXCEPT : ptr(s.ptr) {
-			s.ptr = NULLPTR;
-		}
+  StringList(StringList&& s) NOEXCEPT : ptr(s.ptr) { s.ptr = NULLPTR; }
 
-		StringList& operator=(StringList&& s) NOEXCEPT {
-			ptr = s.ptr;
-			s.ptr = NULLPTR;
-			return *this;
-		}
+  StringList& operator=(StringList&& s) NOEXCEPT {
+    ptr = s.ptr;
+    s.ptr = NULLPTR;
+    return *this;
+  }
 #endif
 #endif
-		void finalize();
+  void finalize();
 
-		bool empty() const {
-			return (ptr == NULLPTR);
-		}
+  bool empty() const { return (ptr == NULLPTR); }
 
-		void push_back(const std::string& s);
+  void push_back(const std::string& s);
 #ifdef HAVE_MOVE
-		void push_back(std::string&& s);
+  void push_back(std::string&& s);
 #endif
 
-		ATTRIBUTE_NONNULL_ void append_to_string(OutputString *s, const OutputString& skip) const {
-			if(ptr != NULLPTR) {
-				ptr->append_to_string(s, skip);
-			}
-		}
+  ATTRIBUTE_NONNULL_ void append_to_string(OutputString* s, const OutputString& skip) const {
+    if (ptr != NULLPTR) {
+      ptr->append_to_string(s, skip);
+    }
+  }
 
-		const WordVec *asWordVecPtr() const {
-			return ((ptr == NULLPTR) ? NULLPTR : ptr->asWordVecPtr());
-		}
+  const WordVec* asWordVecPtr() const { return ((ptr == NULLPTR) ? NULLPTR : ptr->asWordVecPtr()); }
 };
 
 inline static bool operator<(const StringList& a, const StringList& b) {
-	return (*(a.ptr) < *(b.ptr));
+  return (*(a.ptr) < *(b.ptr));
 }
 
 inline static bool operator>(const StringList& a, const StringList& b) {
-	return (*(a.ptr) > *(b.ptr));
+  return (*(a.ptr) > *(b.ptr));
 }
 
 inline static bool operator<=(const StringList& a, const StringList& b) {
-	return (*(a.ptr) <= *(b.ptr));
+  return (*(a.ptr) <= *(b.ptr));
 }
 
 inline static bool operator>=(const StringList& a, const StringList& b) {
-	return (*(a.ptr) >= *(b.ptr));
+  return (*(a.ptr) >= *(b.ptr));
 }
 
 inline static bool operator==(const StringList& a, const StringList& b) {
-	return (*(a.ptr) == *(b.ptr));
+  return (*(a.ptr) == *(b.ptr));
 }
 
 inline static bool operator!=(const StringList& a, const StringList& b) {
-	return (*(a.ptr) != *(b.ptr));
+  return (*(a.ptr) != *(b.ptr));
 }
 
 #endif  // SRC_COREQTK_STRINGLIST_H_

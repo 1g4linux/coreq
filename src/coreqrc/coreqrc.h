@@ -32,117 +32,103 @@
 #define DROP_VARS_PREFIX "DROP_"
 
 class CoreqRcOption {
-	public:
-		typedef enum { STRING, PREFIXSTRING, INTEGER, BOOLEAN, LOCAL } OptionType;
-		OptionType type;
-		std::string key, value, local_value, description;
+ public:
+  typedef enum { STRING, PREFIXSTRING, INTEGER, BOOLEAN, LOCAL } OptionType;
+  OptionType type;
+  std::string key, value, local_value, description;
 
-		CoreqRcOption(OptionType t, const char *name, const char *val, const char *desc) :
-			type(t), key(name), value(val), description(desc) {
-		}
+  CoreqRcOption(OptionType t, const char* name, const char* val, const char* desc) : type(t), key(name), value(val), description(desc) {}
 
-		CoreqRcOption(const OptionType t, const std::string name, const std::string val, const std::string desc) :
-			type(t), key(name), value(val), description(desc) {
-		}
+  CoreqRcOption(const OptionType t, const std::string name, const std::string val, const std::string desc) : type(t), key(name), value(val), description(desc) {}
 
-		CoreqRcOption(const std::string name, const std::string val) :
-			type(LOCAL), key(name), local_value(val) {
-		}
+  CoreqRcOption(const std::string name, const std::string val) : type(LOCAL), key(name), local_value(val) {}
 };
 
 class CoreqRc {
-	public:
-		std::string m_eprefixconf;
+ public:
+  std::string m_eprefixconf;
 
-		ATTRIBUTE_NONNULL_ explicit CoreqRc(const char *prefix) : varprefix(prefix) {
-		}
+  ATTRIBUTE_NONNULL_ explicit CoreqRc(const char* prefix) : varprefix(prefix) {}
 
-		typedef std::vector<CoreqRcOption>::size_type default_index;
-		typedef std::pair<RedAtom, RedAtom> RedPair;
+  typedef std::vector<CoreqRcOption>::size_type default_index;
+  typedef std::pair<RedAtom, RedAtom> RedPair;
 
-		void read();
+  void read();
 
-		void clear();
+  void clear();
 
-		void addDefault(CoreqRcOption option);
+  void addDefault(CoreqRcOption option);
 
-		bool getBool(const std::string& key) {
-			return istrue((*this)[key].c_str());
-		}
+  bool getBool(const std::string& key) { return istrue((*this)[key].c_str()); }
 
-		ATTRIBUTE_NONNULL_ coreq::SignedBool getBoolText(const std::string& key, const char *text);
+  ATTRIBUTE_NONNULL_ coreq::SignedBool getBoolText(const std::string& key, const char* text);
 
-		ATTRIBUTE_NONNULL_ coreq::TinySigned getTinyTextlist(const std::string& key, const char *const *text);
+  ATTRIBUTE_NONNULL_ coreq::TinySigned getTinyTextlist(const std::string& key, const char* const* text);
 
-		LocalMode getLocalMode(const std::string& key);
+  LocalMode getLocalMode(const std::string& key);
 
-		ATTRIBUTE_NONNULL_ void getRedundantFlags(const std::string& key,
-			Keywords::Redundant type,
-			RedPair *p);
+  ATTRIBUTE_NONNULL_ void getRedundantFlags(const std::string& key, Keywords::Redundant type, RedPair* p);
 
-		unsigned int getInteger(const std::string& key);
+  unsigned int getInteger(const std::string& key);
 
-		ATTRIBUTE_NONNULL_ void dumpDefaults(FILE *s, bool use_defaults);
+  ATTRIBUTE_NONNULL_ void dumpDefaults(FILE* s, bool use_defaults);
 
-		ATTRIBUTE_PURE const char *cstr(const std::string& key) const;
+  ATTRIBUTE_PURE const char* cstr(const std::string& key) const;
 
-		ATTRIBUTE_PURE const char *prefix_cstr(const std::string& key) const;
+  ATTRIBUTE_PURE const char* prefix_cstr(const std::string& key) const;
 
-		void known_vars();
-		bool print_var(const std::string& key);
+  void known_vars();
+  bool print_var(const std::string& key);
 
-		const std::string& operator[](const std::string& key);
+  const std::string& operator[](const std::string& key);
 
-		ATTRIBUTE_PURE static bool istrue(const char *s);
+  ATTRIBUTE_PURE static bool istrue(const char* s);
 
-	private:
-		std::string varprefix;
-		WordUnorderedMap main_map;
-		WordIterateMap filevarmap;
-		std::vector<CoreqRcOption> defaults;
-		WordUnorderedSet prefix_keys;
+ private:
+  std::string varprefix;
+  WordUnorderedMap main_map;
+  WordIterateMap filevarmap;
+  std::vector<CoreqRcOption> defaults;
+  WordUnorderedSet prefix_keys;
 
-		enum DelayedType { DelayedNotFound, DelayedVariable, DelayedIfTrue, DelayedIfFalse, DelayedIfNonempty, DelayedIfEmpty, DelayedElse, DelayedFi, DelayedQuote };
+  enum DelayedType { DelayedNotFound, DelayedVariable, DelayedIfTrue, DelayedIfFalse, DelayedIfNonempty, DelayedIfEmpty, DelayedElse, DelayedFi, DelayedQuote };
 
-		ATTRIBUTE_NONNULL((3)) static bool getRedundantFlagAtom(const char *s, Keywords::Redundant type, RedAtom *r);
+  ATTRIBUTE_NONNULL((3)) static bool getRedundantFlagAtom(const char* s, Keywords::Redundant type, RedAtom* r);
 
-		void modify_value(std::string *value, const std::string& key);
+  void modify_value(std::string* value, const std::string& key);
 
-		/**
-		This will fetch a variable which was not set in the
-		defaults (or its modification or its delayed references),
-		i.e. it must be fetched from the config or ENV setting.
-		Of course, it will be resolved for delayed substitutions,
-		and delayed references are also be added similarly.
-		**/
-		void add_later_variable(const std::string& key);
+  /**
+  This will fetch a variable which was not set in the
+  defaults (or its modification or its delayed references),
+  i.e. it must be fetched from the config or ENV setting.
+  Of course, it will be resolved for delayed substitutions,
+  and delayed references are also be added similarly.
+  **/
+  void add_later_variable(const std::string& key);
 
-		ATTRIBUTE_NONNULL_ void resolve_delayed(const std::string& key, WordUnorderedSet *has_delayed);
-		ATTRIBUTE_NONNULL_ std::string *resolve_delayed_recurse(const std::string& key, WordUnorderedSet *visited, WordUnorderedSet *has_delayed, const char **errtext, std::string *errvar);
+  ATTRIBUTE_NONNULL_ void resolve_delayed(const std::string& key, WordUnorderedSet* has_delayed);
+  ATTRIBUTE_NONNULL_ std::string* resolve_delayed_recurse(const std::string& key, WordUnorderedSet* visited, WordUnorderedSet* has_delayed, const char** errtext, std::string* errvar);
 
-		/**
-		Create defaults and main_map with all variables
-		(including all values required by delayed references).
-		@arg has_delayed is initialized to corresponding keys
-		**/
-		ATTRIBUTE_NONNULL_ void read_undelayed(WordUnorderedSet *has_delayed);
-		/**
-		Recursively join key and its delayed references to
-		main_map and default; set has_delayed if appropriate
-		**/
-		ATTRIBUTE_NONNULL((3)) void join_key(const std::string& key, WordUnorderedSet *has_delayed, bool add_top_to_defaults, const WordUnorderedSet *exclude_defaults);
-		ATTRIBUTE_NONNULL((4)) void join_key_rec(const std::string& key, const std::string& val, WordUnorderedSet *has_delayed, const WordUnorderedSet *exclude_defaults);
-		ATTRIBUTE_NONNULL((3)) void join_key_if_new(const std::string& key, WordUnorderedSet *has_delayed, const WordUnorderedSet *exclude_defaults);
+  /**
+  Create defaults and main_map with all variables
+  (including all values required by delayed references).
+  @arg has_delayed is initialized to corresponding keys
+  **/
+  ATTRIBUTE_NONNULL_ void read_undelayed(WordUnorderedSet* has_delayed);
+  /**
+  Recursively join key and its delayed references to
+  main_map and default; set has_delayed if appropriate
+  **/
+  ATTRIBUTE_NONNULL((3)) void join_key(const std::string& key, WordUnorderedSet* has_delayed, bool add_top_to_defaults, const WordUnorderedSet* exclude_defaults);
+  ATTRIBUTE_NONNULL((4)) void join_key_rec(const std::string& key, const std::string& val, WordUnorderedSet* has_delayed, const WordUnorderedSet* exclude_defaults);
+  ATTRIBUTE_NONNULL((3)) void join_key_if_new(const std::string& key, WordUnorderedSet* has_delayed, const WordUnorderedSet* exclude_defaults);
 
-		typedef uint8_t DelayvarFlags;
-		static CONSTEXPR const DelayvarFlags
-			DELAYVAR_NONE   = 0x00,
-			DELAYVAR_STAR   = 0x01,
-			DELAYVAR_ESCAPE = 0x02,
-			DELAYVAR_APPEND = 0x04;
+  typedef uint8_t DelayvarFlags;
+  static CONSTEXPR const DelayvarFlags DELAYVAR_NONE = 0x00, DELAYVAR_STAR = 0x01, DELAYVAR_ESCAPE = 0x02, DELAYVAR_APPEND = 0x04;
 
-		ATTRIBUTE_NONNULL((2, 3)) static DelayedType find_next_delayed(const std::string& str, std::string::size_type *pos, std::string::size_type *length, std::string *varname, DelayvarFlags *varflags, std::string *append);
-		static std::string as_comment(const std::string& s);
+  ATTRIBUTE_NONNULL((2, 3))
+  static DelayedType find_next_delayed(const std::string& str, std::string::size_type* pos, std::string::size_type* length, std::string* varname, DelayvarFlags* varflags, std::string* append);
+  static std::string as_comment(const std::string& s);
 };
 
 #endif  // SRC_COREQRC_COREQRC_H_

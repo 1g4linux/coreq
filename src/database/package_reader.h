@@ -30,61 +30,49 @@ class CorePkgSettings;
 Forward-iterate for packages stored in the cachefile
 **/
 class PackageReader {
-	public:
-		enum Attributes {
-			NONE = 0,
-			NAME, DESCRIPTION, HOMEPAGE, LICENSE, VERSIONS,
-			ALL = 7
-		};
+ public:
+  enum Attributes { NONE = 0, NAME, DESCRIPTION, HOMEPAGE, LICENSE, VERSIONS, ALL = 7 };
 
-		/**
-		Initialize with file-stream and number of packages.
-		@arg ps is used to define the local package sets while version reading
-		**/
-		PackageReader(Database *db, const DBHeader& hdr, CorePkgSettings *ps)
-			: m_db(db), m_frames(hdr.size), m_cat_size(0), m_pkg(NULLPTR), header(&hdr), m_corepkgsettings(ps), m_error(false) {
-		}
+  /**
+  Initialize with file-stream and number of packages.
+  @arg ps is used to define the local package sets while version reading
+  **/
+  PackageReader(Database* db, const DBHeader& hdr, CorePkgSettings* ps) : m_db(db), m_frames(hdr.size), m_cat_size(0), m_pkg(NULLPTR), header(&hdr), m_corepkgsettings(ps), m_error(false) {}
 
-		PackageReader(Database *db, const DBHeader& hdr)
-			: m_db(db), m_frames(hdr.size), m_cat_size(0), m_pkg(NULLPTR), header(&hdr), m_corepkgsettings(NULLPTR), m_error(false) {
-		}
+  PackageReader(Database* db, const DBHeader& hdr) : m_db(db), m_frames(hdr.size), m_cat_size(0), m_pkg(NULLPTR), header(&hdr), m_corepkgsettings(NULLPTR), m_error(false) {}
 
-		~PackageReader();
+  ~PackageReader();
 
-		/**
-		Read attributes from the database into the current package
-		**/
-		bool read(Attributes need);
-		bool read() {
-			return read(ALL);
-		}
+  /**
+  Read attributes from the database into the current package
+  **/
+  bool read(Attributes need);
+  bool read() { return read(ALL); }
 
-		/**
-		Get pointer to the package.
-		It's possible that some attributes of the package are not yet read
-		from the database.
-		**/
-		Package *get() const {
-			return m_pkg;
-		}
+  /**
+  Get pointer to the package.
+  It's possible that some attributes of the package are not yet read
+  from the database.
+  **/
+  Package* get() const { return m_pkg; }
 
-		/**
-		Skip the current package.
-		The file pointer is moved to the next package.
-		**/
-		bool skip();
+  /**
+  Skip the current package.
+  The file pointer is moved to the next package.
+  **/
+  bool skip();
 
-		/**
-		Release the package.
-		Complete the current package, and release it.
-		**/
-		Package *release();
+  /**
+  Release the package.
+  Complete the current package, and release it.
+  **/
+  Package* release();
 
-		/**
-		@return true if there is a next package.
-		Read the package-header
-		**/
-		bool next();
+  /**
+  @return true if there is a next package.
+  Read the package-header
+  **/
+  bool next();
 
 #if 0
 		/**
@@ -100,33 +88,29 @@ class PackageReader {
 		bool nextPackage();
 #endif
 
-		/**
-		@return name of current category
-		**/
-		const std::string& category() const {
-			return m_cat_name;
-		}
+  /**
+  @return name of current category
+  **/
+  const std::string& category() const { return m_cat_name; }
 
-		const char *get_errtext() const {
-			return (m_error ? m_errtext.c_str() : NULLPTR);
-		}
+  const char* get_errtext() const { return (m_error ? m_errtext.c_str() : NULLPTR); }
 
-	protected:
-		Database         *m_db;
+ protected:
+  Database* m_db;
 
-		coreq::Treesize     m_frames;
-		coreq::Treesize     m_cat_size;
-		std::string       m_cat_name;
+  coreq::Treesize m_frames;
+  coreq::Treesize m_cat_size;
+  std::string m_cat_name;
 
-		off_t             m_next;
-		Attributes        m_have;
-		Package          *m_pkg;
+  off_t m_next;
+  Attributes m_have;
+  Package* m_pkg;
 
-		const DBHeader   *header;
-		CorePkgSettings  *m_corepkgsettings;
+  const DBHeader* header;
+  CorePkgSettings* m_corepkgsettings;
 
-		std::string m_errtext;
-		bool m_error;
+  std::string m_errtext;
+  bool m_error;
 };
 
 #endif  // SRC_DATABASE_PACKAGE_READER_H_

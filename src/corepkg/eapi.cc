@@ -20,31 +20,31 @@
 using std::string;
 
 typedef UNORDERED_MAP<string, Eapi::EapiIndex> EapiMap;
-static WordVec *eapi_vec(NULLPTR);
-static EapiMap *eapi_map(NULLPTR);
+static WordVec* eapi_vec(NULLPTR);
+static EapiMap* eapi_map(NULLPTR);
 
 void Eapi::init_static() {
-	coreq_assert_static(eapi_vec == NULLPTR);
-	eapi_map = new EapiMap;
-	eapi_vec = new WordVec;
-	(*eapi_map)["0"] = 0;
-	// The following gives a memory leak with -flto for unknown reasons:
-	// eapi_vec->PUSH_BACK("0");
-	eapi_vec->push_back("0");
+  coreq_assert_static(eapi_vec == NULLPTR);
+  eapi_map = new EapiMap;
+  eapi_vec = new WordVec;
+  (*eapi_map)["0"] = 0;
+  // The following gives a memory leak with -flto for unknown reasons:
+  // eapi_vec->PUSH_BACK("0");
+  eapi_vec->push_back("0");
 }
 
 void Eapi::assign(const std::string& str) {
-	coreq_assert_static(eapi_map != NULLPTR);
-	EapiMap::const_iterator it(eapi_map->find(str));
-	if(likely(it != eapi_map->end())) {
-		eapi_index = it->second;
-		return;
-	}
-	(*eapi_map)[str] = eapi_index = eapi_vec->size();
-	eapi_vec->PUSH_BACK(str);
+  coreq_assert_static(eapi_map != NULLPTR);
+  EapiMap::const_iterator it(eapi_map->find(str));
+  if (likely(it != eapi_map->end())) {
+    eapi_index = it->second;
+    return;
+  }
+  (*eapi_map)[str] = eapi_index = eapi_vec->size();
+  eapi_vec->PUSH_BACK(str);
 }
 
 string Eapi::get() const {
-	coreq_assert_static(eapi_vec != NULLPTR);
-	return (*eapi_vec)[eapi_index];
+  coreq_assert_static(eapi_vec != NULLPTR);
+  return (*eapi_vec)[eapi_index];
 }

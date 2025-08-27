@@ -23,7 +23,6 @@
 #include "coreqTk/unordered_map.h"
 #include "coreqTk/unordered_set.h"
 
-
 typedef std::vector<std::string> WordVec;
 typedef std::set<std::string> WordSet;
 typedef ITERATE_MAP<std::string, std::string> WordIterateMap;

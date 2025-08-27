@@ -19,82 +19,64 @@
 #include "coreqTk/dialect.h"
 #include "coreqTk/coreqint.h"
 
-typedef std::pair<const char *, const char *> ArgPair;
+typedef std::pair<const char*, const char*> ArgPair;
 
 /**
 Map longopt->shortopt
 **/
 class Option {
-	public:
-	enum Type {
-		BOOLEAN_T,             ///< Boolean. Will be set to true if found.
-		BOOLEAN_F,             ///< Boolean. Will be set to false if found.
-		BOOLEAN,               ///< Boolean. Will be flipped if found.
-		INTEGER,               ///< Int. Increase value if found.
-		STRING,                ///< String. Barf if not found.
-		STRING_OPTIONAL,       ///< String. Empty if not found.
-		PAIR,                  ///< Pair of strings. Barf if not found.
-		PAIR_OPTIONAL,         ///< Pair of strings. Empty if not found.
-		STRINGLIST,            ///< Accumulative strings.
-		STRINGLIST_OPTIONAL,   ///< Accumulative strings. Empty if not found.
-		PAIRLIST,              ///< Accumulative pairs of strings.
-		PAIRLIST_OPTIONAL,     ///< Accumulative pairs of strings.
-		KEEP,                  ///< Do not remove. No arg.
-		KEEP_STRING,           ///< Do not remove. String arg.
-		KEEP_STRING_OPTIONAL,  ///< Do not remove. String arg.
-		KEEP_PAIR,             ///< Do not remove. Pair of strings arg.
-		KEEP_PAIR_OPTIONAL     ///< Do not remove. Pair of strings arg.
-	} type;
+ public:
+  enum Type {
+    BOOLEAN_T,             ///< Boolean. Will be set to true if found.
+    BOOLEAN_F,             ///< Boolean. Will be set to false if found.
+    BOOLEAN,               ///< Boolean. Will be flipped if found.
+    INTEGER,               ///< Int. Increase value if found.
+    STRING,                ///< String. Barf if not found.
+    STRING_OPTIONAL,       ///< String. Empty if not found.
+    PAIR,                  ///< Pair of strings. Barf if not found.
+    PAIR_OPTIONAL,         ///< Pair of strings. Empty if not found.
+    STRINGLIST,            ///< Accumulative strings.
+    STRINGLIST_OPTIONAL,   ///< Accumulative strings. Empty if not found.
+    PAIRLIST,              ///< Accumulative pairs of strings.
+    PAIRLIST_OPTIONAL,     ///< Accumulative pairs of strings.
+    KEEP,                  ///< Do not remove. No arg.
+    KEEP_STRING,           ///< Do not remove. String arg.
+    KEEP_STRING_OPTIONAL,  ///< Do not remove. String arg.
+    KEEP_PAIR,             ///< Do not remove. Pair of strings arg.
+    KEEP_PAIR_OPTIONAL     ///< Do not remove. Pair of strings arg.
+  } type;
 
-	ATTRIBUTE_NONNULL((2, 5)) Option(const char *l, int s, enum Type t, int *i) NOEXCEPT
-		: type(t), longopt(l), shortopt(s) {
-		u.integer = i;
-	}
+  ATTRIBUTE_NONNULL((2, 5)) Option(const char* l, int s, enum Type t, int* i) NOEXCEPT : type(t), longopt(l), shortopt(s) { u.integer = i; }
 
-	ATTRIBUTE_NONNULL((2, 5)) Option(const char *l, int s, enum Type t, bool *b) NOEXCEPT
-		: type(t), longopt(l), shortopt(s) {
-		u.boolean = b;
-	}
+  ATTRIBUTE_NONNULL((2, 5)) Option(const char* l, int s, enum Type t, bool* b) NOEXCEPT : type(t), longopt(l), shortopt(s) { u.boolean = b; }
 
-	ATTRIBUTE_NONNULL((2, 5)) Option(const char *l, int s, enum Type t, const char *c[]) NOEXCEPT
-		: type(t), longopt(l), shortopt(s) {
-		u.str = c;
-	}
+  ATTRIBUTE_NONNULL((2, 5)) Option(const char* l, int s, enum Type t, const char* c[]) NOEXCEPT : type(t), longopt(l), shortopt(s) { u.str = c; }
 
-	ATTRIBUTE_NONNULL((2, 5, 6)) Option(const char *l, int s, enum Type t, const char *c1[], const char *c2[]) NOEXCEPT
-		: type(t), longopt(l), shortopt(s) {
-		u.pr.first = c1;
-		u.pr.second = c2;
-	}
+  ATTRIBUTE_NONNULL((2, 5, 6)) Option(const char* l, int s, enum Type t, const char* c1[], const char* c2[]) NOEXCEPT : type(t), longopt(l), shortopt(s) {
+    u.pr.first = c1;
+    u.pr.second = c2;
+  }
 
-	ATTRIBUTE_NONNULL((2, 5)) Option(const char *l, int s, enum Type t, std::vector<const char*> *c) NOEXCEPT
-		: type(t), longopt(l), shortopt(s) {
-		u.strlist = c;
-	}
+  ATTRIBUTE_NONNULL((2, 5)) Option(const char* l, int s, enum Type t, std::vector<const char*>* c) NOEXCEPT : type(t), longopt(l), shortopt(s) { u.strlist = c; }
 
-	ATTRIBUTE_NONNULL((2, 5)) Option(const char *l, int s, enum Type t, std::vector<ArgPair> *c) NOEXCEPT
-		: type(t), longopt(l), shortopt(s) {
-		u.prlist = c;
-	}
+  ATTRIBUTE_NONNULL((2, 5)) Option(const char* l, int s, enum Type t, std::vector<ArgPair>* c) NOEXCEPT : type(t), longopt(l), shortopt(s) { u.prlist = c; }
 
-	ATTRIBUTE_NONNULL((2)) Option(const char *l, int s, enum Type t = KEEP) NOEXCEPT
-		: type(t), longopt(l), shortopt(s) {
-	}
+  ATTRIBUTE_NONNULL((2)) Option(const char* l, int s, enum Type t = KEEP) NOEXCEPT : type(t), longopt(l), shortopt(s) {}
 
-	const char *longopt;  ///< longopt of this pair.
-	int  shortopt;        ///< shortopt of this pair.
+  const char* longopt;  ///< longopt of this pair.
+  int shortopt;         ///< shortopt of this pair.
 
-	union {  ///< Pointer to variable of argument.
-		int   *integer;
-		bool  *boolean;
-		const char **str;
-		struct {
-			const char **first;
-			const char **second;
-		} pr;
-		std::vector<const char *> *strlist;
-		std::vector<ArgPair> *prlist;
-	} u;
+  union {  ///< Pointer to variable of argument.
+    int* integer;
+    bool* boolean;
+    const char** str;
+    struct {
+      const char** first;
+      const char** second;
+    } pr;
+    std::vector<const char*>* strlist;
+    std::vector<ArgPair>* prlist;
+  } u;
 };
 
 typedef std::vector<Option> OptionList;
@@ -103,86 +85,77 @@ typedef std::vector<Option> OptionList;
 Represents a parameter
 **/
 class Parameter {
-	public:
-		/**
-		Type of argument. ARGUMENT, OPTION, or PAIR
-		**/
-		enum Type {
-			ARGUMENT = 1,
-			OPTION = 2,
-			PAIR = 3
-		} type;
+ public:
+  /**
+  Type of argument. ARGUMENT, OPTION, or PAIR
+  **/
+  enum Type { ARGUMENT = 1, OPTION = 2, PAIR = 3 } type;
 
-		/**
-		This is the string we got.
-		**/
-		const char *m_argument;
+  /**
+  This is the string we got.
+  **/
+  const char* m_argument;
 
-		/**
-		If type is OPTION this holds the option-key
-		**/
-		int m_option;
+  /**
+  If type is OPTION this holds the option-key
+  **/
+  int m_option;
 
-		explicit Parameter(int option) NOEXCEPT : type(Parameter::OPTION), m_option(option) {
-		}
+  explicit Parameter(int option) NOEXCEPT : type(Parameter::OPTION), m_option(option) {}
 
-		ATTRIBUTE_NONNULL((2)) explicit Parameter(const char *argument) NOEXCEPT
-			: type(Parameter::ARGUMENT), m_argument(argument) {
-		}
+  ATTRIBUTE_NONNULL((2)) explicit Parameter(const char* argument) NOEXCEPT : type(Parameter::ARGUMENT), m_argument(argument) {}
 
-		int operator*() const {
-			return (type == OPTION) ? m_option : -1;
-		}
+  int operator*() const { return (type == OPTION) ? m_option : -1; }
 };
 
 /**
 Main class for argument parsing
 **/
 class ArgumentReader : public std::vector<Parameter> {
-	public:
-		/**
-		Name of called program
-		**/
-		const char *name;
+ public:
+  /**
+  Name of called program
+  **/
+  const char* name;
 
-		/**
-		Read arguments into list of Parameters
-		**/
-		ATTRIBUTE_NONNULL_ ArgumentReader(int argc, const char *const *argv, const OptionList& opt_table);
+  /**
+  Read arguments into list of Parameters
+  **/
+  ATTRIBUTE_NONNULL_ ArgumentReader(int argc, const char* const* argv, const OptionList& opt_table);
 
-	private:
-		/**
-		Return shortopt for longopt stored in opt.
-		**/
-		ATTRIBUTE_NONNULL_ static int lookup_longopt(const char **arg, coreq::TinyUnsigned *paramarg_remain, const char *long_opt, const OptionList& opt_table);
+ private:
+  /**
+  Return shortopt for longopt stored in opt.
+  **/
+  ATTRIBUTE_NONNULL_ static int lookup_longopt(const char** arg, coreq::TinyUnsigned* paramarg_remain, const char* long_opt, const OptionList& opt_table);
 
-		/**
-		Check if short_opt is a known option.
-		**/
-		static const Option *lookup_shortopt(const char short_opt, const OptionList& opt_table);
+  /**
+  Check if short_opt is a known option.
+  **/
+  static const Option* lookup_shortopt(const char short_opt, const OptionList& opt_table);
 
-		/**
-		@return option from internal table
-		**/
-		ATTRIBUTE_PURE static const Option *lookup_option(const int opt, const OptionList& opt_table);
+  /**
+  @return option from internal table
+  **/
+  ATTRIBUTE_PURE static const Option* lookup_option(const int opt, const OptionList& opt_table);
 
-		/**
-		@return number of args for opt
-		**/
-		ATTRIBUTE_PURE static coreq::TinyUnsigned numargs(const int opt, const OptionList& opt_table);
+  /**
+  @return number of args for opt
+  **/
+  ATTRIBUTE_PURE static coreq::TinyUnsigned numargs(const int opt, const OptionList& opt_table);
 
-		/**
-		@return number of args for opt
-		**/
-		ATTRIBUTE_CONST static coreq::TinyUnsigned numargs(Option::Type opt_type);
+  /**
+  @return number of args for opt
+  **/
+  ATTRIBUTE_CONST static coreq::TinyUnsigned numargs(Option::Type opt_type);
 
-		/**
-		Fold parameter-list so that a option with an arguments has its argument set
-		internal rather than lying around after it in the list.
-		Options which are booleans and integers will be removed and their
-		values increased, flipped, set true or whatever.
-		**/
-		void foldAndRemove(const OptionList& opt_table);
+  /**
+  Fold parameter-list so that a option with an arguments has its argument set
+  internal rather than lying around after it in the list.
+  Options which are booleans and integers will be removed and their
+  values increased, flipped, set true or whatever.
+  **/
+  void foldAndRemove(const OptionList& opt_table);
 };
 
 #endif  // SRC_COREQTK_ARGSREADER_H_

@@ -13,23 +13,21 @@
 #include <string>
 
 class Statusline {
-	private:
-		bool use, soft;
-		std::string header, m_program, m_exit;
+ private:
+  bool use, soft;
+  std::string header, m_program, m_exit;
 
-		void print_force(const std::string& str);
-		void user_statusline();
-	public:
-		Statusline(bool active, bool softstatus, const std::string& program_name, const std::string& exit_statusline)
-			: use(active), soft(softstatus), m_program(program_name), m_exit(exit_statusline) {
-		}
+  void print_force(const std::string& str);
+  void user_statusline();
 
-		void print(const std::string& str);
+ public:
+  Statusline(bool active, bool softstatus, const std::string& program_name, const std::string& exit_statusline) : use(active), soft(softstatus), m_program(program_name), m_exit(exit_statusline) {}
 
-		void success();
+  void print(const std::string& str);
 
-		void failure();
+  void success();
+
+  void failure();
 };
-
 
 #endif  // SRC_COREQTK_STATUSLINE_H_

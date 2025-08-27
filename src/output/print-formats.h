@@ -14,11 +14,11 @@
 #include "corepkg/package.h"
 
 class PrintFormats {
-	public:
-		virtual void start() {}
-		virtual ATTRIBUTE_NONNULL_ void package(Package *) {}
-		virtual void finish() {}
-		virtual ~PrintFormats() {}
+ public:
+  virtual void start() {}
+  virtual ATTRIBUTE_NONNULL_ void package(Package*) {}
+  virtual void finish() {}
+  virtual ~PrintFormats() {}
 };
 
 #endif  // SRC_OUTPUT_PRINT_FORMATS_H_

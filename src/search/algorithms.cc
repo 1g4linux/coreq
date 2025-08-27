@@ -34,72 +34,70 @@ fnmatch(3) tells that this is a GNU extension.
 
 using std::string;
 
-FuzzyAlgorithm::LevenshteinMap *FuzzyAlgorithm::levenshtein_map = NULLPTR;
+FuzzyAlgorithm::LevenshteinMap* FuzzyAlgorithm::levenshtein_map = NULLPTR;
 
-bool BaseAlgorithm::operator()(const char *s, Package *p, bool simplify) {
-	if(can_simplify() && unlikely(!have_simplified) && likely(simplify)) {
-		have_simplified = true;
-		// cut out the first nonempty valid search string
-		for(string::size_type i = 0; i < search_string.length(); ++i) {
-			if(likely(is_valid_pkgpath(search_string[i]))) {
-				if(unlikely(i > 0)) {
-					search_string.erase(0, i);
-				}
-				break;
-			}
-		}
-		for(string::size_type i = 0; i < search_string.length(); ++i) {
-			if(unlikely(!is_valid_pkgpath(search_string[i]))) {
-				if(likely(i > 0)) {
-					search_string.erase(i);
-				}
-				break;
-			}
-		}
-	}
-	return (*this)(s, p);
+bool BaseAlgorithm::operator()(const char* s, Package* p, bool simplify) {
+  if (can_simplify() && unlikely(!have_simplified) && likely(simplify)) {
+    have_simplified = true;
+    // cut out the first nonempty valid search string
+    for (string::size_type i = 0; i < search_string.length(); ++i) {
+      if (likely(is_valid_pkgpath(search_string[i]))) {
+        if (unlikely(i > 0)) {
+          search_string.erase(0, i);
+        }
+        break;
+      }
+    }
+    for (string::size_type i = 0; i < search_string.length(); ++i) {
+      if (unlikely(!is_valid_pkgpath(search_string[i]))) {
+        if (likely(i > 0)) {
+          search_string.erase(i);
+        }
+        break;
+      }
+    }
+  }
+  return (*this)(s, p);
 }
 
 void FuzzyAlgorithm::init_static() {
-	coreq_assert_static(levenshtein_map == NULLPTR);
-	levenshtein_map = new LevenshteinMap;
+  coreq_assert_static(levenshtein_map == NULLPTR);
+  levenshtein_map = new LevenshteinMap;
 }
 
-bool FuzzyAlgorithm::compare(Package *p1, Package *p2) {
-	return ((*levenshtein_map)[p1->category + "/" + p1->name]
-			< (*levenshtein_map)[p2->category + "/" + p2->name]);
+bool FuzzyAlgorithm::compare(Package* p1, Package* p2) {
+  return ((*levenshtein_map)[p1->category + "/" + p1->name] < (*levenshtein_map)[p2->category + "/" + p2->name]);
 }
 
-
-bool FuzzyAlgorithm::operator()(const char *s, Package *p) const {
-	coreq_assert_static(levenshtein_map != NULLPTR);
-	Levenshtein d(get_levenshtein_distance(search_string.c_str(), s));
-	bool ok(d <= max_levenshteindistance);
-	if(ok) {
-		if(p != NULLPTR) {
-			(*levenshtein_map)[p->category + "/" + p->name] = d;
-		}
-	}
-	return ok;
+bool FuzzyAlgorithm::operator()(const char* s, Package* p) const {
+  coreq_assert_static(levenshtein_map != NULLPTR);
+  Levenshtein d(get_levenshtein_distance(search_string.c_str(), s));
+  bool ok(d <= max_levenshteindistance);
+  if (ok) {
+    if (p != NULLPTR) {
+      (*levenshtein_map)[p->category + "/" + p->name] = d;
+    }
+  }
+  return ok;
 }
 
-bool ExactAlgorithm::operator()(const char *s, Package * /* p */) const {
-	return (std::strcmp(search_string.c_str(), s) == 0);
+bool ExactAlgorithm::operator()(const char* s, Package* /* p */) const {
+  return (std::strcmp(search_string.c_str(), s) == 0);
 }
 
-bool BeginAlgorithm::operator()(const char *s, Package * /* p */) const {
-	return (std::strncmp(search_string.c_str(), s, search_string.size()) == 0);
+bool BeginAlgorithm::operator()(const char* s, Package* /* p */) const {
+  return (std::strncmp(search_string.c_str(), s, search_string.size()) == 0);
 }
 
-bool EndAlgorithm::operator()(const char *s, Package * /* p */) const {
-	string::size_type l(std::strlen(s));
-	string::size_type sl(search_string.size());
-	if(l < sl) {
-		return false;
-	}
-	return (std::strcmp(search_string.c_str(), s + (l - sl)) == 0);
+bool EndAlgorithm::operator()(const char* s, Package* /* p */) const {
+  string::size_type l(std::strlen(s));
+  string::size_type sl(search_string.size());
+  if (l < sl) {
+    return false;
+  }
+  return (std::strcmp(search_string.c_str(), s + (l - sl)) == 0);
 }
 
-bool PatternAlgorithm::operator()(const char *s, Package * /* p */) const {
-	return (fnmatch(search_string.c_str(), s, FNMATCH_FLAGS) == 0);
+bool PatternAlgorithm::operator()(const char* s, Package* /* p */) const {
+  return (fnmatch(search_string.c_str(), s, FNMATCH_FLAGS) == 0);
 }

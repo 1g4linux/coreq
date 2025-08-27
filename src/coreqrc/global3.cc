@@ -12,6 +12,6 @@
 
 #define DEFAULT_PART 3
 
-void fill_defaults_part_3(CoreqRc *coreqrc) {
+void fill_defaults_part_3(CoreqRc* coreqrc) {
 #include "coreqrc/defaults.cc"  // NOLINT(build/include)
 }

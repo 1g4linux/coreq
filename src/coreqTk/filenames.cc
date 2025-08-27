@@ -60,159 +60,159 @@ using std::string;
 #define NORMALIZE_PATH_EXPORT static
 #define NORMALIZE_PATH original_normalize_path
 
-ATTRIBUTE_NONNULL_ static string NORMALIZE_PATH(const char *path, bool resolve, bool want_slash);
+ATTRIBUTE_NONNULL_ static string NORMALIZE_PATH(const char* path, bool resolve, bool want_slash);
 
-string normalize_path(const char *path, bool resolve, bool want_slash) {
-	coreq::say_error("Debug: Calling normalize_path(\"%s\", %s)...")
-		% path % resolve;
-	coreq::print_error("Debug: (with"
+string normalize_path(const char* path, bool resolve, bool want_slash) {
+  coreq::say_error("Debug: Calling normalize_path(\"%s\", %s)...") % path % resolve;
+  coreq::print_error(
+      "Debug: (with"
 #ifndef HAVE_CANONICALIZE_FILE_NAME
-		"out"
+      "out"
 #endif
-		" canonicalize_file_name(), with"
+      " canonicalize_file_name(), with"
 #ifndef HAVE_REALPATH
-		"out"
+      "out"
 #endif
-		" realpath(), with");
+      " realpath(), with");
 #ifdef PATH_MAX
-	coreq::print_error(" PATH_MAX=%s") % PATH_MAX;
+  coreq::print_error(" PATH_MAX=%s") % PATH_MAX;
 #else
-	coreq::print_error("out PATH_MAX");
+  coreq::print_error("out PATH_MAX");
 #endif
-	coreq::say_error(')');
-	string s(NORMALIZE_PATH(path, resolve, want_slash));
-	coreq::say_error("Debug: ... returned with: \"%s\"") % s;
-	return s;
+  coreq::say_error(')');
+  string s(NORMALIZE_PATH(path, resolve, want_slash));
+  coreq::say_error("Debug: ... returned with: \"%s\"") % s;
+  return s;
 }
 #else
 #define NORMALIZE_PATH_EXPORT
 #define NORMALIZE_PATH normalize_path
 #endif
 
-NORMALIZE_PATH_EXPORT string NORMALIZE_PATH(const char *path, bool resolve, bool want_slash) {
-	if(*path == 0) {
-		return "";
-	}
-	string name;
-	if(resolve) {
-		char *normalized(NULLPTR);
+NORMALIZE_PATH_EXPORT string NORMALIZE_PATH(const char* path, bool resolve, bool want_slash) {
+  if (*path == 0) {
+    return "";
+  }
+  string name;
+  if (resolve) {
+    char* normalized(NULLPTR);
 #ifdef HAVE_CANONICALIZE_FILE_NAME
-		normalized = canonicalize_file_name(path);
-		if(likely(normalized != NULLPTR)) {
-			if(unlikely(*normalized == '\0')) {
-				std::free(normalized);
-				normalized = NULLPTR;
-			}
-		}
+    normalized = canonicalize_file_name(path);
+    if (likely(normalized != NULLPTR)) {
+      if (unlikely(*normalized == '\0')) {
+        std::free(normalized);
+        normalized = NULLPTR;
+      }
+    }
 #endif
 #ifdef HAVE_REALPATH
-		if(unlikely(normalized == NULLPTR)) {
+    if (unlikely(normalized == NULLPTR)) {
 #ifdef PATH_MAX
-			// Some implementations of realpath are vulnerable
-			// against internal buffer overflow, so better test:
-			if(likely(std::strlen(path) < PATH_MAX)) {
-				normalized = static_cast<char *>(std::malloc(PATH_MAX + 1));
-				if(likely(normalized != NULLPTR)) {
-					if(unlikely(realpath(path, normalized) == NULLPTR)) {
-						std::free(normalized);
-						normalized = NULLPTR;
-					}
-				}
-			}
+      // Some implementations of realpath are vulnerable
+      // against internal buffer overflow, so better test:
+      if (likely(std::strlen(path) < PATH_MAX)) {
+        normalized = static_cast<char*>(std::malloc(PATH_MAX + 1));
+        if (likely(normalized != NULLPTR)) {
+          if (unlikely(realpath(path, normalized) == NULLPTR)) {
+            std::free(normalized);
+            normalized = NULLPTR;
+          }
+        }
+      }
 #else
-			// We have no idea about the maximal pathlen
-			normalized = realpath(path, NULLPTR);
+      // We have no idea about the maximal pathlen
+      normalized = realpath(path, NULLPTR);
 #endif
-			// Let normalized="" act as normalized=NULLPTR:
-			if(likely(normalized != NULLPTR)) {
-				if(unlikely(*normalized == '\0')) {
-					std::free(normalized);
-					normalized = NULLPTR;
-				}
-			}
-		}
+      // Let normalized="" act as normalized=NULLPTR:
+      if (likely(normalized != NULLPTR)) {
+        if (unlikely(*normalized == '\0')) {
+          std::free(normalized);
+          normalized = NULLPTR;
+        }
+      }
+    }
 #endif
-		if(likely(normalized != NULLPTR)) {
-			name = normalized;
-			std::free(normalized);
-		} else {
-			name = path;
-		}
-	} else {
-		name = path;
-	}
-	for(string::size_type i(0); likely(i < name.size()); ++i) {
-		// Erase all / following one /
-		if(name[i] == '/') {
-			string::size_type n(0);
-			for(string::size_type j(i + 1);
-				likely(j < name.size()); ++j) {
-				if(name[j] != '/')
-					break;
-				++n;
-			}
-			if(n != 0)
-				name.erase(i + 1, n);
-		}
-	}
-	// Erase trailing / if it is not the first character and !want_slash
-	// Possibly append / if want_slash
+    if (likely(normalized != NULLPTR)) {
+      name = normalized;
+      std::free(normalized);
+    }
+    else {
+      name = path;
+    }
+  }
+  else {
+    name = path;
+  }
+  for (string::size_type i(0); likely(i < name.size()); ++i) {
+    // Erase all / following one /
+    if (name[i] == '/') {
+      string::size_type n(0);
+      for (string::size_type j(i + 1); likely(j < name.size()); ++j) {
+        if (name[j] != '/')
+          break;
+        ++n;
+      }
+      if (n != 0)
+        name.erase(i + 1, n);
+    }
+  }
+  // Erase trailing / if it is not the first character and !want_slash
+  // Possibly append / if want_slash
 
-	string::size_type s(name.size());
-	if(unlikely(s == 0))
-		return name;
-	if(name[--s] == '/') {
-		if((s != 0) && (!want_slash))
-			name.erase(s);
-	} else if(want_slash) {
-		return name + '/';
-	}
-	return name;
+  string::size_type s(name.size());
+  if (unlikely(s == 0))
+    return name;
+  if (name[--s] == '/') {
+    if ((s != 0) && (!want_slash))
+      name.erase(s);
+  }
+  else if (want_slash) {
+    return name + '/';
+  }
+  return name;
 }
 
 /**
 Compare whether two (normalized) filenames are identical
 **/
-bool same_filenames(const char *mask, const char *name, bool glob, bool resolve_mask) {
-	string m(normalize_path(mask, resolve_mask, false));
-	string n(normalize_path(name, false, false));
-	if(!glob)
-		return (m == n);
-	return (!fnmatch(m.c_str(), n.c_str(), 0));
+bool same_filenames(const char* mask, const char* name, bool glob, bool resolve_mask) {
+  string m(normalize_path(mask, resolve_mask, false));
+  string n(normalize_path(name, false, false));
+  if (!glob)
+    return (m == n);
+  return (!fnmatch(m.c_str(), n.c_str(), 0));
 }
 
 /**
 Compare whether (normalized) filename starts with mask
 **/
-bool filename_starts_with(const char *mask, const char *name, bool resolve_mask) {
-	string m(normalize_path(mask, resolve_mask, true));
-	string n(normalize_path(name, false, true));
-	if(m == n) {
-		return true;
-	}
-	return (n.compare(0, m.size(), m) == 0);
+bool filename_starts_with(const char* mask, const char* name, bool resolve_mask) {
+  string m(normalize_path(mask, resolve_mask, true));
+  string n(normalize_path(name, false, true));
+  if (m == n) {
+    return true;
+  }
+  return (n.compare(0, m.size(), m) == 0);
 }
 
 /**
 @return first match in a list of filenames/patterns
 **/
-WordVec::const_iterator find_filenames(const WordVec::const_iterator start,
-		const WordVec::const_iterator end, const char *search,
-		bool list_of_patterns, bool resolve_list) {
-	for(WordVec::const_iterator i(start); likely(i != end); ++i) {
-		if(unlikely(same_filenames(i->c_str(), search, list_of_patterns, resolve_list))) {
-			return i;
-		}
-	}
-	return end;
+WordVec::const_iterator find_filenames(const WordVec::const_iterator start, const WordVec::const_iterator end, const char* search, bool list_of_patterns, bool resolve_list) {
+  for (WordVec::const_iterator i(start); likely(i != end); ++i) {
+    if (unlikely(same_filenames(i->c_str(), search, list_of_patterns, resolve_list))) {
+      return i;
+    }
+  }
+  return end;
 }
 
 /**
 Test whether filename appears to be a "virtual" overlay
 **/
-bool is_virtual(const char *name) {
-	if(*name != '/') {
-		return true;
-	}
-	return !is_dir(name);
+bool is_virtual(const char* name) {
+  if (*name != '/') {
+    return true;
+  }
+  return !is_dir(name);
 }

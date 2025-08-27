@@ -33,171 +33,174 @@
 #define SYSCONFDIR "/etc"
 #endif
 
-#define COREQ_SYSTEMRC SYSCONFDIR"/coreqrc"
+#define COREQ_SYSTEMRC SYSCONFDIR "/coreqrc"
 
-#define COREQ_USERRC   "/.coreqrc"
+#define COREQ_USERRC "/.coreqrc"
 
 using std::string;
 using std::vector;
 
-const CoreqRc::DelayvarFlags
-	CoreqRc::DELAYVAR_NONE,
-	CoreqRc::DELAYVAR_STAR,
-	CoreqRc::DELAYVAR_ESCAPE,
-	CoreqRc::DELAYVAR_APPEND;
+const CoreqRc::DelayvarFlags CoreqRc::DELAYVAR_NONE, CoreqRc::DELAYVAR_STAR, CoreqRc::DELAYVAR_ESCAPE, CoreqRc::DELAYVAR_APPEND;
 
-ATTRIBUTE_NONNULL_ static void override_by_env(WordIterateMap *m);
+ATTRIBUTE_NONNULL_ static void override_by_env(WordIterateMap* m);
 
-coreq::SignedBool CoreqRc::getBoolText(const string& key, const char *text) {
-	const string& s((*this)[key]);
-	if(casecontains(s, text)) {
-		return -1;
-	}
-	return (istrue(s.c_str()) ? 1 : 0);
+coreq::SignedBool CoreqRc::getBoolText(const string& key, const char* text) {
+  const string& s((*this)[key]);
+  if (casecontains(s, text)) {
+    return -1;
+  }
+  return (istrue(s.c_str()) ? 1 : 0);
 }
 
-coreq::TinySigned CoreqRc::getTinyTextlist(const string& key, const char *const *text) {
-	const string& s((*this)[key]);
-	for(coreq::TinySigned i(-1); likely(*text != NULLPTR); ++text, --i) {
-		if(casecontains(s, *text)) {
-			return i;
-		}
-	}
-	return (istrue(s.c_str()) ? 1 : 0);
+coreq::TinySigned CoreqRc::getTinyTextlist(const string& key, const char* const* text) {
+  const string& s((*this)[key]);
+  for (coreq::TinySigned i(-1); likely(*text != NULLPTR); ++text, --i) {
+    if (casecontains(s, *text)) {
+      return i;
+    }
+  }
+  return (istrue(s.c_str()) ? 1 : 0);
 }
 
-bool CoreqRc::getRedundantFlagAtom(const char *s, Keywords::Redundant type, RedAtom *r) {
-	r->only &= ~type;
-	if(unlikely(s == NULLPTR)) {
-		r->red &= ~type;
-		return true;
-	}
-	if(*s == '+') {
-		++s;
-		r->only |= type;
-		r->oins |= type;
-	} else if(*s == '-') {
-		++s;
-		r->only |= type;
-		r->oins &= ~type;
-	}
-	if(casecontains(s, "no") || casecontains(s, "false")) {
-		r->red &= ~type;
-	} else if(casecontains(s, "all")) {
-		if(casecontains(s, "installed")) {
-			if(casecontains(s, "un")) {
-				r->red |= type;
-				r->all |= type;
-				r->spc |= type;
-				r->ins &= ~type;
-			} else {
-				r->red |= type;
-				r->all |= type;
-				r->spc |= type;
-				r->ins |= type;
-			}
-		} else {
-			r->red |= type;
-			r->all |= type;
-			r->spc &= ~type;
-		}
-	} else if(casecontains(s, "some")) {
-		if(casecontains(s, "installed")) {
-			if(casecontains(s, "un")) {
-				r->red |= type;
-				r->all &= ~type;
-				r->spc |= type;
-				r->ins &= ~type;
-			} else {
-				r->red |= type;
-				r->all &= ~type;
-				r->spc |= type;
-				r->ins |= type;
-			}
-		} else {
-			r->red |= type;
-			r->all &= ~type;
-			r->spc &= ~type;
-		}
-	} else {
-		return false;
-	}
-	return true;
+bool CoreqRc::getRedundantFlagAtom(const char* s, Keywords::Redundant type, RedAtom* r) {
+  r->only &= ~type;
+  if (unlikely(s == NULLPTR)) {
+    r->red &= ~type;
+    return true;
+  }
+  if (*s == '+') {
+    ++s;
+    r->only |= type;
+    r->oins |= type;
+  }
+  else if (*s == '-') {
+    ++s;
+    r->only |= type;
+    r->oins &= ~type;
+  }
+  if (casecontains(s, "no") || casecontains(s, "false")) {
+    r->red &= ~type;
+  }
+  else if (casecontains(s, "all")) {
+    if (casecontains(s, "installed")) {
+      if (casecontains(s, "un")) {
+        r->red |= type;
+        r->all |= type;
+        r->spc |= type;
+        r->ins &= ~type;
+      }
+      else {
+        r->red |= type;
+        r->all |= type;
+        r->spc |= type;
+        r->ins |= type;
+      }
+    }
+    else {
+      r->red |= type;
+      r->all |= type;
+      r->spc &= ~type;
+    }
+  }
+  else if (casecontains(s, "some")) {
+    if (casecontains(s, "installed")) {
+      if (casecontains(s, "un")) {
+        r->red |= type;
+        r->all &= ~type;
+        r->spc |= type;
+        r->ins &= ~type;
+      }
+      else {
+        r->red |= type;
+        r->all &= ~type;
+        r->spc |= type;
+        r->ins |= type;
+      }
+    }
+    else {
+      r->red |= type;
+      r->all &= ~type;
+      r->spc &= ~type;
+    }
+  }
+  else {
+    return false;
+  }
+  return true;
 }
 
 LocalMode CoreqRc::getLocalMode(const string& key) {
-	const char *s((*this)[key].c_str());
-	if((*s == '-') || casecontains(s, "non-local") ||
-		casecontains(s, "nonlocal") ||
-		casecontains(s, "global") ||
-		casecontains(s, "original")) {
-		return LOCALMODE_NONLOCAL;
-	}
-	if((*s == '+') || casecontains(s, "local")) {
-		return LOCALMODE_LOCAL;
-	}
-	return LOCALMODE_DEFAULT;
+  const char* s((*this)[key].c_str());
+  if ((*s == '-') || casecontains(s, "non-local") || casecontains(s, "nonlocal") || casecontains(s, "global") || casecontains(s, "original")) {
+    return LOCALMODE_NONLOCAL;
+  }
+  if ((*s == '+') || casecontains(s, "local")) {
+    return LOCALMODE_LOCAL;
+  }
+  return LOCALMODE_DEFAULT;
 }
 
-const char *CoreqRc::cstr(const string& key) const {
-	WordUnorderedMap::const_iterator s(main_map.find(key));
-	if(s == main_map.end()) {
-		return NULLPTR;
-	}
-	return (s->second).c_str();
+const char* CoreqRc::cstr(const string& key) const {
+  WordUnorderedMap::const_iterator s(main_map.find(key));
+  if (s == main_map.end()) {
+    return NULLPTR;
+  }
+  return (s->second).c_str();
 }
 
-const char *CoreqRc::prefix_cstr(const string& key) const {
-	const char *s(cstr(key));
-	if(unlikely(s == NULLPTR)) {
-		return NULLPTR;
-	}
-	if(s[0]) {
-		return s;
-	}
-	// Maybe later: Test whether some eprefix-variable is set,
-	// and return "" instead of NULLPTR in this case.
-	return NULLPTR;
+const char* CoreqRc::prefix_cstr(const string& key) const {
+  const char* s(cstr(key));
+  if (unlikely(s == NULLPTR)) {
+    return NULLPTR;
+  }
+  if (s[0]) {
+    return s;
+  }
+  // Maybe later: Test whether some eprefix-variable is set,
+  // and return "" instead of NULLPTR in this case.
+  return NULLPTR;
 }
 
 void CoreqRc::read() {
-	const char *name("COREQ_PREFIX");
-	const char *coreqrc_prefix(std::getenv(name));
-	if(coreqrc_prefix) {
-		m_eprefixconf = coreqrc_prefix;
-	} else {
-		name = "COREPKG_CONFIGROOT";
-		coreqrc_prefix = std::getenv(name);
-		if(coreqrc_prefix) {
-			m_eprefixconf = coreqrc_prefix;
-		} else {
-			name = "COREQ_PREFIX";
-			m_eprefixconf = COREQ_PREFIX_DEFAULT;
-		}
-	}
-	modify_value(&m_eprefixconf, name);
+  const char* name("COREQ_PREFIX");
+  const char* coreqrc_prefix(std::getenv(name));
+  if (coreqrc_prefix) {
+    m_eprefixconf = coreqrc_prefix;
+  }
+  else {
+    name = "COREPKG_CONFIGROOT";
+    coreqrc_prefix = std::getenv(name);
+    if (coreqrc_prefix) {
+      m_eprefixconf = coreqrc_prefix;
+    }
+    else {
+      name = "COREQ_PREFIX";
+      m_eprefixconf = COREQ_PREFIX_DEFAULT;
+    }
+  }
+  modify_value(&m_eprefixconf, name);
 
-	WordUnorderedSet has_delayed;
+  WordUnorderedSet has_delayed;
 
-	// First, we create defaults and main_map with all variables
-	// (including all values required by delayed references).
-	read_undelayed(&has_delayed);
+  // First, we create defaults and main_map with all variables
+  // (including all values required by delayed references).
+  read_undelayed(&has_delayed);
 
-	// Resolve delayed references recursively.
-	for(default_index i(0); i < defaults.size(); ++i)
-		resolve_delayed(defaults[i].key, &has_delayed);
+  // Resolve delayed references recursively.
+  for (default_index i(0); i < defaults.size(); ++i)
+    resolve_delayed(defaults[i].key, &has_delayed);
 
-	// set m_eprefixconf to possibly new settings:
-	m_eprefixconf = (*this)["COREPKG_CONFIGROOT"];
+  // set m_eprefixconf to possibly new settings:
+  m_eprefixconf = (*this)["COREPKG_CONFIGROOT"];
 }
 
 const string& CoreqRc::operator[](const string& key) {
-	WordUnorderedMap::const_iterator it(main_map.find(key));
-	if(it != main_map.end()) {
-		return it->second;
-	}
-	add_later_variable(key);
-	return main_map[key];
+  WordUnorderedMap::const_iterator it(main_map.find(key));
+  if (it != main_map.end()) {
+    return it->second;
+  }
+  add_later_variable(key);
+  return main_map[key];
 }
 
 /**
@@ -208,181 +211,174 @@ Of course, it will be resolved for delayed substitutions,
 and delayed references are also be added similarly.
 **/
 void CoreqRc::add_later_variable(const string& key) {
-	WordUnorderedSet has_delayed;
-	join_key(key, &has_delayed, true, NULLPTR);
-	resolve_delayed(key, &has_delayed);
+  WordUnorderedSet has_delayed;
+  join_key(key, &has_delayed, true, NULLPTR);
+  resolve_delayed(key, &has_delayed);
 }
 
-void CoreqRc::resolve_delayed(const string& key, WordUnorderedSet *has_delayed) {
-	WordUnorderedSet visited;
-	const char *errtext;
-	string errvar;
-	if(unlikely(resolve_delayed_recurse(key, &visited, has_delayed,
-		&errtext, &errvar) == NULLPTR)) {
-		coreq::say_error(_(
-			"fatal config error: %s in delayed substitution of %s"))
-			% errtext % errvar;
-		std::exit(EXIT_FAILURE);
-	}
+void CoreqRc::resolve_delayed(const string& key, WordUnorderedSet* has_delayed) {
+  WordUnorderedSet visited;
+  const char* errtext;
+  string errvar;
+  if (unlikely(resolve_delayed_recurse(key, &visited, has_delayed, &errtext, &errvar) == NULLPTR)) {
+    coreq::say_error(_("fatal config error: %s in delayed substitution of %s")) % errtext % errvar;
+    std::exit(EXIT_FAILURE);
+  }
 }
 
-string *CoreqRc::resolve_delayed_recurse(const string& key, WordUnorderedSet *visited, WordUnorderedSet *has_delayed, const char **errtext, string *errvar) {
-	string *value(&(main_map[key]));
-	if(has_delayed->count(key) == 0) {
-		modify_value(value, key);
-		return value;
-	}
-	string::size_type pos(0);
-	for(;;) {
-		string::size_type length;
-		DelayvarFlags varflags;
-		string varname, append;
-		DelayedType type(find_next_delayed(*value, &pos, &length, &varname, &varflags, &append));
-		bool will_test(false);
-		switch(type) {
-			case DelayedNotFound:
-				has_delayed->erase(key);
-				modify_value(value, key);
-				return value;
-			case DelayedFi:
-				*errtext = _("FI without IF");
-				*errvar = key;
-				return NULLPTR;
-			case DelayedElse:
-				*errtext = _("ELSE without IF");
-				*errvar = key;
-				return NULLPTR;
-			case DelayedQuote:
-				pos += length - 1;
-				value->erase(pos);
-				continue;
-			case DelayedIfTrue:
-			case DelayedIfFalse:
-			case DelayedIfEmpty:
-			case DelayedIfNonempty:
-				will_test = true;
-				break;
-			default:
-				break;
-		}
-		if(unlikely(visited->count(key) != 0)) {
-			*errtext = _("self-reference");
-			*errvar = key;
-			return NULLPTR;
-		}
-		visited->INSERT(key);
-		const string *s(resolve_delayed_recurse(
-			(((varflags & DELAYVAR_STAR) != DELAYVAR_NONE) ?
-				(varprefix + varname) : varname),
-			visited, has_delayed, errtext, errvar));
-		visited->erase(key);
-		if(unlikely(s == NULLPTR)) {
-			return NULLPTR;
-		}
-		string local_copy;
-		if(unlikely((varflags & DELAYVAR_ESCAPE) != DELAYVAR_NONE)) {
-			local_copy = *s;
-			s = &local_copy;
-			escape_string(&local_copy);
-		}
-		if(unlikely((varflags & DELAYVAR_APPEND) != DELAYVAR_NONE)) {
-			if(s != &local_copy) {
-				local_copy = *s;
-				s = &local_copy;
-			}
-			string::size_type add(append.size() + 1);
-			for(string::size_type curr(0);
-				(curr = (local_copy.find('|', curr))) != string::npos;
-				curr += add) {
-				local_copy.insert(curr, append);
-			}
-			local_copy.append(append);
-		}
-		if(likely(!will_test)) {
-			value->replace(pos, length, *s);
-			pos += s->length();
-			continue;
-		}
-		// will_test: type is necessarily one of
-		// DelayedIfTrue/DelayedIfFalse/DelayedIfNonempty/DelayedIfEmpty
-		string::size_type skippos(pos);
-		bool result;
-		if(likely((type == DelayedIfTrue) || (type == DelayedIfFalse))) {
-			result = istrue(s->c_str());
-			if(type == DelayedIfFalse)
-				result = !result;
-		} else {  // ((type == DelayedIfEmpty) || (type == DelayedIfNonempty))
-			result = s->empty();
-			if(type == DelayedIfNonempty)
-				result = !result;
-		}
-		string::size_type delpos(string::npos);
-		if(result) {
-			value->erase(skippos, length);
-		} else {
-			delpos = skippos;
-			skippos += length;
-		}
-		bool gotelse(false);
-		unsigned int curr_count(0);
-		for(;; skippos += length) {
-			type = find_next_delayed(*value, &skippos, &length, NULLPTR, NULLPTR, NULLPTR);
-			switch(type) {
-				case DelayedFi:
-					if(curr_count != 0) {
-						--curr_count;
-						continue;
-					}
-					if(delpos == string::npos) {
-						value->erase(skippos, length);
-					} else {
-						value->erase(delpos,
-							(skippos + length) - delpos);
-					}
-					break;
-				case DelayedElse:
-					if(curr_count != 0)
-						continue;
-					if(unlikely(gotelse)) {
-						*errtext = _("double ELSE");
-						*errvar = key;
-						return NULLPTR;
-					}
-					gotelse = true;
-					if(result) {
-						value->erase(skippos, length);
-						length = 0;
-						delpos = skippos;
-						continue;
-					}
-					value->erase(delpos,
-						(skippos + length) - delpos);
-					skippos = delpos;
-					length = 0;
-					delpos = string::npos;
-					continue;
-				case DelayedIfTrue:
-				case DelayedIfFalse:
-					++curr_count;
-					continue;
-				case DelayedNotFound:
-					*errtext = _("IF without FI");
-					*errvar = key;
-					return NULLPTR;
-				default:
-					continue;
-			}
-			break;
-		}
-	}
+string* CoreqRc::resolve_delayed_recurse(const string& key, WordUnorderedSet* visited, WordUnorderedSet* has_delayed, const char** errtext, string* errvar) {
+  string* value(&(main_map[key]));
+  if (has_delayed->count(key) == 0) {
+    modify_value(value, key);
+    return value;
+  }
+  string::size_type pos(0);
+  for (;;) {
+    string::size_type length;
+    DelayvarFlags varflags;
+    string varname, append;
+    DelayedType type(find_next_delayed(*value, &pos, &length, &varname, &varflags, &append));
+    bool will_test(false);
+    switch (type) {
+      case DelayedNotFound:
+        has_delayed->erase(key);
+        modify_value(value, key);
+        return value;
+      case DelayedFi:
+        *errtext = _("FI without IF");
+        *errvar = key;
+        return NULLPTR;
+      case DelayedElse:
+        *errtext = _("ELSE without IF");
+        *errvar = key;
+        return NULLPTR;
+      case DelayedQuote:
+        pos += length - 1;
+        value->erase(pos);
+        continue;
+      case DelayedIfTrue:
+      case DelayedIfFalse:
+      case DelayedIfEmpty:
+      case DelayedIfNonempty:
+        will_test = true;
+        break;
+      default:
+        break;
+    }
+    if (unlikely(visited->count(key) != 0)) {
+      *errtext = _("self-reference");
+      *errvar = key;
+      return NULLPTR;
+    }
+    visited->INSERT(key);
+    const string* s(resolve_delayed_recurse((((varflags & DELAYVAR_STAR) != DELAYVAR_NONE) ? (varprefix + varname) : varname), visited, has_delayed, errtext, errvar));
+    visited->erase(key);
+    if (unlikely(s == NULLPTR)) {
+      return NULLPTR;
+    }
+    string local_copy;
+    if (unlikely((varflags & DELAYVAR_ESCAPE) != DELAYVAR_NONE)) {
+      local_copy = *s;
+      s = &local_copy;
+      escape_string(&local_copy);
+    }
+    if (unlikely((varflags & DELAYVAR_APPEND) != DELAYVAR_NONE)) {
+      if (s != &local_copy) {
+        local_copy = *s;
+        s = &local_copy;
+      }
+      string::size_type add(append.size() + 1);
+      for (string::size_type curr(0); (curr = (local_copy.find('|', curr))) != string::npos; curr += add) {
+        local_copy.insert(curr, append);
+      }
+      local_copy.append(append);
+    }
+    if (likely(!will_test)) {
+      value->replace(pos, length, *s);
+      pos += s->length();
+      continue;
+    }
+    // will_test: type is necessarily one of
+    // DelayedIfTrue/DelayedIfFalse/DelayedIfNonempty/DelayedIfEmpty
+    string::size_type skippos(pos);
+    bool result;
+    if (likely((type == DelayedIfTrue) || (type == DelayedIfFalse))) {
+      result = istrue(s->c_str());
+      if (type == DelayedIfFalse)
+        result = !result;
+    }
+    else {  // ((type == DelayedIfEmpty) || (type == DelayedIfNonempty))
+      result = s->empty();
+      if (type == DelayedIfNonempty)
+        result = !result;
+    }
+    string::size_type delpos(string::npos);
+    if (result) {
+      value->erase(skippos, length);
+    }
+    else {
+      delpos = skippos;
+      skippos += length;
+    }
+    bool gotelse(false);
+    unsigned int curr_count(0);
+    for (;; skippos += length) {
+      type = find_next_delayed(*value, &skippos, &length, NULLPTR, NULLPTR, NULLPTR);
+      switch (type) {
+        case DelayedFi:
+          if (curr_count != 0) {
+            --curr_count;
+            continue;
+          }
+          if (delpos == string::npos) {
+            value->erase(skippos, length);
+          }
+          else {
+            value->erase(delpos, (skippos + length) - delpos);
+          }
+          break;
+        case DelayedElse:
+          if (curr_count != 0)
+            continue;
+          if (unlikely(gotelse)) {
+            *errtext = _("double ELSE");
+            *errvar = key;
+            return NULLPTR;
+          }
+          gotelse = true;
+          if (result) {
+            value->erase(skippos, length);
+            length = 0;
+            delpos = skippos;
+            continue;
+          }
+          value->erase(delpos, (skippos + length) - delpos);
+          skippos = delpos;
+          length = 0;
+          delpos = string::npos;
+          continue;
+        case DelayedIfTrue:
+        case DelayedIfFalse:
+          ++curr_count;
+          continue;
+        case DelayedNotFound:
+          *errtext = _("IF without FI");
+          *errvar = key;
+          return NULLPTR;
+        default:
+          continue;
+      }
+      break;
+    }
+  }
 }
 
-static void override_by_env(WordIterateMap *m) {
-	for(WordIterateMap::iterator it(m->begin()); likely(it != m->end()); ++it) {
-		char *val(std::getenv((it->first).c_str()));
-		if(unlikely(val != NULLPTR))
-			it->second = string(val);
-	}
+static void override_by_env(WordIterateMap* m) {
+  for (WordIterateMap::iterator it(m->begin()); likely(it != m->end()); ++it) {
+    char* val(std::getenv((it->first).c_str()));
+    if (unlikely(val != NULLPTR))
+      it->second = string(val);
+  }
 }
 
 /**
@@ -390,451 +386,436 @@ Create defaults and the main_map with all variables
 (including all values required by delayed references).
 @arg has_delayed is initialized to corresponding keys
 **/
-void CoreqRc::read_undelayed(WordUnorderedSet *has_delayed) {
-	// Initialize with the default variables
-	for(default_index i(0); likely(i < defaults.size()); ++i)
-		filevarmap[defaults[i].key] = defaults[i].value;
+void CoreqRc::read_undelayed(WordUnorderedSet* has_delayed) {
+  // Initialize with the default variables
+  for (default_index i(0); likely(i < defaults.size()); ++i)
+    filevarmap[defaults[i].key] = defaults[i].value;
 
-	// override with ENV
-	override_by_env(&filevarmap);
+  // override with ENV
+  override_by_env(&filevarmap);
 
-	VarsReader rc(  // VarsReader::NONE
-			VarsReader::SUBST_VARS
-			|VarsReader::ALLOW_SOURCE_VARNAME
-			|VarsReader::INTO_MAP
-			|VarsReader::RECURSE);
-	rc.useMap(&filevarmap);
-	rc.setPrefix("COREQRC_SOURCE");
+  VarsReader rc(  // VarsReader::NONE
+      VarsReader::SUBST_VARS | VarsReader::ALLOW_SOURCE_VARNAME | VarsReader::INTO_MAP | VarsReader::RECURSE);
+  rc.useMap(&filevarmap);
+  rc.setPrefix("COREQRC_SOURCE");
 
-	const char *rc_file(std::getenv("COREQRC"));
-	string errtext;
-	if(unlikely(rc_file != NULLPTR)) {
-		if(unlikely(!rc.read(rc_file, &errtext, true))) {
-			coreq::say_error() % errtext;
-			std::exit(EXIT_FAILURE);
-		}
-	} else {
-		// override with COREQ_SYSTEMRC
-		if(unlikely(!rc.read((m_eprefixconf + COREQ_SYSTEMRC).c_str(), &errtext, true))) {
-			coreq::say_error() % errtext;
-			std::exit(EXIT_FAILURE);
-		}
+  const char* rc_file(std::getenv("COREQRC"));
+  string errtext;
+  if (unlikely(rc_file != NULLPTR)) {
+    if (unlikely(!rc.read(rc_file, &errtext, true))) {
+      coreq::say_error() % errtext;
+      std::exit(EXIT_FAILURE);
+    }
+  }
+  else {
+    // override with COREQ_SYSTEMRC
+    if (unlikely(!rc.read((m_eprefixconf + COREQ_SYSTEMRC).c_str(), &errtext, true))) {
+      coreq::say_error() % errtext;
+      std::exit(EXIT_FAILURE);
+    }
 
-		// override with COREQ_USERRC
-		char *home(std::getenv("HOME"));
-		if(home) {
-			string coreqrc(home);
-			coreqrc.append(COREQ_USERRC);
-			if(unlikely(!rc.read(coreqrc.c_str(), &errtext, true))) {
-				coreq::say_error() % errtext;
-				std::exit(EXIT_FAILURE);
-			}
-		}
-	}
+    // override with COREQ_USERRC
+    char* home(std::getenv("HOME"));
+    if (home) {
+      string coreqrc(home);
+      coreqrc.append(COREQ_USERRC);
+      if (unlikely(!rc.read(coreqrc.c_str(), &errtext, true))) {
+        coreq::say_error() % errtext;
+        std::exit(EXIT_FAILURE);
+      }
+    }
+  }
 
-	// override with ENV
-	override_by_env(&filevarmap);
+  // override with ENV
+  override_by_env(&filevarmap);
 
-	// set WIDETERM
-	string& wide(filevarmap["WIDETERM"]);
-	if(wide.empty() || (wide == "auto")) {
-		string& c(filevarmap["COLUMNS"]);
-		if(c.empty() || (c == "auto")) {
-			unsigned int lines, columns;
-			if(get_geometry(&lines, &columns)) {
-				wide = ((columns > 80) ? "true" : "false");
-			} else {
-				wide.clear();
-			}
-		} else {
-			wide = ((my_atou(c.c_str()) > 80) ? "true" : "false");
-		}
-	}
+  // set WIDETERM
+  string& wide(filevarmap["WIDETERM"]);
+  if (wide.empty() || (wide == "auto")) {
+    string& c(filevarmap["COLUMNS"]);
+    if (c.empty() || (c == "auto")) {
+      unsigned int lines, columns;
+      if (get_geometry(&lines, &columns)) {
+        wide = ((columns > 80) ? "true" : "false");
+      }
+      else {
+        wide.clear();
+      }
+    }
+    else {
+      wide = ((my_atou(c.c_str()) > 80) ? "true" : "false");
+    }
+  }
 
-	// Set new values as default and for printing with --dump.
-	WordUnorderedSet original_defaults;
-	for(vector<CoreqRcOption>::iterator it(defaults.begin());
-		likely(it != defaults.end()); ++it) {
-		string *value(&filevarmap[it->key]);
-		modify_value(value, it->key);
-		it->local_value = *value;
-		original_defaults.INSERT(it->key);
-	}
-	for(vector<CoreqRcOption>::iterator it(defaults.begin());
-		likely(it != defaults.end()); ++it) {
-		join_key(it->key, has_delayed, false, &original_defaults);
-	}
+  // Set new values as default and for printing with --dump.
+  WordUnorderedSet original_defaults;
+  for (vector<CoreqRcOption>::iterator it(defaults.begin()); likely(it != defaults.end()); ++it) {
+    string* value(&filevarmap[it->key]);
+    modify_value(value, it->key);
+    it->local_value = *value;
+    original_defaults.INSERT(it->key);
+  }
+  for (vector<CoreqRcOption>::iterator it(defaults.begin()); likely(it != defaults.end()); ++it) {
+    join_key(it->key, has_delayed, false, &original_defaults);
+  }
 }
 
 /**
 Recursively eval and join key and its delayed references to
 main_map and default; set has_delayed if appropriate
 **/
-void CoreqRc::join_key(const string& key, WordUnorderedSet *has_delayed, bool add_top_to_defaults, const WordUnorderedSet *exclude_defaults) {
-	string *val(&main_map[key]);
-	WordIterateMap::const_iterator f(filevarmap.find(key));
-	if(unlikely(f != filevarmap.end())) {
-	/*
-	Note that if a variable is defined in a file and in ENV,
-	its value was already overridden from ENV.
-	*/
-		*val = f->second;
-	} else {
-	// If it was not defined in a file, it might be in ENV anyway:
-		char *envval(std::getenv(key.c_str()));
-		if(unlikely(envval != NULLPTR))
-			*val = string(envval);
-	}
-	/*
-	For the case that some day e.g. prefix_keys (variables with
-	PREFIXSTRING) should possibly also allow to contain local variables,
-	better modify it:
-	*/
-	modify_value(val, key);
+void CoreqRc::join_key(const string& key, WordUnorderedSet* has_delayed, bool add_top_to_defaults, const WordUnorderedSet* exclude_defaults) {
+  string* val(&main_map[key]);
+  WordIterateMap::const_iterator f(filevarmap.find(key));
+  if (unlikely(f != filevarmap.end())) {
+    /*
+    Note that if a variable is defined in a file and in ENV,
+    its value was already overridden from ENV.
+    */
+    *val = f->second;
+  }
+  else {
+    // If it was not defined in a file, it might be in ENV anyway:
+    char* envval(std::getenv(key.c_str()));
+    if (unlikely(envval != NULLPTR))
+      *val = string(envval);
+  }
+  /*
+  For the case that some day e.g. prefix_keys (variables with
+  PREFIXSTRING) should possibly also allow to contain local variables,
+  better modify it:
+  */
+  modify_value(val, key);
 
-	if(unlikely(add_top_to_defaults)) {
-		if(unlikely((exclude_defaults == NULLPTR) || (exclude_defaults->count(key) == 0))) {
-			defaults.EMPLACE_BACK(CoreqRcOption, (key, *val));
-		}
-	}
-	join_key_rec(key, *val, has_delayed, exclude_defaults);
+  if (unlikely(add_top_to_defaults)) {
+    if (unlikely((exclude_defaults == NULLPTR) || (exclude_defaults->count(key) == 0))) {
+      defaults.EMPLACE_BACK(CoreqRcOption, (key, *val));
+    }
+  }
+  join_key_rec(key, *val, has_delayed, exclude_defaults);
 }
 
-void CoreqRc::join_key_rec(const string& key, const string& val, WordUnorderedSet *has_delayed, const WordUnorderedSet *exclude_defaults) {
-	string::size_type pos(0);
-	string::size_type length;
-	for(;; pos += length) {
-		DelayvarFlags varflags;
-		string varname;
-		switch(find_next_delayed(val, &pos, &length, &varname, &varflags, NULLPTR)) {
-			case DelayedNotFound:
-				return;
-			case DelayedVariable:
-			case DelayedIfTrue:
-			case DelayedIfFalse:
-				break;
-			default:
-				has_delayed->INSERT(key);
-				continue;
-		}
-		has_delayed->INSERT(key);
-		if(unlikely((varflags & DELAYVAR_STAR) != DELAYVAR_NONE)) {
-			static CONSTEXPR const char *prefixlist[] = {
-				COREQ_VARS_PREFIX,
-				DIFF_VARS_PREFIX,
-				UPDATE_VARS_PREFIX,
-				DROP_VARS_PREFIX,
-				NULLPTR
-			};
-			for(const char *const *prefix = prefixlist;
-				*prefix != NULLPTR; ++prefix) {
-				join_key_if_new(string(*prefix) + varname,
-					has_delayed, exclude_defaults);
-			}
-		} else {
-			join_key_if_new(varname, has_delayed, exclude_defaults);
-		}
-	}
+void CoreqRc::join_key_rec(const string& key, const string& val, WordUnorderedSet* has_delayed, const WordUnorderedSet* exclude_defaults) {
+  string::size_type pos(0);
+  string::size_type length;
+  for (;; pos += length) {
+    DelayvarFlags varflags;
+    string varname;
+    switch (find_next_delayed(val, &pos, &length, &varname, &varflags, NULLPTR)) {
+      case DelayedNotFound:
+        return;
+      case DelayedVariable:
+      case DelayedIfTrue:
+      case DelayedIfFalse:
+        break;
+      default:
+        has_delayed->INSERT(key);
+        continue;
+    }
+    has_delayed->INSERT(key);
+    if (unlikely((varflags & DELAYVAR_STAR) != DELAYVAR_NONE)) {
+      static CONSTEXPR const char* prefixlist[] = {COREQ_VARS_PREFIX, DIFF_VARS_PREFIX, UPDATE_VARS_PREFIX, DROP_VARS_PREFIX, NULLPTR};
+      for (const char* const* prefix = prefixlist; *prefix != NULLPTR; ++prefix) {
+        join_key_if_new(string(*prefix) + varname, has_delayed, exclude_defaults);
+      }
+    }
+    else {
+      join_key_if_new(varname, has_delayed, exclude_defaults);
+    }
+  }
 }
 
-void CoreqRc::join_key_if_new(const string& key, WordUnorderedSet *has_delayed, const WordUnorderedSet *exclude_defaults) {
-	if(unlikely(main_map.count(key) == 0)) {
-		join_key(key, has_delayed, true, exclude_defaults);
-	}
+void CoreqRc::join_key_if_new(const string& key, WordUnorderedSet* has_delayed, const WordUnorderedSet* exclude_defaults) {
+  if (unlikely(main_map.count(key) == 0)) {
+    join_key(key, has_delayed, true, exclude_defaults);
+  }
 }
 
-CoreqRc::DelayedType CoreqRc::find_next_delayed(const string& str, string::size_type *posref, string::size_type *length, string *varname, DelayvarFlags *varflags, string *append) {
-	string::size_type pos(*posref);
-	for(;; pos += 2) {
-		pos = str.find("%{", pos);
-		if(pos == string::npos) {
-			return DelayedNotFound;
-		}
-		string::size_type i(pos + 2);
-		if(i >= str.length()) {
-			return DelayedNotFound;
-		}
-		DelayedType type;
-		char c(str[i++]);
-		bool findvar(true);
-		switch(c) {
-			case '}':
-				type = DelayedFi;
-				findvar = false;
-				break;
-			case '%':
-				type = DelayedQuote;
-				findvar = false;
-				break;
-			case '?':
-				if(i >= str.length())
-					return DelayedNotFound;
-				c = str[i++];
-				if(c == '?') {
-					if(unlikely(i >= str.length()))
-						return DelayedNotFound;
-					c = str[i++];
-					type = DelayedIfNonempty;
-				} else {
-					type = DelayedIfTrue;
-				}
-				break;
-			case '!':
-				if(i >= str.length())
-					return DelayedNotFound;
-				c = str[i++];
-				if(c == '?') {
-					if(unlikely(i >= str.length()))
-						return DelayedNotFound;
-					c = str[i++];
-					type = DelayedIfEmpty;
-				} else {
-					type = DelayedIfFalse;
-				}
-				break;
-			default:
-				type = DelayedVariable;
-		}
-		if(findvar) {
-			bool headsymbols(true);
-			DelayvarFlags flags(DELAYVAR_NONE);
-			string::size_type varstart(i - 1);
-			for(;; c = str[i++]) {
-				if(headsymbols) {
-					switch(c) {
-						case '*':
-							flags |= DELAYVAR_STAR;
-							varstart = i;
-							continue;
-						case '\\':
-							flags |= DELAYVAR_ESCAPE;
-							varstart = i;
-							continue;
-						default:
-							headsymbols = false;
-							break;
-					}
-				}
-				if((!my_isalnum(c)) && (c != '_')) {
-					break;
-				}
-				if(i >= str.length()) {
-					return DelayedNotFound;
-				}
-			}
-			string::size_type appendstart, appendlen, varlen;
-			if(unlikely((type == DelayedVariable) &&
-				((c == ',') || (c == ';')))) {
-				string::size_type j(str.find('}', i));
-				if(j == string::npos) {
-					continue;
-				}
-				flags |= DELAYVAR_APPEND;
-				appendstart = --i;
-				varlen = i - varstart;
-				appendlen = j - appendstart;
-				i = j + 1;
-			} else {
-				if(unlikely(c != '}')) {
-					continue;
-				}
-				varlen = i - varstart - 1;
-				// Not necessary, but silences warning of stupid compilers:
-				appendstart = appendlen = string::npos;
-			}
-			if(caseequal(str.substr(pos + 2, i - pos - 3), "else")) {
-				type = DelayedElse;
-			} else {
-				if(varlen == 0) {
-					continue;
-				}
-				if(varname != NULLPTR) {
-					varname->assign(str, varstart, varlen);
-				}
-				if(varflags != NULLPTR) {
-					*varflags = flags;
-				}
-				if(unlikely(append != NULLPTR)) {
-					if(unlikely((flags & DELAYVAR_APPEND) != DELAYVAR_NONE)) {
-						append->assign(str, appendstart, appendlen);
-					}
-				}
-			}
-		}
-		*posref = pos;
-		*length = i - pos;
-		return type;
-	}
+CoreqRc::DelayedType CoreqRc::find_next_delayed(const string& str, string::size_type* posref, string::size_type* length, string* varname, DelayvarFlags* varflags, string* append) {
+  string::size_type pos(*posref);
+  for (;; pos += 2) {
+    pos = str.find("%{", pos);
+    if (pos == string::npos) {
+      return DelayedNotFound;
+    }
+    string::size_type i(pos + 2);
+    if (i >= str.length()) {
+      return DelayedNotFound;
+    }
+    DelayedType type;
+    char c(str[i++]);
+    bool findvar(true);
+    switch (c) {
+      case '}':
+        type = DelayedFi;
+        findvar = false;
+        break;
+      case '%':
+        type = DelayedQuote;
+        findvar = false;
+        break;
+      case '?':
+        if (i >= str.length())
+          return DelayedNotFound;
+        c = str[i++];
+        if (c == '?') {
+          if (unlikely(i >= str.length()))
+            return DelayedNotFound;
+          c = str[i++];
+          type = DelayedIfNonempty;
+        }
+        else {
+          type = DelayedIfTrue;
+        }
+        break;
+      case '!':
+        if (i >= str.length())
+          return DelayedNotFound;
+        c = str[i++];
+        if (c == '?') {
+          if (unlikely(i >= str.length()))
+            return DelayedNotFound;
+          c = str[i++];
+          type = DelayedIfEmpty;
+        }
+        else {
+          type = DelayedIfFalse;
+        }
+        break;
+      default:
+        type = DelayedVariable;
+    }
+    if (findvar) {
+      bool headsymbols(true);
+      DelayvarFlags flags(DELAYVAR_NONE);
+      string::size_type varstart(i - 1);
+      for (;; c = str[i++]) {
+        if (headsymbols) {
+          switch (c) {
+            case '*':
+              flags |= DELAYVAR_STAR;
+              varstart = i;
+              continue;
+            case '\\':
+              flags |= DELAYVAR_ESCAPE;
+              varstart = i;
+              continue;
+            default:
+              headsymbols = false;
+              break;
+          }
+        }
+        if ((!my_isalnum(c)) && (c != '_')) {
+          break;
+        }
+        if (i >= str.length()) {
+          return DelayedNotFound;
+        }
+      }
+      string::size_type appendstart, appendlen, varlen;
+      if (unlikely((type == DelayedVariable) && ((c == ',') || (c == ';')))) {
+        string::size_type j(str.find('}', i));
+        if (j == string::npos) {
+          continue;
+        }
+        flags |= DELAYVAR_APPEND;
+        appendstart = --i;
+        varlen = i - varstart;
+        appendlen = j - appendstart;
+        i = j + 1;
+      }
+      else {
+        if (unlikely(c != '}')) {
+          continue;
+        }
+        varlen = i - varstart - 1;
+        // Not necessary, but silences warning of stupid compilers:
+        appendstart = appendlen = string::npos;
+      }
+      if (caseequal(str.substr(pos + 2, i - pos - 3), "else")) {
+        type = DelayedElse;
+      }
+      else {
+        if (varlen == 0) {
+          continue;
+        }
+        if (varname != NULLPTR) {
+          varname->assign(str, varstart, varlen);
+        }
+        if (varflags != NULLPTR) {
+          *varflags = flags;
+        }
+        if (unlikely(append != NULLPTR)) {
+          if (unlikely((flags & DELAYVAR_APPEND) != DELAYVAR_NONE)) {
+            append->assign(str, appendstart, appendlen);
+          }
+        }
+      }
+    }
+    *posref = pos;
+    *length = i - pos;
+    return type;
+  }
 }
 
-void CoreqRc::modify_value(string *value, const string& key) {
-	if(*value == "/") {
-		if(prefix_keys.count(key) != 0) {
-			value->clear();
-		}
-	}
+void CoreqRc::modify_value(string* value, const string& key) {
+  if (*value == "/") {
+    if (prefix_keys.count(key) != 0) {
+      value->clear();
+    }
+  }
 }
 
 void CoreqRc::clear() {
-	defaults.clear();
-	prefix_keys.clear();
-	filevarmap.clear();
-	main_map.clear();
+  defaults.clear();
+  prefix_keys.clear();
+  filevarmap.clear();
+  main_map.clear();
 }
 
 void CoreqRc::addDefault(CoreqRcOption option) {
-	if(unlikely(option.type == CoreqRcOption::PREFIXSTRING)) {
-		prefix_keys.INSERT(option.key);
-	}
-	modify_value(&(option.value), option.key);
-	defaults.PUSH_BACK(MOVE(option));
+  if (unlikely(option.type == CoreqRcOption::PREFIXSTRING)) {
+    prefix_keys.INSERT(option.key);
+  }
+  modify_value(&(option.value), option.key);
+  defaults.PUSH_BACK(MOVE(option));
 }
 
-bool CoreqRc::istrue(const char *s) {
-	switch(s[0]) {
-		case 0:
-		case 'N':
-		case 'n':
-		case 'f':
-		case 'F':
-			return false;
-		case 'o':
-		case 'O':
-			switch(s[1]) {
-				case 'f':
-				case 'F':
-					return false;
-				default:
-					break;
-			}
-			break;
-		case '0':
-		case '-':
-			if(s[1] == '\0') {
-				return false;
-			}
-			break;
-		default:
-			break;
-	}
-	return true;
+bool CoreqRc::istrue(const char* s) {
+  switch (s[0]) {
+    case 0:
+    case 'N':
+    case 'n':
+    case 'f':
+    case 'F':
+      return false;
+    case 'o':
+    case 'O':
+      switch (s[1]) {
+        case 'f':
+        case 'F':
+          return false;
+        default:
+          break;
+      }
+      break;
+    case '0':
+    case '-':
+      if (s[1] == '\0') {
+        return false;
+      }
+      break;
+    default:
+      break;
+  }
+  return true;
 }
 
-void CoreqRc::getRedundantFlags(const string& key, Keywords::Redundant type, RedPair *p) {
-	const string& value((*this)[key]);
-	WordVec a;
-	split_string(&a, value);
+void CoreqRc::getRedundantFlags(const string& key, Keywords::Redundant type, RedPair* p) {
+  const string& value((*this)[key]);
+  WordVec a;
+  split_string(&a, value);
 
-	for(WordVec::iterator it(a.begin()); likely(it != a.end()); ) {
-		// a dummy loop for break on error
-		if(unlikely(!getRedundantFlagAtom(it->c_str(), type, &(p->first)))) {
-			break;
-		}
-		++it;
-		if(it == a.end()) {
-			getRedundantFlagAtom(NULLPTR, type, &(p->second));
-			return;
-		}
-		const char *s(it->c_str());
-		if(caseequal(*it, "or") ||
-			(std::strcmp(s, "||") == 0) ||
-			(std::strcmp(s, "|") == 0)) {
-			++it;
-			if(unlikely(it == a.end())) {
-				break;
-			}
-		}
-		if(unlikely(!getRedundantFlagAtom(s, type, &(p->first)))) {
-			break;
-		}
-		++it;
-		if(likely(it == a.end())) {
-			return;
-		}
-		break;
-	}
+  for (WordVec::iterator it(a.begin()); likely(it != a.end());) {
+    // a dummy loop for break on error
+    if (unlikely(!getRedundantFlagAtom(it->c_str(), type, &(p->first)))) {
+      break;
+    }
+    ++it;
+    if (it == a.end()) {
+      getRedundantFlagAtom(NULLPTR, type, &(p->second));
+      return;
+    }
+    const char* s(it->c_str());
+    if (caseequal(*it, "or") || (std::strcmp(s, "||") == 0) || (std::strcmp(s, "|") == 0)) {
+      ++it;
+      if (unlikely(it == a.end())) {
+        break;
+      }
+    }
+    if (unlikely(!getRedundantFlagAtom(s, type, &(p->first)))) {
+      break;
+    }
+    ++it;
+    if (likely(it == a.end())) {
+      return;
+    }
+    break;
+  }
 
-	coreq::say_error(_(
-		"%s has unknown value \"%s\"\n"
-		"\tassuming value \"all-installed\" instead."))
-		% key % value;
+  coreq::say_error(
+      _("%s has unknown value \"%s\"\n"
+        "\tassuming value \"all-installed\" instead.")) %
+      key % value;
 
-	getRedundantFlagAtom("all-installed", type, &(p->first));
-	getRedundantFlagAtom(NULLPTR, type, &(p->second));
+  getRedundantFlagAtom("all-installed", type, &(p->first));
+  getRedundantFlagAtom(NULLPTR, type, &(p->second));
 }
 
 unsigned int CoreqRc::getInteger(const string& key) {
-	return my_atou((*this)[key].c_str());
+  return my_atou((*this)[key].c_str());
 }
 
 string CoreqRc::as_comment(const string& s) {
-	string ret(s);
-	string::size_type pos(0);
-	while(pos = ret.find('\n', pos), likely(pos != string::npos)) {
-		ret.insert(pos + 1, "# ");
-		pos += 2;
-	}
-	return ret;
+  string ret(s);
+  string::size_type pos(0);
+  while (pos = ret.find('\n', pos), likely(pos != string::npos)) {
+    ret.insert(pos + 1, "# ");
+    pos += 2;
+  }
+  return ret;
 }
 
-void CoreqRc::dumpDefaults(FILE *s, bool use_defaults) {
-	string message(use_defaults ?
-		_("was locally changed to:") :
-		_("changed locally, default was:"));
-	for(vector<CoreqRcOption>::size_type i(0); likely(i < defaults.size()); ++i) {
-		const char *typestring("UNKNOWN");
-		switch(defaults[i].type) {
-			case CoreqRcOption::BOOLEAN:
-				typestring = "BOOLEAN";
-				break;
-			case CoreqRcOption::STRING:
-				typestring = "STRING";
-				break;
-			case CoreqRcOption::PREFIXSTRING:
-				typestring = "PREFIXSTRING";
-				break;
-			case CoreqRcOption::INTEGER:
-				typestring = "INTEGER";
-				break;
-			case CoreqRcOption::LOCAL:
-				typestring = NULLPTR;
-				break;
-			default:
-				break;
-		}
-		const char *key(defaults[i].key.c_str());
-		string value(defaults[i].local_value);
-		escape_string(&value, doublequotes);
-		string deflt(defaults[i].value);
-		escape_string(&deflt, doublequotes);
-		if(unlikely(typestring == NULLPTR)) {
-			coreq::format(s,
-				"# %s\n%s=\"%s\"\n", 1)
-				% _("locally added:")
-				% key
-				% value;
-			continue;
-		}
-		const string& output(use_defaults ? deflt : value);
-		const string& comment(use_defaults ? value : deflt);
+void CoreqRc::dumpDefaults(FILE* s, bool use_defaults) {
+  string message(use_defaults ? _("was locally changed to:") : _("changed locally, default was:"));
+  for (vector<CoreqRcOption>::size_type i(0); likely(i < defaults.size()); ++i) {
+    const char* typestring("UNKNOWN");
+    switch (defaults[i].type) {
+      case CoreqRcOption::BOOLEAN:
+        typestring = "BOOLEAN";
+        break;
+      case CoreqRcOption::STRING:
+        typestring = "STRING";
+        break;
+      case CoreqRcOption::PREFIXSTRING:
+        typestring = "PREFIXSTRING";
+        break;
+      case CoreqRcOption::INTEGER:
+        typestring = "INTEGER";
+        break;
+      case CoreqRcOption::LOCAL:
+        typestring = NULLPTR;
+        break;
+      default:
+        break;
+    }
+    const char* key(defaults[i].key.c_str());
+    string value(defaults[i].local_value);
+    escape_string(&value, doublequotes);
+    string deflt(defaults[i].value);
+    escape_string(&deflt, doublequotes);
+    if (unlikely(typestring == NULLPTR)) {
+      coreq::format(s, "# %s\n%s=\"%s\"\n", 1) % _("locally added:") % key % value;
+      continue;
+    }
+    const string& output(use_defaults ? deflt : value);
+    const string& comment(use_defaults ? value : deflt);
 
-		coreq::format(s,
-			"# %s\n"
-			"# %s\n"
-			"%s=\"%s\"", true)
-			% as_comment(typestring)
-			% as_comment(defaults[i].description.c_str())
-			% key
-			% output;
-		if(deflt == value) {
-			coreq::format(true, s);
-		} else {
-			coreq::format(s,
-				"# %s\n"
-				"# %s=\"%s\"\n", true)
-				% message
-				% key
-				% as_comment(comment);
-		}
-	}
+    coreq::format(s,
+                  "# %s\n"
+                  "# %s\n"
+                  "%s=\"%s\"",
+                  true) %
+        as_comment(typestring) % as_comment(defaults[i].description.c_str()) % key % output;
+    if (deflt == value) {
+      coreq::format(true, s);
+    }
+    else {
+      coreq::format(s,
+                    "# %s\n"
+                    "# %s=\"%s\"\n",
+                    true) %
+          message % key % as_comment(comment);
+    }
+  }
 }

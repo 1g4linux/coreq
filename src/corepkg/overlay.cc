@@ -12,17 +12,18 @@
 
 #include "coreqTk/null.h"
 
-void OverlayIdent::init(const char *patharg, const char *labelarag) {
-	if(patharg == NULLPTR) {
-		know_path = false;
-	} else {
-		path = patharg;
-		know_path = true;
-	}
-	if(labelarag == NULLPTR) {
-		know_label = false;
-		return;
-	}
-	label = labelarag;
-	know_label = true;
+void OverlayIdent::init(const char* patharg, const char* labelarag) {
+  if (patharg == NULLPTR) {
+    know_path = false;
+  }
+  else {
+    path = patharg;
+    know_path = true;
+  }
+  if (labelarag == NULLPTR) {
+    know_label = false;
+    return;
+  }
+  label = labelarag;
+  know_label = true;
 }

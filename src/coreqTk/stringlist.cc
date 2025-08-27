@@ -16,91 +16,91 @@
 #include "coreqTk/stringtypes.h"
 
 void StringListContent::finalize() {
-	if(likely(m_list.empty())) {
-		return;
-	}
-	if(unlikely(m_list[0].empty()) || unlikely(m_list[m_list.size() - 1].empty())) {
-		WordVec cp;
-		WordVec::const_iterator it(m_list.begin());
-		while(unlikely(it->empty())) {
-			if(unlikely((++it) == m_list.end())) {
-				m_list.clear();
-				return;
-			}
-		}
-		for(; likely(it != m_list.end()); ++it) {
-			for(WordVec::const_iterator r(it); unlikely(r->empty()); ) {
-				if(unlikely((++r) == m_list.end())) {
-					m_list = MOVE(cp);
-					return;
-				}
-			}
-			cp.PUSH_BACK(MOVE(*it));
-		}
-		m_list = MOVE(cp);
-	}
+  if (likely(m_list.empty())) {
+    return;
+  }
+  if (unlikely(m_list[0].empty()) || unlikely(m_list[m_list.size() - 1].empty())) {
+    WordVec cp;
+    WordVec::const_iterator it(m_list.begin());
+    while (unlikely(it->empty())) {
+      if (unlikely((++it) == m_list.end())) {
+        m_list.clear();
+        return;
+      }
+    }
+    for (; likely(it != m_list.end()); ++it) {
+      for (WordVec::const_iterator r(it); unlikely(r->empty());) {
+        if (unlikely((++r) == m_list.end())) {
+          m_list = MOVE(cp);
+          return;
+        }
+      }
+      cp.PUSH_BACK(MOVE(*it));
+    }
+    m_list = MOVE(cp);
+  }
 }
 
 #ifdef STRINGLIST_FREE
 StringList::StringList(const StringList& s) {
-	ptr = s.ptr;
-	if(ptr != NULLPTR) {
-		++(ptr->usage);
-	}
+  ptr = s.ptr;
+  if (ptr != NULLPTR) {
+    ++(ptr->usage);
+  }
 }
 
 StringList& StringList::operator=(const StringList& s) {
-	if(ptr != s.ptr) {
-		if(s.ptr != NULLPTR) {
-			++(s.ptr->usage);
-		}
-		if(ptr != NULLPTR) {
-			if(--(ptr->usage) == 0) {
-				delete ptr;
-			}
-		}
-		ptr = s.ptr;
-	}
-	return *this;
+  if (ptr != s.ptr) {
+    if (s.ptr != NULLPTR) {
+      ++(s.ptr->usage);
+    }
+    if (ptr != NULLPTR) {
+      if (--(ptr->usage) == 0) {
+        delete ptr;
+      }
+    }
+    ptr = s.ptr;
+  }
+  return *this;
 }
 
 StringList::~StringList() {
-	if(ptr != NULLPTR) {
-		if(--(ptr->usage) == 0) {
-			delete ptr;
-		}
-	}
+  if (ptr != NULLPTR) {
+    if (--(ptr->usage) == 0) {
+      delete ptr;
+    }
+  }
 }
 #endif
 
 void StringList::finalize() {
-	if(ptr != NULLPTR) {
-		ptr->finalize();
-		if(ptr->empty()) {
-			delete ptr;
-			ptr = NULLPTR;
-		}
-	}
+  if (ptr != NULLPTR) {
+    ptr->finalize();
+    if (ptr->empty()) {
+      delete ptr;
+      ptr = NULLPTR;
+    }
+  }
 }
 
 void StringList::push_back(const std::string& s) {
-	if(ptr == NULLPTR) {
-		ptr = new StringListContent;
+  if (ptr == NULLPTR) {
+    ptr = new StringListContent;
 #ifdef STRINGLIST_FREE
-		ptr->usage = 1;
+    ptr->usage = 1;
 #endif
-	}
-	ptr->push_back(s);
+  }
+  ptr->push_back(s);
 }
 
 #ifdef HAVE_MOVE
 void StringList::push_back(std::string&& s) {
-	if(ptr == NULLPTR) {
-		ptr = new StringListContent;
+  if (ptr == NULLPTR) {
+    ptr = new StringListContent;
 #ifdef STRINGLIST_FREE
-		ptr->usage = 1;
+    ptr->usage = 1;
 #endif
-	}
-	ptr->push_back(MOVE(s));
+  }
+  ptr->push_back(MOVE(s));
 }
 #endif

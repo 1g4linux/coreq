@@ -17,24 +17,26 @@
 #include "coreqTk/coreqint.h"
 
 namespace coreq {
-	/**
-	compare two objects.
-	@return 0 if equal, 1 if left > right or -1 if left < right.
-	**/
-	template<typename T> inline static coreq::SignedBool default_compare(const T& left, const T& right);
+/**
+compare two objects.
+@return 0 if equal, 1 if left > right or -1 if left < right.
+**/
+template <typename T>
+inline static coreq::SignedBool default_compare(const T& left, const T& right);
 
-	template<typename T> inline static coreq::SignedBool default_compare(const T& left, const T& right) {
-		if(left == right) {
-			return 0;
-		}
-		return ((left < right) ? -1 : 1);
-	}
+template <typename T>
+inline static coreq::SignedBool default_compare(const T& left, const T& right) {
+  if (left == right) {
+    return 0;
+  }
+  return ((left < right) ? -1 : 1);
+}
 
-	/**
-	numeric comparison
-	@note empty strings count a "0"
-	**/
-	ATTRIBUTE_PURE coreq::SignedBool numeric_compare(const std::string& left, const std::string& right);
+/**
+numeric comparison
+@note empty strings count a "0"
+**/
+ATTRIBUTE_PURE coreq::SignedBool numeric_compare(const std::string& left, const std::string& right);
 }  // namespace coreq
 
 #endif  // SRC_COREQTK_COMPARE_H_

@@ -25,15 +25,23 @@ class Depend;
 class Package;
 
 class FlatReader : public BasicReader {
-	public:
-		explicit FlatReader(BasicCache *cache) : BasicReader(cache) {
-		}
+ public:
+  explicit FlatReader(BasicCache* cache) : BasicReader(cache) {}
 
-		ATTRIBUTE_NONNULL_ void get_keywords_slot_iuse_restrict(const std::string& filename, std::string *eapi, std::string *keywords, std::string *slotname, std::string *iuse, std::string *required_use, std::string *restr, std::string *props, Depend *dep, std::string *src_uri) OVERRIDE;
-		ATTRIBUTE_NONNULL_ void read_file(const std::string& filename, Package *pkg) OVERRIDE;
+  ATTRIBUTE_NONNULL_ void get_keywords_slot_iuse_restrict(const std::string& filename,
+                                                          std::string* eapi,
+                                                          std::string* keywords,
+                                                          std::string* slotname,
+                                                          std::string* iuse,
+                                                          std::string* required_use,
+                                                          std::string* restr,
+                                                          std::string* props,
+                                                          Depend* dep,
+                                                          std::string* src_uri) OVERRIDE;
+  ATTRIBUTE_NONNULL_ void read_file(const std::string& filename, Package* pkg) OVERRIDE;
 
-	private:
-		ATTRIBUTE_NONNULL_ bool skip_lines(const coreq::TinyUnsigned nr, std::ifstream *is, const std::string& filename) const;
+ private:
+  ATTRIBUTE_NONNULL_ bool skip_lines(const coreq::TinyUnsigned nr, std::ifstream* is, const std::string& filename) const;
 };
 
 #endif  // SRC_CACHE_COMMON_FLAT_READER_H_

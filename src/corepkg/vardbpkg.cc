@@ -32,95 +32,94 @@
 
 using std::string;
 
-void VarDbPkg::sort_installed(VarDbPkg::InstVecPkg *maping) {
-	for(VarDbPkg::InstVecPkg::iterator it(maping->begin());
-		likely(it != maping->end()); ++it) {
-		sort(it->second.begin(), it->second.end());
-	}
+void VarDbPkg::sort_installed(VarDbPkg::InstVecPkg* maping) {
+  for (VarDbPkg::InstVecPkg::iterator it(maping->begin()); likely(it != maping->end()); ++it) {
+    sort(it->second.begin(), it->second.end());
+  }
 }
 
 /**
 Find installed versions of packet "name" in category "category".
 @return NULLPTR if not found .. else pointer to vector of versions.
 **/
-InstVec *VarDbPkg::getInstalledVector(const string& category, const string& name) {
-	InstVecCat::iterator map_it(installed.find(category));
-	/* Not yet read */
-	if(map_it == installed.end()) {
-		readCategory(category.c_str());
-		return getInstalledVector(category, name);
-	}
+InstVec* VarDbPkg::getInstalledVector(const string& category, const string& name) {
+  InstVecCat::iterator map_it(installed.find(category));
+  /* Not yet read */
+  if (map_it == installed.end()) {
+    readCategory(category.c_str());
+    return getInstalledVector(category, name);
+  }
 
-	InstVecPkg *installed_cat(map_it->second);
-	/* No such category in db-directory. */
-	if(installed_cat == NULLPTR) {
-		return NULLPTR;
-	}
+  InstVecPkg* installed_cat(map_it->second);
+  /* No such category in db-directory. */
+  if (installed_cat == NULLPTR) {
+    return NULLPTR;
+  }
 
-	/* Find packet */
-	InstVecPkg::iterator cat_it(installed_cat->find(name));
-	if(cat_it == installed_cat->end()) {
-		return NULLPTR; /* Not installed */
-	}
-	return &(cat_it->second);
+  /* Find packet */
+  InstVecPkg::iterator cat_it(installed_cat->find(name));
+  if (cat_it == installed_cat->end()) {
+    return NULLPTR; /* Not installed */
+  }
+  return &(cat_it->second);
 }
 
 /**
 @return true if v is in vec. v=NULLPTR is always in vec.
 If a serious result is found and r is nonzero, r points to that result
 **/
-bool VarDbPkg::isInVec(InstVec *vec, const BasicVersion *v, InstVersion **r) {
-	if(likely(vec != NULLPTR)) {
-		if(unlikely(v == NULLPTR)) {
-			return true;
-		}
-		for(InstVec::size_type i(0); likely(i < vec->size()); ++i) {
-			if((*vec)[i] == *v) {
-				if(r != NULLPTR) {
-					*r = &((*vec)[i]);
-				}
-				return true;
-			}
-		}
-	}
-	return false;
+bool VarDbPkg::isInVec(InstVec* vec, const BasicVersion* v, InstVersion** r) {
+  if (likely(vec != NULLPTR)) {
+    if (unlikely(v == NULLPTR)) {
+      return true;
+    }
+    for (InstVec::size_type i(0); likely(i < vec->size()); ++i) {
+      if ((*vec)[i] == *v) {
+        if (r != NULLPTR) {
+          *r = &((*vec)[i]);
+        }
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
-coreq::SignedBool VarDbPkg::isInstalledVersion(InstVersion **inst, const Package& p, const Version *v, const DBHeader& header) {
-	*inst = NULLPTR;
-	if(!isInstalled(p, v, inst)) {
-		return 0;
-	}
-	if(!readOverlay(p, *inst, header)) {
-		return -1;
-	}
-	if(((*inst)->overlay_key) != (v->overlay_key)) {
-		return 0;
-	}
-	return 1;
+coreq::SignedBool VarDbPkg::isInstalledVersion(InstVersion** inst, const Package& p, const Version* v, const DBHeader& header) {
+  *inst = NULLPTR;
+  if (!isInstalled(p, v, inst)) {
+    return 0;
+  }
+  if (!readOverlay(p, *inst, header)) {
+    return -1;
+  }
+  if (((*inst)->overlay_key) != (v->overlay_key)) {
+    return 0;
+  }
+  return 1;
 }
 
 /**
 @return matching available version or NULLPTR
 **/
-Version *VarDbPkg::getAvailable(const Package& p, InstVersion *v, const DBHeader& header) const {
-	for(Package::const_iterator it(p.begin()); likely(it != p.end()); ++it) {
-		if(BasicVersion::compare(**it, *v) != 0) {
-			continue;
-		}
-		if(readSlot(p, v)) {
-			if(unlikely(it->slotname != v->slotname) || unlikely(it->subslotname != v->subslotname)) {
-				continue;
-			}
-		}
-		if(readOverlay(p, v, header)) {
-			if(unlikely(it->overlay_key != v->overlay_key)) {
-				continue;
-			}
-		}
-		return *it;
-	}
-	return NULLPTR;
+Version* VarDbPkg::getAvailable(const Package& p, InstVersion* v, const DBHeader& header) const {
+  for (Package::const_iterator it(p.begin()); likely(it != p.end()); ++it) {
+    if (BasicVersion::compare(**it, *v) != 0) {
+      continue;
+    }
+    if (readSlot(p, v)) {
+      if (unlikely(it->slotname != v->slotname) || unlikely(it->subslotname != v->subslotname)) {
+        continue;
+      }
+    }
+    if (readOverlay(p, v, header)) {
+      if (unlikely(it->overlay_key != v->overlay_key)) {
+        continue;
+      }
+    }
+    return *it;
+  }
+  return NULLPTR;
 }
 
 /**
@@ -128,300 +127,282 @@ Version *VarDbPkg::getAvailable(const Package& p, InstVersion *v, const DBHeader
 @return number of installed versions of this package
 **/
 InstVec::size_type VarDbPkg::numInstalled(const Package& p) {
-	InstVec *vec(getInstalledVector(p));
-	if(vec == NULLPTR) {
-		return 0;
-	}
-	return vec->size();
+  InstVec* vec(getInstalledVector(p));
+  if (vec == NULLPTR) {
+    return 0;
+  }
+  return vec->size();
 }
 
-bool VarDbPkg::readOverlay(const Package& p, InstVersion *v, const DBHeader& header) const {
-	if(likely(v->know_overlay))
-		return !v->overlay_failed;
+bool VarDbPkg::readOverlay(const Package& p, InstVersion* v, const DBHeader& header) const {
+  if (likely(v->know_overlay))
+    return !v->overlay_failed;
 
-	v->know_overlay = true;
-	v->overlay_failed = false;
+  v->know_overlay = true;
+  v->overlay_failed = false;
 
-	// Do not really check if the package is only at one overlay.
-	if(check_installed_overlays == 0) {
-		if(likely(p.have_same_overlay_key())) {
-			v->overlay_key = p.largest_overlay;
-			return true;
-		}
-	}
+  // Do not really check if the package is only at one overlay.
+  if (check_installed_overlays == 0) {
+    if (likely(p.have_same_overlay_key())) {
+      v->overlay_key = p.largest_overlay;
+      return true;
+    }
+  }
 
-	v->reponame = readOverlayLabel(&p, v);
-	if(v->reponame.empty()) {
-		if(check_installed_overlays < 0) {
-			if(likely(p.have_same_overlay_key())) {
-				v->overlay_key = p.largest_overlay;
-				return true;
-			}
-		}
-	} else if(header.find_overlay(&(v->overlay_key), v->reponame.c_str(), NULLPTR, 0, DBHeader::OVTEST_LABEL)) {
-		return true;
-	}
-	v->overlay_failed = true;
-	return false;
+  v->reponame = readOverlayLabel(&p, v);
+  if (v->reponame.empty()) {
+    if (check_installed_overlays < 0) {
+      if (likely(p.have_same_overlay_key())) {
+        v->overlay_key = p.largest_overlay;
+        return true;
+      }
+    }
+  }
+  else if (header.find_overlay(&(v->overlay_key), v->reponame.c_str(), NULLPTR, 0, DBHeader::OVTEST_LABEL)) {
+    return true;
+  }
+  v->overlay_failed = true;
+  return false;
 }
 
-string VarDbPkg::readOverlayLabel(const Package *p, const BasicVersion *v) const {
-	LineVec lines;
-	string dirname(m_directory);
-	dirname.append(p->category);
-	dirname.append(1, '/');
-	dirname.append(p->name);
-	dirname.append(1, '-');
-	dirname.append(v->getFull());
-	pushback_lines((dirname + "/repository").c_str(),
-		&lines, false, false, 1);
-	pushback_lines((dirname + "/REPOSITORY").c_str(),
-		&lines, false, false, 1);
-	if(lines.empty()) {
-		return "";
-	}
-	return lines[0];
+string VarDbPkg::readOverlayLabel(const Package* p, const BasicVersion* v) const {
+  LineVec lines;
+  string dirname(m_directory);
+  dirname.append(p->category);
+  dirname.append(1, '/');
+  dirname.append(p->name);
+  dirname.append(1, '-');
+  dirname.append(v->getFull());
+  pushback_lines((dirname + "/repository").c_str(), &lines, false, false, 1);
+  pushback_lines((dirname + "/REPOSITORY").c_str(), &lines, false, false, 1);
+  if (lines.empty()) {
+    return "";
+  }
+  return lines[0];
 }
 
-bool VarDbPkg::readSlot(const Package& p, InstVersion *v) const {
-	if(v->know_slot) {
-		return true;
-	}
-	if(!get_slots) {
-		return false;
-	}
-	if(v->read_failed) {
-		return false;
-	}
-	LineVec lines;
-	if(unlikely(!pushback_lines(
-		(m_directory + p.category + "/" + p.name + "-" + v->getFull() + "/SLOT").c_str(),
-		&lines, false, false, 1))) {
-		return (v->read_failed = true);
-	}
-	if((lines.empty()) || (lines[0] == "0")) {
-		v->set_slotname("");
-	} else {
-		v->set_slotname(lines[0]);
-	}
-	return (v->know_slot = true);
+bool VarDbPkg::readSlot(const Package& p, InstVersion* v) const {
+  if (v->know_slot) {
+    return true;
+  }
+  if (!get_slots) {
+    return false;
+  }
+  if (v->read_failed) {
+    return false;
+  }
+  LineVec lines;
+  if (unlikely(!pushback_lines((m_directory + p.category + "/" + p.name + "-" + v->getFull() + "/SLOT").c_str(), &lines, false, false, 1))) {
+    return (v->read_failed = true);
+  }
+  if ((lines.empty()) || (lines[0] == "0")) {
+    v->set_slotname("");
+  }
+  else {
+    v->set_slotname(lines[0]);
+  }
+  return (v->know_slot = true);
 }
 
-void VarDbPkg::readEapi(const Package& p, InstVersion *v) const {
-	if(v->know_eapi) {
-		return;
-	}
-	v->know_eapi = true;
-	LineVec lines;
-	if(unlikely(!pushback_lines(
-		(m_directory + p.category + "/" + p.name + "-" + v->getFull() + "/EAPI").c_str(),
-		&lines, false, false, 1))) {
-		v->eapi.assign("0");
-		return;
-	}
-	if(unlikely((lines.empty()) || (lines[0] == ""))) {
-		v->eapi.assign("0");
-	} else {
-		v->eapi.assign(lines[0]);
-	}
+void VarDbPkg::readEapi(const Package& p, InstVersion* v) const {
+  if (v->know_eapi) {
+    return;
+  }
+  v->know_eapi = true;
+  LineVec lines;
+  if (unlikely(!pushback_lines((m_directory + p.category + "/" + p.name + "-" + v->getFull() + "/EAPI").c_str(), &lines, false, false, 1))) {
+    v->eapi.assign("0");
+    return;
+  }
+  if (unlikely((lines.empty()) || (lines[0] == ""))) {
+    v->eapi.assign("0");
+  }
+  else {
+    v->eapi.assign(lines[0]);
+  }
 }
 
-bool VarDbPkg::readUse(const Package& p, InstVersion *v) const {
-	if(likely(v->know_use)) {
-		return true;
-	}
-	v->know_use = true;
-	v->inst_iuse.clear();
-	v->usedUse.clear();
-	string dirname(m_directory + p.category + "/" + p.name + "-" + v->getFull());
-	WordVec& inst_iuse = v->inst_iuse;
-	WordVec alluse;
-	/**/ {
-		LineVec lines;
-		if(unlikely(!pushback_lines((dirname + "/IUSE").c_str(),
-			&lines, false, false, 1))) {
-			return false;
-		}
-		join_and_split(&inst_iuse, lines);
+bool VarDbPkg::readUse(const Package& p, InstVersion* v) const {
+  if (likely(v->know_use)) {
+    return true;
+  }
+  v->know_use = true;
+  v->inst_iuse.clear();
+  v->usedUse.clear();
+  string dirname(m_directory + p.category + "/" + p.name + "-" + v->getFull());
+  WordVec& inst_iuse = v->inst_iuse;
+  WordVec alluse;
+  /**/ {
+    LineVec lines;
+    if (unlikely(!pushback_lines((dirname + "/IUSE").c_str(), &lines, false, false, 1))) {
+      return false;
+    }
+    join_and_split(&inst_iuse, lines);
 
-		lines.clear();
-		if(unlikely(!pushback_lines((dirname + "/USE").c_str(),
-			&lines, false, false, 1))) {
-			return false;
-		}
-		join_and_split(&alluse, lines);
-	}
+    lines.clear();
+    if (unlikely(!pushback_lines((dirname + "/USE").c_str(), &lines, false, false, 1))) {
+      return false;
+    }
+    join_and_split(&alluse, lines);
+  }
 
-	IUseSet iuse_set;
-	for(WordVec::iterator it(inst_iuse.begin());
-		it != inst_iuse.end(); ++it) {
-		while(((*it)[0] == '+') || ((*it)[0] == '-')) {
-			it->erase(0, 1);
-		}
-		iuse_set.insert_fast(*it);
-	}
-	IUseSet::IUseNaturalOrder ordered(iuse_set.asNaturalOrder());
-	inst_iuse.clear();
-	for(IUseSet::IUseNaturalOrder::const_iterator it(ordered.begin());
-		it != ordered.end(); ++it) {
-		inst_iuse.PUSH_BACK(MOVE(it->name()));
-	}
+  IUseSet iuse_set;
+  for (WordVec::iterator it(inst_iuse.begin()); it != inst_iuse.end(); ++it) {
+    while (((*it)[0] == '+') || ((*it)[0] == '-')) {
+      it->erase(0, 1);
+    }
+    iuse_set.insert_fast(*it);
+  }
+  IUseSet::IUseNaturalOrder ordered(iuse_set.asNaturalOrder());
+  inst_iuse.clear();
+  for (IUseSet::IUseNaturalOrder::const_iterator it(ordered.begin()); it != ordered.end(); ++it) {
+    inst_iuse.PUSH_BACK(MOVE(it->name()));
+  }
 
-	for(WordVec::iterator it(alluse.begin());
-		it != alluse.end(); ++it) {
-		while(((*it)[0] == '+') || ((*it)[0] == '-')) {
-			it->erase(0, 1);
-		}
-	}
+  for (WordVec::iterator it(alluse.begin()); it != alluse.end(); ++it) {
+    while (((*it)[0] == '+') || ((*it)[0] == '-')) {
+      it->erase(0, 1);
+    }
+  }
 
-	IUseSet::IUseStd iuse_std(iuse_set.asStd());
-	for(WordVec::iterator it(alluse.begin());
-		likely(it != alluse.end()); ++it) {
-		if(iuse_std.count(IUse(*it)) != 0) {
-			v->usedUse.INSERT(MOVE(*it));
-		}
-	}
-	return true;
+  IUseSet::IUseStd iuse_std(iuse_set.asStd());
+  for (WordVec::iterator it(alluse.begin()); likely(it != alluse.end()); ++it) {
+    if (iuse_std.count(IUse(*it)) != 0) {
+      v->usedUse.INSERT(MOVE(*it));
+    }
+  }
+  return true;
 }
 
-void VarDbPkg::readRestricted(const Package& p, InstVersion *v, const DBHeader& header) const {
-	if(unlikely(!get_restrictions)) {
-		return;
-	}
-	if(likely(v->know_restricted)) {
-		return;
-	}
-	v->know_restricted = true;
-	Version *av(getAvailable(p, v, header));
-	if(av == NULLPTR) {
-		v->restrictFlags = ExtendedVersion::RESTRICT_NONE;
-		v->propertiesFlags = ExtendedVersion::PROPERTIES_NONE;
-	} else {
-		v->restrictFlags = av->restrictFlags;
-		v->propertiesFlags = av->propertiesFlags;
-		if(!care_of_restrictions) {
-			return;
-		}
-	}
-	string dirname(m_directory + p.category + "/" + p.name + "-" + v->getFull());
-	LineVec lines;
-	if(unlikely(!pushback_lines((dirname + "/RESTRICT").c_str(),
-		&lines, false, false, 1))) {
-		// It is OK that this file does not exist:
-		// CorePkg does this if RESTRICT is not set.
-		v->restrictFlags = ExtendedVersion::RESTRICT_NONE;
-		return;
-	}
-	if(likely(lines.size() == 1)) {
-		v->set_restrict(lines[0]);
-	} else {
-		v->set_restrict(join_to_string(lines));
-	}
+void VarDbPkg::readRestricted(const Package& p, InstVersion* v, const DBHeader& header) const {
+  if (unlikely(!get_restrictions)) {
+    return;
+  }
+  if (likely(v->know_restricted)) {
+    return;
+  }
+  v->know_restricted = true;
+  Version* av(getAvailable(p, v, header));
+  if (av == NULLPTR) {
+    v->restrictFlags = ExtendedVersion::RESTRICT_NONE;
+    v->propertiesFlags = ExtendedVersion::PROPERTIES_NONE;
+  }
+  else {
+    v->restrictFlags = av->restrictFlags;
+    v->propertiesFlags = av->propertiesFlags;
+    if (!care_of_restrictions) {
+      return;
+    }
+  }
+  string dirname(m_directory + p.category + "/" + p.name + "-" + v->getFull());
+  LineVec lines;
+  if (unlikely(!pushback_lines((dirname + "/RESTRICT").c_str(), &lines, false, false, 1))) {
+    // It is OK that this file does not exist:
+    // CorePkg does this if RESTRICT is not set.
+    v->restrictFlags = ExtendedVersion::RESTRICT_NONE;
+    return;
+  }
+  if (likely(lines.size() == 1)) {
+    v->set_restrict(lines[0]);
+  }
+  else {
+    v->set_restrict(join_to_string(lines));
+  }
 }
 
-void VarDbPkg::readInstDate(const Package& p, InstVersion *v) const {
-	if(v->know_instDate) {
-		return;
-	}
-	v->know_instDate = true;
-	string dirname(m_directory + p.category + "/" + p.name + "-" + v->getFull());
-	LineVec datelines;
-	if(use_build_time &&
-		pushback_lines((dirname + "/BUILD_TIME").c_str(),
-			&datelines, false, false, 1)) {
-		for(LineVec::const_iterator it(datelines.begin());
-			it != datelines.end(); ++it) {
-			if(likely((v->instDate = my_atos(it->c_str())) != 0)) {
-				return;
-			}
-		}
-	}
-	if(unlikely(!get_mtime(&(v->instDate), dirname.c_str()))) {
-		v->instDate = 0;
-	}
+void VarDbPkg::readInstDate(const Package& p, InstVersion* v) const {
+  if (v->know_instDate) {
+    return;
+  }
+  v->know_instDate = true;
+  string dirname(m_directory + p.category + "/" + p.name + "-" + v->getFull());
+  LineVec datelines;
+  if (use_build_time && pushback_lines((dirname + "/BUILD_TIME").c_str(), &datelines, false, false, 1)) {
+    for (LineVec::const_iterator it(datelines.begin()); it != datelines.end(); ++it) {
+      if (likely((v->instDate = my_atos(it->c_str())) != 0)) {
+        return;
+      }
+    }
+  }
+  if (unlikely(!get_mtime(&(v->instDate), dirname.c_str()))) {
+    v->instDate = 0;
+  }
 }
 
-void VarDbPkg::readDepend(const Package& p, InstVersion *v, const DBHeader& header) const {
-	if(likely(v->know_deps)) {
-		return;
-	}
-	v->know_deps = true;
-	if(Depend::use_depend && !care_of_deps) {
-		Version *av(getAvailable(p, v, header));
-		if(likely(av != NULLPTR)) {
-			v->depend = av->depend;
-			return;
-		}
-	}
-	v->depend.clear();
-	string dirname(m_directory + p.category + "/" + p.name + "-" + v->getFull());
-	WordVec depend(5);
-	depend[0] = v->depend.get_depend();
-	depend[1] = v->depend.get_rdepend();
-	depend[2] = v->depend.get_pdepend();
-	depend[3] = v->depend.get_bdepend();
-	depend[4] = v->depend.get_idepend();
-	static CONSTEXPR const char *filenames[5] = {
-		"/DEPEND",
-		"/RDEPEND",
-		"/PDEPEND",
-		"/BDEPEND",
-		"/IDEPEND"
-	};
-	for(coreq::TinyUnsigned i(0); likely(i < 5); ++i) {
-		LineVec lines;
-		if(likely(pushback_lines((dirname + filenames[i]).c_str(),
-			&lines, false, false, 1))) {
-			if(likely(lines.size() == 1)) {
-				depend[i].assign(lines[0]);
-			} else {
-				depend[i].clear();
-				join_to_string(&(depend[i]), lines);
-			}
-		}
-	}
-	v->depend.set(depend[0], depend[1], depend[2], depend[3], depend[4], true);
+void VarDbPkg::readDepend(const Package& p, InstVersion* v, const DBHeader& header) const {
+  if (likely(v->know_deps)) {
+    return;
+  }
+  v->know_deps = true;
+  if (Depend::use_depend && !care_of_deps) {
+    Version* av(getAvailable(p, v, header));
+    if (likely(av != NULLPTR)) {
+      v->depend = av->depend;
+      return;
+    }
+  }
+  v->depend.clear();
+  string dirname(m_directory + p.category + "/" + p.name + "-" + v->getFull());
+  WordVec depend(5);
+  depend[0] = v->depend.get_depend();
+  depend[1] = v->depend.get_rdepend();
+  depend[2] = v->depend.get_pdepend();
+  depend[3] = v->depend.get_bdepend();
+  depend[4] = v->depend.get_idepend();
+  static CONSTEXPR const char* filenames[5] = {"/DEPEND", "/RDEPEND", "/PDEPEND", "/BDEPEND", "/IDEPEND"};
+  for (coreq::TinyUnsigned i(0); likely(i < 5); ++i) {
+    LineVec lines;
+    if (likely(pushback_lines((dirname + filenames[i]).c_str(), &lines, false, false, 1))) {
+      if (likely(lines.size() == 1)) {
+        depend[i].assign(lines[0]);
+      }
+      else {
+        depend[i].clear();
+        join_to_string(&(depend[i]), lines);
+      }
+    }
+  }
+  v->depend.set(depend[0], depend[1], depend[2], depend[3], depend[4], true);
 }
 
 /**
 Read category from db-directory
 **/
-void VarDbPkg::readCategory(const char *category) {
-	/* Pointer to category DIRectory */
-	DIR *dir_category;
+void VarDbPkg::readCategory(const char* category) {
+  /* Pointer to category DIRectory */
+  DIR* dir_category;
 
-	/* Open category-directory */
-	string dir_category_name(m_directory);
-	dir_category_name.append(category);
-	if((dir_category = opendir(dir_category_name.c_str())) == NULLPTR) {
-		installed[category] = NULLPTR;
-		return;
-	}
-	dir_category_name.append(1, '/');
-	InstVecPkg *category_installed;
-	installed[category] = category_installed = new InstVecPkg;
+  /* Open category-directory */
+  string dir_category_name(m_directory);
+  dir_category_name.append(category);
+  if ((dir_category = opendir(dir_category_name.c_str())) == NULLPTR) {
+    installed[category] = NULLPTR;
+    return;
+  }
+  dir_category_name.append(1, '/');
+  InstVecPkg* category_installed;
+  installed[category] = category_installed = new InstVecPkg;
 
-	struct dirent *package_entry;  /* current package dirent */
-	/* Cycle through this category */
-	while(likely((package_entry = readdir(dir_category)) != NULLPTR)) {  // NOLINT(runtime/threadsafe_fn)
-		if(package_entry->d_name[0] == '.') {
-			continue;  /* Don't want dot-stuff */
-		}
-		string curr_name, curr_version;
-		if(unlikely(!ExplodeAtom::split(&curr_name, &curr_version, package_entry->d_name))) {
-			continue;
-		}
-		string errtext;
-		InstVersion instver;
-		BasicVersion::ParseResult r(instver.parseVersion(curr_version, &errtext));
-		if(unlikely(r != BasicVersion::parsedOK)) {
-			coreq::say_error() % errtext;
-		}
-		if(likely(r != BasicVersion::parsedError)) {
-			(*category_installed)[curr_name].PUSH_BACK(MOVE(instver));
-		}
-	}
-	closedir(dir_category);
-	sort_installed(installed[category]);
+  struct dirent* package_entry; /* current package dirent */
+  /* Cycle through this category */
+  while (likely((package_entry = readdir(dir_category)) != NULLPTR)) {  // NOLINT(runtime/threadsafe_fn)
+    if (package_entry->d_name[0] == '.') {
+      continue; /* Don't want dot-stuff */
+    }
+    string curr_name, curr_version;
+    if (unlikely(!ExplodeAtom::split(&curr_name, &curr_version, package_entry->d_name))) {
+      continue;
+    }
+    string errtext;
+    InstVersion instver;
+    BasicVersion::ParseResult r(instver.parseVersion(curr_version, &errtext));
+    if (unlikely(r != BasicVersion::parsedOK)) {
+      coreq::say_error() % errtext;
+    }
+    if (likely(r != BasicVersion::parsedError)) {
+      (*category_installed)[curr_name].PUSH_BACK(MOVE(instver));
+    }
+  }
+  closedir(dir_category);
+  sort_installed(installed[category]);
 }
-

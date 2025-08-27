@@ -24,7 +24,7 @@ Get uid of a user.
 @param name name of user
 @return true if user exists
 **/
-ATTRIBUTE_NONNULL_ bool get_uid_of(const char *name, uid_t *u);
+ATTRIBUTE_NONNULL_ bool get_uid_of(const char* name, uid_t* u);
 
 /**
 Get gid of a group.
@@ -32,36 +32,36 @@ Get gid of a group.
 @param name name of group
 @return true if group exists
 **/
-ATTRIBUTE_NONNULL_ bool get_gid_of(const char *name, gid_t *g);
+ATTRIBUTE_NONNULL_ bool get_gid_of(const char* name, gid_t* g);
 
 /**
 @return true if file is a directory or a symlink to some.
 **/
-ATTRIBUTE_NONNULL_ bool is_dir(const char *file);
+ATTRIBUTE_NONNULL_ bool is_dir(const char* file);
 
 /**
 @return true if file is a plain file or a symlink to some.
 **/
-ATTRIBUTE_NONNULL_ bool is_file(const char *file);
+ATTRIBUTE_NONNULL_ bool is_file(const char* file);
 
 /**
 @return true if file is a plain file (and not a symlink).
 **/
-ATTRIBUTE_NONNULL_ bool is_pure_file(const char *file);
+ATTRIBUTE_NONNULL_ bool is_pure_file(const char* file);
 
 /**
 @return true if mtime of file can be read
 **/
-ATTRIBUTE_NONNULL_ bool get_mtime(std::time_t *t, const char *file);
+ATTRIBUTE_NONNULL_ bool get_mtime(std::time_t* t, const char* file);
 
 /**
 @return mydate formatted according to locales and dateFormat
 **/
-ATTRIBUTE_NONNULL_ const char *date_conv(const char *dateFormat, std::time_t mydate);
+ATTRIBUTE_NONNULL_ const char* date_conv(const char* dateFormat, std::time_t mydate);
 
 /**
 @return true in case of success
 **/
-ATTRIBUTE_NONNULL_ bool get_geometry(unsigned int *width, unsigned int *columns);
+ATTRIBUTE_NONNULL_ bool get_geometry(unsigned int* width, unsigned int* columns);
 
 #endif  // SRC_COREQTK_SYSUTILS_H_

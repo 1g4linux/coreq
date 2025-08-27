@@ -16,6 +16,6 @@
 
 class CoreqRc;
 
-ATTRIBUTE_NONNULL_ bool drop_permissions(CoreqRc *coreq, std::string *errtext);
+ATTRIBUTE_NONNULL_ bool drop_permissions(CoreqRc* coreq, std::string* errtext);
 
 #endif  // SRC_VARIOUS_DROP_PERMISSIONS_H_

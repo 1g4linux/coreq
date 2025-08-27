@@ -20,23 +20,21 @@
 #include "coreqTk/attribute.h"
 #include "coreqTk/ptr_container.h"
 
-typedef coreq::ptr_container<std::vector<BasicCache *> > CacheTableList;
+typedef coreq::ptr_container<std::vector<BasicCache*> > CacheTableList;
 typedef std::pair<std::string, std::string> OverridePair;
 typedef std::vector<OverridePair> OverrideVector;
 
 class CacheTable : public CacheTableList {
-	private:
-		std::string m_appending;
+ private:
+  std::string m_appending;
 
-	public:
-		explicit CacheTable(const std::string& appending) : m_appending(appending) {
-		}
+ public:
+  explicit CacheTable(const std::string& appending) : m_appending(appending) {}
 
-		~CacheTable() {
-			delete_and_clear();
-		}
+  ~CacheTable() { delete_and_clear(); }
 
-		ATTRIBUTE_NONNULL((4)) bool addCache(const char *eprefixcache, const char *eprefixport, const char *directory, const std::string& cache_name, const OverrideVector *override_vector, std::string *errtext);
+  ATTRIBUTE_NONNULL((4))
+  bool addCache(const char* eprefixcache, const char* eprefixport, const char* directory, const std::string& cache_name, const OverrideVector* override_vector, std::string* errtext);
 };
 
 #endif  // SRC_CACHE_CACHETABLE_H_

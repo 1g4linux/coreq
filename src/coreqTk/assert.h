@@ -28,20 +28,17 @@ are called exactly once
 **/
 
 #ifdef COREQ_STATIC_ASSERT
-#define coreq_assert_static(a) \
-	WGNU_STATEMENT_EXPRESSION_OFF \
-	assert(a) \
-	WGNU_STATEMENT_EXPRESSION_ON
+#define coreq_assert_static(a)  \
+  WGNU_STATEMENT_EXPRESSION_OFF \
+  assert(a) WGNU_STATEMENT_EXPRESSION_ON
 #else
 #define coreq_assert_static(a)
 #endif
 
-
 #ifdef COREQ_PARANOIC_ASSERT
 #define coreq_assert_paranoic(a) \
-	WGNU_STATEMENT_EXPRESSION_OFF \
-	assert(a) \
-	WGNU_STATEMENT_EXPRESSION_ON
+  WGNU_STATEMENT_EXPRESSION_OFF  \
+  assert(a) WGNU_STATEMENT_EXPRESSION_ON
 #else
 #define coreq_assert_paranoic(a)
 #endif

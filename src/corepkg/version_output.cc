@@ -11,14 +11,15 @@
 #include "coreqTk/outputstring.h"
 #include "coreqTk/stringlist.h"
 
-void Version::reasons_string(OutputString *s, const OutputString& skip, const OutputString& sep) const {
-	bool psep(false);
-	for(Reasons::const_iterator it(reasons.begin()); it != reasons.end(); ++it) {
-		if(psep) {
-			s->append(sep);
-		} else {
-			psep = true;
-		}
-		it->append_to_string(s, skip);
-	}
+void Version::reasons_string(OutputString* s, const OutputString& skip, const OutputString& sep) const {
+  bool psep(false);
+  for (Reasons::const_iterator it(reasons.begin()); it != reasons.end(); ++it) {
+    if (psep) {
+      s->append(sep);
+    }
+    else {
+      psep = true;
+    }
+    it->append_to_string(s, skip);
+  }
 }

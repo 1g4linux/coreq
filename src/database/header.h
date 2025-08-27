@@ -31,101 +31,81 @@ Contains your arch, the version of the db, the number of packages/categories
 and a table of key->directory mappings.
 **/
 class DBHeader {
-	private:
-		/**
-		The mapping from key->directory
-		**/
-		OverlayVec overlays;
+ private:
+  /**
+  The mapping from key->directory
+  **/
+  OverlayVec overlays;
 
-	public:
-		StringHash
-			eapi_hash,
-			license_hash,
-			keywords_hash,
-			iuse_hash,
-			slot_hash,
-			depend_hash;
+ public:
+  StringHash eapi_hash, license_hash, keywords_hash, iuse_hash, slot_hash, depend_hash;
 
-		typedef  coreq::UNumber SaveBitmask;
-		static CONSTEXPR const SaveBitmask
-			SAVE_BITMASK_NONE         = 0x00U,
-			SAVE_BITMASK_DEP          = 0x01U,
-			SAVE_BITMASK_REQUIRED_USE = 0x02U,
-			SAVE_BITMASK_SRC_URI      = 0x04U;
+  typedef coreq::UNumber SaveBitmask;
+  static CONSTEXPR const SaveBitmask SAVE_BITMASK_NONE = 0x00U, SAVE_BITMASK_DEP = 0x01U, SAVE_BITMASK_REQUIRED_USE = 0x02U, SAVE_BITMASK_SRC_URI = 0x04U;
 
-		bool use_depend, use_required_use, use_src_uri;
+  bool use_depend, use_required_use, use_src_uri;
 
-		WordVec world_sets;
+  WordVec world_sets;
 
-		typedef  coreq::UNumber DBVersion;
+  typedef coreq::UNumber DBVersion;
 
-		typedef  coreq::UChar OverlayTest;
-		static CONSTEXPR const OverlayTest
-			OVTEST_NONE              = 0x00U,
-			OVTEST_SAVED_PORTDIR     = 0x01U,
-			OVTEST_PATH              = 0x02U,
-			OVTEST_ALLPATH           = OVTEST_SAVED_PORTDIR|OVTEST_PATH,
-			OVTEST_LABEL             = 0x04U,
-			OVTEST_NUMBER            = 0x08U,
-			OVTEST_NOT_SAVED_PORTDIR = OVTEST_PATH|OVTEST_LABEL|OVTEST_NUMBER,
-			OVTEST_ALL               = OVTEST_ALLPATH|OVTEST_LABEL|OVTEST_NUMBER;
+  typedef coreq::UChar OverlayTest;
+  static CONSTEXPR const OverlayTest OVTEST_NONE = 0x00U, OVTEST_SAVED_PORTDIR = 0x01U, OVTEST_PATH = 0x02U, OVTEST_ALLPATH = OVTEST_SAVED_PORTDIR | OVTEST_PATH, OVTEST_LABEL = 0x04U,
+                                     OVTEST_NUMBER = 0x08U, OVTEST_NOT_SAVED_PORTDIR = OVTEST_PATH | OVTEST_LABEL | OVTEST_NUMBER, OVTEST_ALL = OVTEST_ALLPATH | OVTEST_LABEL | OVTEST_NUMBER;
 
-		static const char magic[];
+  static const char magic[];
 
-		/**
-		Current version of database-format and what we accept
-		**/
-		static CONSTEXPR const DBVersion current = 39;
-		static const DBHeader::DBVersion accept[];
+  /**
+  Current version of database-format and what we accept
+  **/
+  static CONSTEXPR const DBVersion current = 39;
+  static const DBHeader::DBVersion accept[];
 
-		/**
-		Version of the db.
-		**/
-		DBVersion version;
-		/**
-		Number of categories
-		**/
-		coreq::Catsize size;
+  /**
+  Version of the db.
+  **/
+  DBVersion version;
+  /**
+  Number of categories
+  **/
+  coreq::Catsize size;
 
-		/**
-		Get overlay for key from table
-		**/
-		const OverlayIdent& getOverlay(ExtendedVersion::Overlay key) const;
+  /**
+  Get overlay for key from table
+  **/
+  const OverlayIdent& getOverlay(ExtendedVersion::Overlay key) const;
 
-		/**
-		Add overlay to directory-table and return key
-		**/
-		ExtendedVersion::Overlay addOverlay(const OverlayIdent& overlay);
+  /**
+  Add overlay to directory-table and return key
+  **/
+  ExtendedVersion::Overlay addOverlay(const OverlayIdent& overlay);
 
-		/**
-		Set Priorities of overlays
-		**/
-		void set_priorities(CorePkgSettings *ps);
+  /**
+  Set Priorities of overlays
+  **/
+  void set_priorities(CorePkgSettings* ps);
 
-		/**
-		Find first overlay-number >=minimal for name.
-		Name might be either a label, a filename, or a number string.
-		The special name portdir (if defined) matches 0 (if OVTEST_PATH)
-		The special name '' matches everything but 0.
-		**/
-		ATTRIBUTE_NONNULL((2, 3)) bool find_overlay(ExtendedVersion::Overlay *num, const char *name, const char *portdir, ExtendedVersion::Overlay minimal, OverlayTest testmode) const;
-		ATTRIBUTE_NONNULL((2, 3)) bool find_overlay(ExtendedVersion::Overlay *num, const char *name, const char *portdir) const {
-			return find_overlay(num, name, portdir, 0, OVTEST_NOT_SAVED_PORTDIR);
-		}
+  /**
+  Find first overlay-number >=minimal for name.
+  Name might be either a label, a filename, or a number string.
+  The special name portdir (if defined) matches 0 (if OVTEST_PATH)
+  The special name '' matches everything but 0.
+  **/
+  ATTRIBUTE_NONNULL((2, 3)) bool find_overlay(ExtendedVersion::Overlay* num, const char* name, const char* portdir, ExtendedVersion::Overlay minimal, OverlayTest testmode) const;
+  ATTRIBUTE_NONNULL((2, 3)) bool find_overlay(ExtendedVersion::Overlay* num, const char* name, const char* portdir) const { return find_overlay(num, name, portdir, 0, OVTEST_NOT_SAVED_PORTDIR); }
 
-		/**
-		Add all overlay-numbers >=minimal for name to vec (name might be a number string)
-		**/
-		ATTRIBUTE_NONNULL((2, 3)) void get_overlay_vector(std::set<ExtendedVersion::Overlay> *overlayset, const char *name, const char *portdir, ExtendedVersion::Overlay minimal, OverlayTest testmode) const;
-		ATTRIBUTE_NONNULL((2, 3)) void get_overlay_vector(std::set<ExtendedVersion::Overlay> *overlayset, const char *name, const char *portdir) const {
-			get_overlay_vector(overlayset, name, portdir, 0, OVTEST_NOT_SAVED_PORTDIR);
-		}
+  /**
+  Add all overlay-numbers >=minimal for name to vec (name might be a number string)
+  **/
+  ATTRIBUTE_NONNULL((2, 3))
+  void get_overlay_vector(std::set<ExtendedVersion::Overlay>* overlayset, const char* name, const char* portdir, ExtendedVersion::Overlay minimal, OverlayTest testmode) const;
+  ATTRIBUTE_NONNULL((2, 3)) void get_overlay_vector(std::set<ExtendedVersion::Overlay>* overlayset, const char* name, const char* portdir) const {
+    get_overlay_vector(overlayset, name, portdir, 0, OVTEST_NOT_SAVED_PORTDIR);
+  }
 
-		ExtendedVersion::Overlay countOverlays() const {
-			return ExtendedVersion::Overlay(overlays.size());
-		}
+  ExtendedVersion::Overlay countOverlays() const { return ExtendedVersion::Overlay(overlays.size()); }
 
-		/* ATTRIBUTE_PURE can cause a subtle error here! */ bool isCurrent() const;
+  /* ATTRIBUTE_PURE can cause a subtle error here! */ bool isCurrent() const;
 };
 
 #endif  // SRC_DATABASE_HEADER_H_

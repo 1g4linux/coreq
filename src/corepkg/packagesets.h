@@ -20,40 +20,36 @@
 typedef std::vector<std::string>::size_type SetsIndex;
 
 class SetsList : public std::vector<SetsIndex> {
-	private:
-		bool have_system;
+ private:
+  bool have_system;
 
-	public:
-		typedef std::vector<SetsIndex> super;
+ public:
+  typedef std::vector<SetsIndex> super;
 
-		SetsList() : have_system(false) {
-		}
+  SetsList() : have_system(false) {}
 
-		explicit SetsList(bool with_system) : have_system(with_system) {
-		}
+  explicit SetsList(bool with_system) : have_system(with_system) {}
 
-		bool has_system() const {
-			return have_system;
-		}
+  bool has_system() const { return have_system; }
 
-		/**
-		@return true if something has changed
-		**/
-		bool add_system();
+  /**
+  @return true if something has changed
+  **/
+  bool add_system();
 
-		ATTRIBUTE_PURE bool has(SetsIndex i) const;
+  ATTRIBUTE_PURE bool has(SetsIndex i) const;
 
-		/**
-		@return true if something has changed
-		**/
-		bool add(SetsIndex i);
+  /**
+  @return true if something has changed
+  **/
+  bool add(SetsIndex i);
 
-		/**
-		@return true if something has changed
-		**/
-		bool add(const SetsList& l);
+  /**
+  @return true if something has changed
+  **/
+  bool add(const SetsList& l);
 
-		void clear();
+  void clear();
 };
 
 #endif  // SRC_COREPKG_PACKAGESETS_H_

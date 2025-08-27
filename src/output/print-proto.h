@@ -29,30 +29,28 @@ class Collection;
 }
 
 class PrintProto FINAL : public PrintFormats {
-	protected:
-		const DBHeader *hdr;
-		VarDbPkg *var_db_pkg;
-		const PrintFormat *print_format;
-		const SetStability *stability;
-		coreq_proto::Collection *collection;
-		typedef UNORDERED_MAP<std::string, int> CategoryIndex;
-		CategoryIndex category_index;
+ protected:
+  const DBHeader* hdr;
+  VarDbPkg* var_db_pkg;
+  const PrintFormat* print_format;
+  const SetStability* stability;
+  coreq_proto::Collection* collection;
+  typedef UNORDERED_MAP<std::string, int> CategoryIndex;
+  CategoryIndex category_index;
 
-	public:
-		ATTRIBUTE_NONNULL_ PrintProto(const DBHeader *header, VarDbPkg *vardb, const PrintFormat *printformat, const SetStability *set_stability) :
-			hdr(header), var_db_pkg(vardb), print_format(printformat), stability(set_stability), collection(NULLPTR) {}
+ public:
+  ATTRIBUTE_NONNULL_ PrintProto(const DBHeader* header, VarDbPkg* vardb, const PrintFormat* printformat, const SetStability* set_stability)
+      : hdr(header), var_db_pkg(vardb), print_format(printformat), stability(set_stability), collection(NULLPTR) {}
 
-		PrintProto() : hdr(NULLPTR), var_db_pkg(NULLPTR), print_format(NULLPTR), stability(NULLPTR), collection(NULLPTR) {}
+  PrintProto() : hdr(NULLPTR), var_db_pkg(NULLPTR), print_format(NULLPTR), stability(NULLPTR), collection(NULLPTR) {}
 
-		void start() OVERRIDE;
+  void start() OVERRIDE;
 
-		ATTRIBUTE_NONNULL_ void package(Package *pkg) OVERRIDE;
+  ATTRIBUTE_NONNULL_ void package(Package* pkg) OVERRIDE;
 
-		void finish() OVERRIDE;
+  void finish() OVERRIDE;
 
-		~PrintProto() {
-			finish();
-		}
+  ~PrintProto() { finish(); }
 };
 
 #endif  // SRC_OUTPUT_PRINT_PROTO_H_

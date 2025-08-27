@@ -29,55 +29,51 @@ class PrintFormat;
 class SetStability;
 
 class PrintXml FINAL : public PrintFormats {
-	protected:
-		bool started;
-		bool print_overlay;
-		enum { KW_NONE, KW_BOTH, KW_FULL, KW_EFF, KW_FULLS, KW_EFFS } keywords_mode;
+ protected:
+  bool started;
+  bool print_overlay;
+  enum { KW_NONE, KW_BOTH, KW_FULL, KW_EFF, KW_FULLS, KW_EFFS } keywords_mode;
 
-		const DBHeader *hdr;
-		VarDbPkg *var_db_pkg;
-		const PrintFormat *print_format;
-		const SetStability *stability;
-		std::string portdir;
-		std::string dateformat;
+  const DBHeader* hdr;
+  VarDbPkg* var_db_pkg;
+  const PrintFormat* print_format;
+  const SetStability* stability;
+  std::string portdir;
+  std::string dateformat;
 
-		typedef coreq::ptr_container<std::vector<Package *> > PackageList;
-		PackageList::size_type count;
-		std::string curcat;
+  typedef coreq::ptr_container<std::vector<Package*> > PackageList;
+  PackageList::size_type count;
+  std::string curcat;
 
-		void clear(CoreqRc *coreqrc);
-		void runclear();
+  void clear(CoreqRc* coreqrc);
+  void runclear();
 
-	public:
-		typedef coreq::UNumber XmlVersion;
-		static CONSTEXPR const XmlVersion current = 16;
+ public:
+  typedef coreq::UNumber XmlVersion;
+  static CONSTEXPR const XmlVersion current = 16;
 
-		ATTRIBUTE_NONNULL_ void init(const DBHeader *header, VarDbPkg *vardb, const PrintFormat *printformat, const SetStability *set_stability, CoreqRc *coreqrc, const std::string& port_dir) {
-			hdr = header;
-			var_db_pkg = vardb;
-			print_format = printformat;
-			stability = set_stability;
-			portdir = port_dir;
-			clear(coreqrc);
-		}
+  ATTRIBUTE_NONNULL_ void init(const DBHeader* header, VarDbPkg* vardb, const PrintFormat* printformat, const SetStability* set_stability, CoreqRc* coreqrc, const std::string& port_dir) {
+    hdr = header;
+    var_db_pkg = vardb;
+    print_format = printformat;
+    stability = set_stability;
+    portdir = port_dir;
+    clear(coreqrc);
+  }
 
-		ATTRIBUTE_NONNULL_ PrintXml(const DBHeader *header, VarDbPkg *vardb, const PrintFormat *printformat, const SetStability *set_stability, CoreqRc *coreqrc, const std::string& port_dir) {
-			init(header, vardb, printformat, set_stability, coreqrc, port_dir);
-		}
+  ATTRIBUTE_NONNULL_ PrintXml(const DBHeader* header, VarDbPkg* vardb, const PrintFormat* printformat, const SetStability* set_stability, CoreqRc* coreqrc, const std::string& port_dir) {
+    init(header, vardb, printformat, set_stability, coreqrc, port_dir);
+  }
 
-		PrintXml() : hdr(NULLPTR), var_db_pkg(NULLPTR), print_format(NULLPTR), stability(NULLPTR) {
-			clear(NULLPTR);
-		}
+  PrintXml() : hdr(NULLPTR), var_db_pkg(NULLPTR), print_format(NULLPTR), stability(NULLPTR) { clear(NULLPTR); }
 
-		void start() OVERRIDE;
-		ATTRIBUTE_NONNULL_ void package(Package *pkg) OVERRIDE;
-		void finish() OVERRIDE;
-		static std::string escape_xmlstring(bool quoted, const std::string& s);
-		static void say_xml_element(const std::string& prefix, const std::string& name, const std::string& content);
+  void start() OVERRIDE;
+  ATTRIBUTE_NONNULL_ void package(Package* pkg) OVERRIDE;
+  void finish() OVERRIDE;
+  static std::string escape_xmlstring(bool quoted, const std::string& s);
+  static void say_xml_element(const std::string& prefix, const std::string& name, const std::string& content);
 
-		~PrintXml() {
-			finish();
-		}
+  ~PrintXml() { finish(); }
 };
 
 #endif  // SRC_OUTPUT_PRINT_XML_H_

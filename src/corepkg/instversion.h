@@ -26,52 +26,49 @@
 InstVersion expands the BasicVersion class by data relevant for vardbpkg
 **/
 class InstVersion FINAL : public ExtendedVersion, public Keywords {
-	public:
-		/**
-		For versions in vardbpkg we might not yet know the slot.
-		For caching, we mark this here.
-		**/
-		bool know_slot, read_failed;
-		/**
-		Similarly for iuse and usedUse
-		**/
-		bool know_use;
-		/**
-		And the same for restricted
-		**/
-		bool know_restricted;
-		/**
-		and for deps
-		**/
-		bool know_deps;
-		/**
-		and for eapi
-		**/
-		bool know_eapi;
-		/**
-		and for instDate
-		**/
-		bool know_instDate;
+ public:
+  /**
+  For versions in vardbpkg we might not yet know the slot.
+  For caching, we mark this here.
+  **/
+  bool know_slot, read_failed;
+  /**
+  Similarly for iuse and usedUse
+  **/
+  bool know_use;
+  /**
+  And the same for restricted
+  **/
+  bool know_restricted;
+  /**
+  and for deps
+  **/
+  bool know_deps;
+  /**
+  and for eapi
+  **/
+  bool know_eapi;
+  /**
+  and for instDate
+  **/
+  bool know_instDate;
 
-		std::time_t instDate;  ///< Installation date according to vardbpkg
-		WordVec inst_iuse;  ///< Useflags in iuse according to vardbpkg
-		WordSet usedUse;    ///< Those useflags in iuse actually used
+  std::time_t instDate;  ///< Installation date according to vardbpkg
+  WordVec inst_iuse;     ///< Useflags in iuse according to vardbpkg
+  WordSet usedUse;       ///< Those useflags in iuse actually used
 
-		/**
-		Similarly for overlay_keys
-		**/
-		bool know_overlay, overlay_failed;
+  /**
+  Similarly for overlay_keys
+  **/
+  bool know_overlay, overlay_failed;
 
-		InstVersion() : know_slot(false), read_failed(false), know_use(false),
-			know_restricted(false), know_deps(false), know_eapi(false),
-			know_instDate(false), know_overlay(false), overlay_failed(false) {
-		}
+  InstVersion() : know_slot(false), read_failed(false), know_use(false), know_restricted(false), know_deps(false), know_eapi(false), know_instDate(false), know_overlay(false), overlay_failed(false) {}
 
-		ATTRIBUTE_PURE static coreq::SignedBool compare(const InstVersion& left, const InstVersion& right);
+  ATTRIBUTE_PURE static coreq::SignedBool compare(const InstVersion& left, const InstVersion& right);
 
-		ATTRIBUTE_PURE static coreq::SignedBool compare(const InstVersion& left, const ExtendedVersion& right);
+  ATTRIBUTE_PURE static coreq::SignedBool compare(const InstVersion& left, const ExtendedVersion& right);
 
-		ATTRIBUTE_PURE static coreq::SignedBool compare(const ExtendedVersion& left, const InstVersion& right);
+  ATTRIBUTE_PURE static coreq::SignedBool compare(const ExtendedVersion& left, const InstVersion& right);
 };
 
 /**
@@ -79,92 +76,92 @@ Short compare-stuff
 **/
 ATTRIBUTE_PURE inline static bool operator<(const ExtendedVersion& left, const InstVersion& right);
 inline static bool operator<(const ExtendedVersion& left, const InstVersion& right) {
-	return InstVersion::compare(left, right) < 0;
+  return InstVersion::compare(left, right) < 0;
 }
 
 ATTRIBUTE_PURE inline static bool operator>(const ExtendedVersion& left, const InstVersion& right);
 inline static bool operator>(const ExtendedVersion& left, const InstVersion& right) {
-	return InstVersion::compare(left, right) > 0;
+  return InstVersion::compare(left, right) > 0;
 }
 
 ATTRIBUTE_PURE inline static bool operator==(const ExtendedVersion& left, const InstVersion& right);
 inline static bool operator==(const ExtendedVersion& left, const InstVersion& right) {
-	return InstVersion::compare(left, right) == 0;
+  return InstVersion::compare(left, right) == 0;
 }
 
 ATTRIBUTE_PURE inline static bool operator!=(const ExtendedVersion& left, const InstVersion& right);
 inline static bool operator!=(const ExtendedVersion& left, const InstVersion& right) {
-	return InstVersion::compare(left, right) != 0;
+  return InstVersion::compare(left, right) != 0;
 }
 
 ATTRIBUTE_PURE inline static bool operator>=(const ExtendedVersion& left, const InstVersion& right);
 inline static bool operator>=(const ExtendedVersion& left, const InstVersion& right) {
-	return InstVersion::compare(left, right) >= 0;
+  return InstVersion::compare(left, right) >= 0;
 }
 
 ATTRIBUTE_PURE inline static bool operator<=(const ExtendedVersion& left, const InstVersion& right);
 inline static bool operator<=(const ExtendedVersion& left, const InstVersion& right) {
-	return InstVersion::compare(left, right) <= 0;
+  return InstVersion::compare(left, right) <= 0;
 }
 
 ATTRIBUTE_PURE inline static bool operator<(const InstVersion& left, const ExtendedVersion& right);
 inline static bool operator<(const InstVersion& left, const ExtendedVersion& right) {
-	return InstVersion::compare(left, right) < 0;
+  return InstVersion::compare(left, right) < 0;
 }
 
 ATTRIBUTE_PURE inline static bool operator>(const InstVersion& left, const ExtendedVersion& right);
 inline static bool operator>(const InstVersion& left, const ExtendedVersion& right) {
-	return InstVersion::compare(left, right) > 0;
+  return InstVersion::compare(left, right) > 0;
 }
 
 ATTRIBUTE_PURE inline static bool operator==(const InstVersion& left, const ExtendedVersion& right);
 inline static bool operator==(const InstVersion& left, const ExtendedVersion& right) {
-	return InstVersion::compare(left, right) == 0;
+  return InstVersion::compare(left, right) == 0;
 }
 
 ATTRIBUTE_PURE inline static bool operator!=(const InstVersion& left, const ExtendedVersion& right);
 inline static bool operator!=(const InstVersion& left, const ExtendedVersion& right) {
-	return InstVersion::compare(left, right) != 0;
+  return InstVersion::compare(left, right) != 0;
 }
 
 ATTRIBUTE_PURE inline static bool operator>=(const InstVersion& left, const ExtendedVersion& right);
 inline static bool operator>=(const InstVersion& left, const ExtendedVersion& right) {
-	return InstVersion::compare(left, right) >= 0;
+  return InstVersion::compare(left, right) >= 0;
 }
 
 ATTRIBUTE_PURE inline static bool operator<=(const InstVersion& left, const ExtendedVersion& right);
 inline static bool operator<=(const InstVersion& left, const ExtendedVersion& right) {
-	return InstVersion::compare(left, right) <= 0;
+  return InstVersion::compare(left, right) <= 0;
 }
 
 ATTRIBUTE_PURE inline static bool operator<(const InstVersion& left, const InstVersion& right);
 inline static bool operator<(const InstVersion& left, const InstVersion& right) {
-	return InstVersion::compare(left, right) < 0;
+  return InstVersion::compare(left, right) < 0;
 }
 
 ATTRIBUTE_PURE inline static bool operator>(const InstVersion& left, const InstVersion& right);
 inline static bool operator>(const InstVersion& left, const InstVersion& right) {
-	return InstVersion::compare(left, right) > 0;
+  return InstVersion::compare(left, right) > 0;
 }
 
 ATTRIBUTE_PURE inline static bool operator==(const InstVersion& left, const InstVersion& right);
 inline static bool operator==(const InstVersion& left, const InstVersion& right) {
-	return InstVersion::compare(left, right) == 0;
+  return InstVersion::compare(left, right) == 0;
 }
 
 ATTRIBUTE_PURE inline static bool operator!=(const InstVersion& left, const InstVersion& right);
 inline static bool operator!=(const InstVersion& left, const InstVersion& right) {
-	return InstVersion::compare(left, right) != 0;
+  return InstVersion::compare(left, right) != 0;
 }
 
 ATTRIBUTE_PURE inline static bool operator>=(const InstVersion& left, const InstVersion& right);
 inline static bool operator>=(const InstVersion& left, const InstVersion& right) {
-	return InstVersion::compare(left, right) >= 0;
+  return InstVersion::compare(left, right) >= 0;
 }
 
 ATTRIBUTE_PURE inline static bool operator<=(const InstVersion& left, const InstVersion& right);
 inline static bool operator<=(const InstVersion& left, const InstVersion& right) {
-	return InstVersion::compare(left, right) <= 0;
+  return InstVersion::compare(left, right) <= 0;
 }
 
 #endif  // SRC_COREPKG_INSTVERSION_H_

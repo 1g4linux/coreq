@@ -30,51 +30,40 @@ class Package;
 class Version;
 
 class MetadataCache FINAL : public BasicCache {
-	private:
-		typedef enum {
-			PATH_METADATA,
-			PATH_METADATAMD5,
-			PATH_METADATAMD5OR,
-			PATH_FULL,
-			PATH_REPOSITORY
-		} PathType;
-		PathType path_type;
-		bool flat, have_override_path;
-		std::string override_path;
-		std::string m_type;
-		std::string m_catpath;
-		WordVec names;
+ private:
+  typedef enum { PATH_METADATA, PATH_METADATAMD5, PATH_METADATAMD5OR, PATH_FULL, PATH_REPOSITORY } PathType;
+  PathType path_type;
+  bool flat, have_override_path;
+  std::string override_path;
+  std::string m_type;
+  std::string m_catpath;
+  WordVec names;
 
-		BasicReader *reader;
+  BasicReader* reader;
 
-		void setType(PathType set_path_type, bool set_flat);
-		void setFlat(bool set_flat);
+  void setType(PathType set_path_type, bool set_flat);
+  void setFlat(bool set_flat);
 
-	public:
-		MetadataCache() : reader(NULLPTR) {
-		}
+ public:
+  MetadataCache() : reader(NULLPTR) {}
 
-		~MetadataCache() {
-			delete reader;
-		}
+  ~MetadataCache() { delete reader; }
 
-		bool initialize(const std::string& name);
+  bool initialize(const std::string& name);
 
-		ATTRIBUTE_NONNULL_ bool readCategoryPrepare(const char *cat_name) OVERRIDE;
-		ATTRIBUTE_NONNULL_ bool readCategory(Category *cat) OVERRIDE;
-		void readCategoryFinalize() OVERRIDE;
+  ATTRIBUTE_NONNULL_ bool readCategoryPrepare(const char* cat_name) OVERRIDE;
+  ATTRIBUTE_NONNULL_ bool readCategory(Category* cat) OVERRIDE;
+  void readCategoryFinalize() OVERRIDE;
 
-		ATTRIBUTE_NONNULL_ const char *get_md5sum(const std::string &pkg_name, const std::string &ver_name) const OVERRIDE;
-		ATTRIBUTE_NONNULL_ bool get_time(std::time_t *t, const std::string &pkg_name, const std::string &ver_name) const OVERRIDE;
+  ATTRIBUTE_NONNULL_ const char* get_md5sum(const std::string& pkg_name, const std::string& ver_name) const OVERRIDE;
+  ATTRIBUTE_NONNULL_ bool get_time(std::time_t* t, const std::string& pkg_name, const std::string& ver_name) const OVERRIDE;
 
-		ATTRIBUTE_NONNULL_ void get_version_info(const std::string &pkg_name, const std::string &ver_name, Version *version) const OVERRIDE;
-		ATTRIBUTE_NONNULL_ void get_common_info(const std::string &pkg_name, const std::string &ver_name, Package *pkg) const OVERRIDE;
+  ATTRIBUTE_NONNULL_ void get_version_info(const std::string& pkg_name, const std::string& ver_name, Version* version) const OVERRIDE;
+  ATTRIBUTE_NONNULL_ void get_common_info(const std::string& pkg_name, const std::string& ver_name, Package* pkg) const OVERRIDE;
 
-		ATTRIBUTE_PURE bool use_prefixport() const OVERRIDE;
+  ATTRIBUTE_PURE bool use_prefixport() const OVERRIDE;
 
-		const char *getType() const OVERRIDE {
-			return m_type.c_str();
-		}
+  const char* getType() const OVERRIDE { return m_type.c_str(); }
 };
 
 #endif  // SRC_CACHE_METADATA_METADATA_H_

@@ -17,28 +17,28 @@
 // check_includes: include "coreqTk/coreqint.h"
 
 namespace coreq {
-	typedef unsigned char UChar;
-	typedef signed char TinySigned;
+typedef unsigned char UChar;
+typedef signed char TinySigned;
 
-	typedef UChar TinyUnsigned;
-	typedef TinySigned SignedBool;
+typedef UChar TinyUnsigned;
+typedef TinySigned SignedBool;
 
-	typedef size_t UNumber;
+typedef size_t UNumber;
 
-	typedef UNumber Catsize;
-	typedef UNumber Versize;
-	typedef UNumber Treesize;
+typedef UNumber Catsize;
+typedef UNumber Versize;
+typedef UNumber Treesize;
 
-	typedef off_t OffsetType;
+typedef off_t OffsetType;
 
-	inline static coreq::SignedBool
-	toSignedBool(int a) {
-		if(a == 0) {
-			return 0;
-		} else {
-			return ((a < 0) ? -1 : 1);
-		}
-	}
+inline static coreq::SignedBool toSignedBool(int a) {
+  if (a == 0) {
+    return 0;
+  }
+  else {
+    return ((a < 0) ? -1 : 1);
+  }
+}
 }  // namespace coreq
 
 #endif  // SRC_COREQTK_COREQINT_H_

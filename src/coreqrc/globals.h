@@ -33,8 +33,6 @@
 #define EXIT_FAILURE 1
 #endif
 
-#define AddOption(opt_type, opt_name, opt_default, opt_description) \
-	coreqrc->addDefault(CoreqRcOption(CoreqRcOption::opt_type, opt_name, \
-		opt_default, opt_description))
+#define AddOption(opt_type, opt_name, opt_default, opt_description) coreqrc->addDefault(CoreqRcOption(CoreqRcOption::opt_type, opt_name, opt_default, opt_description))
 
 #endif  // SRC_COREQRC_GLOBALS_H_

@@ -26,30 +26,33 @@ class Package;
 Parent class of all readers
 **/
 class BasicReader {
-	public:
-		explicit BasicReader(BasicCache *cache) : m_cache(cache) {
-		}
+ public:
+  explicit BasicReader(BasicCache* cache) : m_cache(cache) {}
 
-		/**
-		Virtual deconstructor
-		**/
-		virtual ~BasicReader() {
-		}
+  /**
+  Virtual deconstructor
+  **/
+  virtual ~BasicReader() {}
 
-		ATTRIBUTE_NONNULL_ virtual const char *get_md5sum(const std::string& /* filename */) {
-			return NULLPTR;
-		}
+  ATTRIBUTE_NONNULL_ virtual const char* get_md5sum(const std::string& /* filename */) { return NULLPTR; }
 
-		ATTRIBUTE_NONNULL_ virtual bool get_mtime(std::time_t * /* time */, const std::string& /* filename */) {
-			return false;
-		}
+  ATTRIBUTE_NONNULL_ virtual bool get_mtime(std::time_t* /* time */, const std::string& /* filename */) { return false; }
 
-		ATTRIBUTE_NONNULL_ virtual void get_keywords_slot_iuse_restrict(const std::string& filename, std::string *eapi, std::string *keywords, std::string *slotname, std::string *iuse, std::string *required_use, std::string *restr, std::string *props, Depend *dep, std::string *src_uri) = 0;
+  ATTRIBUTE_NONNULL_ virtual void get_keywords_slot_iuse_restrict(const std::string& filename,
+                                                                  std::string* eapi,
+                                                                  std::string* keywords,
+                                                                  std::string* slotname,
+                                                                  std::string* iuse,
+                                                                  std::string* required_use,
+                                                                  std::string* restr,
+                                                                  std::string* props,
+                                                                  Depend* dep,
+                                                                  std::string* src_uri) = 0;
 
-		ATTRIBUTE_NONNULL_ virtual void read_file(const std::string& filename, Package *pkg) = 0;
+  ATTRIBUTE_NONNULL_ virtual void read_file(const std::string& filename, Package* pkg) = 0;
 
-	public:
-		BasicCache *m_cache;
+ public:
+  BasicCache* m_cache;
 };
 
 #endif  // SRC_CACHE_COMMON_READER_H_

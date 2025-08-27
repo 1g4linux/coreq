@@ -16,20 +16,20 @@
 #define ATTRIBUTE_NORETURN [[noreturn]]  // NOLINT(whitespace/braces)
 #else
 #ifdef HAVE_ATTRIBUTE_NORETURN
-#define ATTRIBUTE_NORETURN __attribute__ ((noreturn))
+#define ATTRIBUTE_NORETURN __attribute__((noreturn))
 #else
 #define ATTRIBUTE_NORETURN
 #endif  // HAVE_ATTRIBUTE_NORETURN
 #endif  // HAVE_C11ATTRIBUTE_NORETURN
 
 #ifdef HAVE_ATTRIBUTE_CONST
-#define ATTRIBUTE_CONST __attribute__ ((const))
+#define ATTRIBUTE_CONST __attribute__((const))
 #else
 #define ATTRIBUTE_CONST
 #endif
 
 #ifdef HAVE_ATTRIBUTE_PURE
-#define ATTRIBUTE_PURE __attribute__ ((pure))
+#define ATTRIBUTE_PURE __attribute__((pure))
 #else
 #define ATTRIBUTE_PURE
 #endif
@@ -45,13 +45,13 @@
 #endif  // USE CONST_FOR_CONST_VIRTUALS
 
 #ifdef HAVE_ATTRIBUTE_NONNULL_
-#define ATTRIBUTE_NONNULL_ __attribute__ ((nonnull))
+#define ATTRIBUTE_NONNULL_ __attribute__((nonnull))
 #else
 #define ATTRIBUTE_NONNULL_
 #endif
 
 #ifdef HAVE_ATTRIBUTE_NONNULL
-#define ATTRIBUTE_NONNULL(a) __attribute__ ((nonnull a))
+#define ATTRIBUTE_NONNULL(a) __attribute__((nonnull a))
 #else
 #define ATTRIBUTE_NONNULL(a)
 #endif
@@ -63,12 +63,11 @@
 #define ATTRIBUTE_FALLTHROUGH [[gnu::fallthrough]];  // NOLINT(whitespace/braces)
 #else
 #ifdef HAVE_ATTRIBUTE_AFALLTHROUGH
-#define ATTRIBUTE_FALLTHROUGH __attribute__ ((fallthrough));
+#define ATTRIBUTE_FALLTHROUGH __attribute__((fallthrough));
 #else
 #define ATTRIBUTE_FALLTHROUGH
-#endif  /* HAVE_ATTRIBUTE_AFALLTHROUGH */
-#endif  /* HAVE_ATTRIBUTE_GNUFALLTHROUGH */
-#endif  /* HAVE_ATTRIBUTE_FALLTHROUGH */
+#endif /* HAVE_ATTRIBUTE_AFALLTHROUGH */
+#endif /* HAVE_ATTRIBUTE_GNUFALLTHROUGH */
+#endif /* HAVE_ATTRIBUTE_FALLTHROUGH */
 
 #endif  // SRC_COREQTK_ATTRIBUTE_H_
-

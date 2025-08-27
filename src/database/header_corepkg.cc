@@ -12,9 +12,8 @@
 #include "corepkg/conf/corepkgsettings.h"
 #include "corepkg/overlay.h"
 
-void DBHeader::set_priorities(CorePkgSettings *ps) {
-	for(OverlayVec::iterator it(overlays.begin());
-		likely(it != overlays.end()); ++it) {
-		ps->repos.set_priority(&(*it));
-	}
+void DBHeader::set_priorities(CorePkgSettings* ps) {
+  for (OverlayVec::iterator it(overlays.begin()); likely(it != overlays.end()); ++it) {
+    ps->repos.set_priority(&(*it));
+  }
 }

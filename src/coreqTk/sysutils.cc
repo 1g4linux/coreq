@@ -59,14 +59,14 @@ Get uid of a user.
 @param name name of user
 @return true if user exists
 **/
-bool get_uid_of(const char *name, uid_t *u) {
-	struct passwd ps, *pwd;
-	char c[5000];
-	if((getpwnam_r(name, &ps, c, 4999, &pwd) != 0) || (pwd == NULLPTR)) {
-		return false;
-	}
-	*u = pwd->pw_uid;
-	return true;
+bool get_uid_of(const char* name, uid_t* u) {
+  struct passwd ps, *pwd;
+  char c[5000];
+  if ((getpwnam_r(name, &ps, c, 4999, &pwd) != 0) || (pwd == NULLPTR)) {
+    return false;
+  }
+  *u = pwd->pw_uid;
+  return true;
 }
 
 /**
@@ -75,91 +75,91 @@ Get gid of a group.
 @param name name of group
 @return true if group exists
 **/
-bool get_gid_of(const char *name, gid_t *g) {
-	struct group gs, *grp;
-	char c[5000];
-	if((getgrnam_r(name, &gs, c, 4999, &grp) != 0) || (grp == NULLPTR)) {
-		return false;
-	}
-	*g = grp->gr_gid;
-	return true;
+bool get_gid_of(const char* name, gid_t* g) {
+  struct group gs, *grp;
+  char c[5000];
+  if ((getgrnam_r(name, &gs, c, 4999, &grp) != 0) || (grp == NULLPTR)) {
+    return false;
+  }
+  *g = grp->gr_gid;
+  return true;
 }
 
 /**
 @return true if file is a directory or a symlink to some.
 **/
-bool is_dir(const char *file) {
-	struct stat stat_buf;
-	if(unlikely(stat(file, &stat_buf) != 0))
-		return false;
-	return S_ISDIR(stat_buf.st_mode);
+bool is_dir(const char* file) {
+  struct stat stat_buf;
+  if (unlikely(stat(file, &stat_buf) != 0))
+    return false;
+  return S_ISDIR(stat_buf.st_mode);
 }
 
 /**
 @return true if file is a plain file or a symlink to some.
 **/
-bool is_file(const char *file) {
-	struct stat stat_buf;
-	if(unlikely(stat(file, &stat_buf) != 0))
-		return false;
-	return S_ISREG(stat_buf.st_mode);
+bool is_file(const char* file) {
+  struct stat stat_buf;
+  if (unlikely(stat(file, &stat_buf) != 0))
+    return false;
+  return S_ISREG(stat_buf.st_mode);
 }
 
 /**
 @return true if file is a plain file (and not a symlink).
 **/
-bool is_pure_file(const char *file) {
-	struct stat stat_buf;
-	if(unlikely(lstat(file, &stat_buf) != 0))
-		return false;
-	return S_ISREG(stat_buf.st_mode);
+bool is_pure_file(const char* file) {
+  struct stat stat_buf;
+  if (unlikely(lstat(file, &stat_buf) != 0))
+    return false;
+  return S_ISREG(stat_buf.st_mode);
 }
 
 /**
 @return mtime of file.
 **/
-bool get_mtime(std::time_t *t, const char *file) {
-	struct stat stat_b;
-	if(unlikely(stat(file, &stat_b))) {
-		return false;
-	}
-	*t = stat_b.st_mtime;
-	return true;
+bool get_mtime(std::time_t* t, const char* file) {
+  struct stat stat_b;
+  if (unlikely(stat(file, &stat_b))) {
+    return false;
+  }
+  *t = stat_b.st_mtime;
+  return true;
 }
 
 /**
 @return mydate formatted according to locales and dateFormat
 **/
-const char *date_conv(const char *dateFormat, std::time_t mydate) {
-	static CONSTEXPR const int max_datelen = 256;
-	static char buffer[max_datelen];
-	string old_lcall = setlocale(LC_ALL, NULLPTR);
-	setlocale(LC_ALL, "");
-	struct tm *loctime(localtime (&mydate));
-GCC_DIAG_OFF(format-nonliteral)
-	strftime(buffer, max_datelen, dateFormat, loctime);
-GCC_DIAG_ON(format-nonliteral)
-	setlocale(LC_ALL, old_lcall.c_str());
-	return buffer;
+const char* date_conv(const char* dateFormat, std::time_t mydate) {
+  static CONSTEXPR const int max_datelen = 256;
+  static char buffer[max_datelen];
+  string old_lcall = setlocale(LC_ALL, NULLPTR);
+  setlocale(LC_ALL, "");
+  struct tm* loctime(localtime(&mydate));
+  GCC_DIAG_OFF(format - nonliteral)
+  strftime(buffer, max_datelen, dateFormat, loctime);
+  GCC_DIAG_ON(format - nonliteral)
+  setlocale(LC_ALL, old_lcall.c_str());
+  return buffer;
 }
 
 /**
 @return true in case of success
 **/
 #ifdef TIOCGWINSZ
-bool get_geometry(unsigned int *lines, unsigned int *columns) {
-	struct winsize win;
-	if(ioctl(1, TIOCGWINSZ, &win) == 0) {
-		if((win.ws_row > 0) && (win.ws_col > 0)) {
-			*lines = win.ws_row;
-			*columns = win.ws_col;
-			return true;
-		}
-	}
-	return false;
+bool get_geometry(unsigned int* lines, unsigned int* columns) {
+  struct winsize win;
+  if (ioctl(1, TIOCGWINSZ, &win) == 0) {
+    if ((win.ws_row > 0) && (win.ws_col > 0)) {
+      *lines = win.ws_row;
+      *columns = win.ws_col;
+      return true;
+    }
+  }
+  return false;
 }
 #else
-bool get_geometry(unsigned int * /* lines */, unsigned int * /* columns */) {
-	return false;
+bool get_geometry(unsigned int* /* lines */, unsigned int* /* columns */) {
+  return false;
 }
 #endif

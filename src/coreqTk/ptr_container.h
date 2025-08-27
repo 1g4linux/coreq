@@ -20,39 +20,41 @@ namespace coreq {
 /**
 A set that only stores pointers to type
 **/
-template<class type> class ptr_forward_container : public type {
-	public:
-		using type::begin;
-		using type::end;
-		using type::clear;
+template <class type>
+class ptr_forward_container : public type {
+ public:
+  using type::begin;
+  using type::clear;
+  using type::end;
 
-		/**
-		Normal access iterator
-		**/
-		typedef ptr_iterator<typename type::iterator> iterator;
+  /**
+  Normal access iterator
+  **/
+  typedef ptr_iterator<typename type::iterator> iterator;
 
-		/**
-		Constant access iterator
-		**/
-		typedef ptr_iterator<typename type::const_iterator> const_iterator;
+  /**
+  Constant access iterator
+  **/
+  typedef ptr_iterator<typename type::const_iterator> const_iterator;
 
-		void delete_and_clear() {
-			delete_all(begin(), end());
-			clear();
-		}
+  void delete_and_clear() {
+    delete_all(begin(), end());
+    clear();
+  }
 };
 
-template<class type> class ptr_container : public ptr_forward_container<type> {
-	public:
-		/**
-		Reverse access iterator
-		**/
-		typedef ptr_iterator<typename type::reverse_iterator> reverse_iterator;
+template <class type>
+class ptr_container : public ptr_forward_container<type> {
+ public:
+  /**
+  Reverse access iterator
+  **/
+  typedef ptr_iterator<typename type::reverse_iterator> reverse_iterator;
 
-		/**
-		Constant reverse access iterator
-		**/
-		typedef ptr_iterator<typename type::const_reverse_iterator> const_reverse_iterator;
+  /**
+  Constant reverse access iterator
+  **/
+  typedef ptr_iterator<typename type::const_reverse_iterator> const_reverse_iterator;
 };
 
 }  // namespace coreq

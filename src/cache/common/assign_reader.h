@@ -28,29 +28,36 @@ class Depend;
 class Package;
 
 class AssignReader : public BasicReader {
-	public:
-		explicit AssignReader(BasicCache *cache) :
-			BasicReader(cache), currfile(NULLPTR) {
-		}
+ public:
+  explicit AssignReader(BasicCache* cache) : BasicReader(cache), currfile(NULLPTR) {}
 
-		~AssignReader() {
-			if(likely(currfile != NULLPTR)) {
-				delete currfile;
-				delete cf;
-			}
-		}
+  ~AssignReader() {
+    if (likely(currfile != NULLPTR)) {
+      delete currfile;
+      delete cf;
+    }
+  }
 
-		ATTRIBUTE_NONNULL_ const char *get_md5sum(const std::string &filename) OVERRIDE;
-		ATTRIBUTE_NONNULL_ bool get_mtime(std::time_t *t, const std::string &filename) OVERRIDE;
-		ATTRIBUTE_NONNULL_ void get_keywords_slot_iuse_restrict(const std::string& filename, std::string *eapi, std::string *keywords, std::string *slotname, std::string *iuse, std::string *required_use, std::string *restr, std::string *props, Depend *dep, std::string *src_uri) OVERRIDE;
-		ATTRIBUTE_NONNULL_ void read_file(const std::string& filename, Package *pkg) OVERRIDE;
+  ATTRIBUTE_NONNULL_ const char* get_md5sum(const std::string& filename) OVERRIDE;
+  ATTRIBUTE_NONNULL_ bool get_mtime(std::time_t* t, const std::string& filename) OVERRIDE;
+  ATTRIBUTE_NONNULL_ void get_keywords_slot_iuse_restrict(const std::string& filename,
+                                                          std::string* eapi,
+                                                          std::string* keywords,
+                                                          std::string* slotname,
+                                                          std::string* iuse,
+                                                          std::string* required_use,
+                                                          std::string* restr,
+                                                          std::string* props,
+                                                          Depend* dep,
+                                                          std::string* src_uri) OVERRIDE;
+  ATTRIBUTE_NONNULL_ void read_file(const std::string& filename, Package* pkg) OVERRIDE;
 
-	private:
-		ATTRIBUTE_NONNULL_ bool get_map(const std::string &file);
+ private:
+  ATTRIBUTE_NONNULL_ bool get_map(const std::string& file);
 
-		std::string *currfile;
-		WordUnorderedMap *cf;
-		bool currstate;
+  std::string* currfile;
+  WordUnorderedMap* cf;
+  bool currstate;
 };
 
 #endif  // SRC_CACHE_COMMON_ASSIGN_READER_H_

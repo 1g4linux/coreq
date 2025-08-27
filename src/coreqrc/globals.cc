@@ -10,7 +10,7 @@
 #include "coreqrc/globals.h"
 #include <config.h>  // IWYU pragma: keep  // NOLINT(build/include_order)
 
-void fill_defaults(CoreqRc *coreqrc) {
+void fill_defaults(CoreqRc* coreqrc) {
 #include "coreqrc/defaults.cc"  // NOLINT(build/include)
 #include "coreqrc/def_i18n.cc"  // NOLINT(build/include)
 }

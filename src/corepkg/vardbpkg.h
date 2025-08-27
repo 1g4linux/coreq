@@ -32,127 +32,112 @@ typedef std::vector<InstVersion> InstVec;
 Holds every installed version of a package.
 **/
 class VarDbPkg {
-	private:
-		typedef std::map<std::string, InstVec> InstVecPkg;
-		typedef std::map<std::string, InstVecPkg *> InstVecCat;
-		ATTRIBUTE_NONNULL_ static void sort_installed(VarDbPkg::InstVecPkg *maping);
-		/**
-		Mapping of [category][package] to list versions.
-		**/
-		InstVecCat installed;
-		/**
-		This is the db-directory.
-		**/
-		std::string m_directory;
-		bool get_slots, care_of_slots, care_of_deps;
-		bool get_restrictions, care_of_restrictions, use_build_time;
+ private:
+  typedef std::map<std::string, InstVec> InstVecPkg;
+  typedef std::map<std::string, InstVecPkg*> InstVecCat;
+  ATTRIBUTE_NONNULL_ static void sort_installed(VarDbPkg::InstVecPkg* maping);
+  /**
+  Mapping of [category][package] to list versions.
+  **/
+  InstVecCat installed;
+  /**
+  This is the db-directory.
+  **/
+  std::string m_directory;
+  bool get_slots, care_of_slots, care_of_deps;
+  bool get_restrictions, care_of_restrictions, use_build_time;
 
-		/**
-		Find installed versions of packet "name" in category "category".
-		@return NULLPTR if not found .. else pointer to vector of versions.
-		**/
-		InstVec *getInstalledVector(const std::string& category, const std::string& name);
+  /**
+  Find installed versions of packet "name" in category "category".
+  @return NULLPTR if not found .. else pointer to vector of versions.
+  **/
+  InstVec* getInstalledVector(const std::string& category, const std::string& name);
 
-		/**
-		Read category from db-directory.
-		@param category read this category.
-		**/
-		ATTRIBUTE_NONNULL_ void readCategory(const char *category);
+  /**
+  Read category from db-directory.
+  @param category read this category.
+  **/
+  ATTRIBUTE_NONNULL_ void readCategory(const char* category);
 
-	public:
-		/**
-		Default constructor
-		**/
-		VarDbPkg(std::string directory, bool read_slots, bool care_about_slots, bool care_about_deps,
-			bool calc_restrictions, bool care_about_restrictions, bool build_time) :
-			m_directory(directory),
-			get_slots(read_slots || care_about_slots),
-			care_of_slots(care_about_slots),
-			care_of_deps(care_about_deps),
-			get_restrictions(calc_restrictions),
-			care_of_restrictions(care_about_restrictions),
-			use_build_time(build_time) {
-		}
+ public:
+  /**
+  Default constructor
+  **/
+  VarDbPkg(std::string directory, bool read_slots, bool care_about_slots, bool care_about_deps, bool calc_restrictions, bool care_about_restrictions, bool build_time)
+      : m_directory(directory),
+        get_slots(read_slots || care_about_slots),
+        care_of_slots(care_about_slots),
+        care_of_deps(care_about_deps),
+        get_restrictions(calc_restrictions),
+        care_of_restrictions(care_about_restrictions),
+        use_build_time(build_time) {}
 
-		~VarDbPkg() {
-			for(InstVecCat::iterator it(installed.begin());
-				likely(it != installed.end()); ++it) {
-				delete it->second;
-			}
-		}
+  ~VarDbPkg() {
+    for (InstVecCat::iterator it(installed.begin()); likely(it != installed.end()); ++it) {
+      delete it->second;
+    }
+  }
 
-		bool care_slots() const {
-			return care_of_slots;
-		}
+  bool care_slots() const { return care_of_slots; }
 
-		ATTRIBUTE_NONNULL_ bool readSlot(const Package& p, InstVersion *v) const;
-		ATTRIBUTE_NONNULL_ void readEapi(const Package& p, InstVersion *v) const;
-		ATTRIBUTE_NONNULL_ bool readUse(const Package& p, InstVersion *v) const;
-		ATTRIBUTE_NONNULL_ void readRestricted(const Package& p, InstVersion *v, const DBHeader& header) const;
-		ATTRIBUTE_NONNULL_ void readInstDate(const Package& p, InstVersion *v) const;
-		ATTRIBUTE_NONNULL_ void readDepend(const Package& p, InstVersion *v, const DBHeader& header) const;
+  ATTRIBUTE_NONNULL_ bool readSlot(const Package& p, InstVersion* v) const;
+  ATTRIBUTE_NONNULL_ void readEapi(const Package& p, InstVersion* v) const;
+  ATTRIBUTE_NONNULL_ bool readUse(const Package& p, InstVersion* v) const;
+  ATTRIBUTE_NONNULL_ void readRestricted(const Package& p, InstVersion* v, const DBHeader& header) const;
+  ATTRIBUTE_NONNULL_ void readInstDate(const Package& p, InstVersion* v) const;
+  ATTRIBUTE_NONNULL_ void readDepend(const Package& p, InstVersion* v, const DBHeader& header) const;
 
-		ATTRIBUTE_NONNULL_ bool readOverlay(const Package& p, InstVersion *v, const DBHeader& header) const;
-		ATTRIBUTE_NONNULL_ std::string readOverlayLabel(const Package *p, const BasicVersion *v) const;
-		coreq::SignedBool check_installed_overlays;
+  ATTRIBUTE_NONNULL_ bool readOverlay(const Package& p, InstVersion* v, const DBHeader& header) const;
+  ATTRIBUTE_NONNULL_ std::string readOverlayLabel(const Package* p, const BasicVersion* v) const;
+  coreq::SignedBool check_installed_overlays;
 
-		/**
-		Find installed versions
-		@return NULLPTR if not found .. else pointer to vector of versions.
-		**/
-		InstVec *getInstalledVector(const Package& p) {
-			return getInstalledVector(p.category, p.name);
-		}
+  /**
+  Find installed versions
+  @return NULLPTR if not found .. else pointer to vector of versions.
+  **/
+  InstVec* getInstalledVector(const Package& p) { return getInstalledVector(p.category, p.name); }
 
-		/**
-		@return true if v is in vec. v=NULLPTR is always in vec.
-		If a serious result is found and r is nonzero, r points to that result
-		**/
-		static bool isInVec(InstVec *vec, const BasicVersion *v, InstVersion **r);
-		inline static bool isInVec(InstVec *vec, const BasicVersion *v) {
-			return isInVec(vec, v, NULLPTR);
-		}
-		inline static bool isInVec(InstVec *vec) {
-			return isInVec(vec, NULLPTR);
-		}
+  /**
+  @return true if v is in vec. v=NULLPTR is always in vec.
+  If a serious result is found and r is nonzero, r points to that result
+  **/
+  static bool isInVec(InstVec* vec, const BasicVersion* v, InstVersion** r);
+  inline static bool isInVec(InstVec* vec, const BasicVersion* v) { return isInVec(vec, v, NULLPTR); }
+  inline static bool isInVec(InstVec* vec) { return isInVec(vec, NULLPTR); }
 
-		/**
-		@return true if a Package installed.
-		@param p Check for this Package.
-		@param v If not NULLPTR, check for this BasicVersion.
-		If a particular version is found and r is nonzero, r points to that version
-		**/
-		bool isInstalled(const Package& p, const BasicVersion *v, InstVersion **r) {
-			return isInVec(getInstalledVector(p), v, r);
-		}
-		bool isInstalled(const Package& p) {
-			return isInVec(getInstalledVector(p));
-		}
+  /**
+  @return true if a Package installed.
+  @param p Check for this Package.
+  @param v If not NULLPTR, check for this BasicVersion.
+  If a particular version is found and r is nonzero, r points to that version
+  **/
+  bool isInstalled(const Package& p, const BasicVersion* v, InstVersion** r) { return isInVec(getInstalledVector(p), v, r); }
+  bool isInstalled(const Package& p) { return isInVec(getInstalledVector(p)); }
 
-		/**
-		Test if a particular version is installed from the correct overlay.
-		@return 1 (yes) or 0 (no) or -1 (might be - overlay unclear)
-		**/
-		ATTRIBUTE_NONNULL_ coreq::SignedBool isInstalledVersion(const Package& p, const Version *v, const DBHeader& header) {
-			InstVersion *inst;
-			return isInstalledVersion(&inst, p, v, header);
-		}
+  /**
+  Test if a particular version is installed from the correct overlay.
+  @return 1 (yes) or 0 (no) or -1 (might be - overlay unclear)
+  **/
+  ATTRIBUTE_NONNULL_ coreq::SignedBool isInstalledVersion(const Package& p, const Version* v, const DBHeader& header) {
+    InstVersion* inst;
+    return isInstalledVersion(&inst, p, v, header);
+  }
 
-		/**
-		As above and store pointer to installed version in *inst
-		**/
-		ATTRIBUTE_NONNULL_ coreq::SignedBool isInstalledVersion(InstVersion **inst, const Package& p, const Version *v, const DBHeader& header);
+  /**
+  As above and store pointer to installed version in *inst
+  **/
+  ATTRIBUTE_NONNULL_ coreq::SignedBool isInstalledVersion(InstVersion** inst, const Package& p, const Version* v, const DBHeader& header);
 
-		/**
-		@return matching available version or NULLPTR
-		**/
-		ATTRIBUTE_NONNULL_ Version *getAvailable(const Package& p, InstVersion *v, const DBHeader& header) const;
+  /**
+  @return matching available version or NULLPTR
+  **/
+  ATTRIBUTE_NONNULL_ Version* getAvailable(const Package& p, InstVersion* v, const DBHeader& header) const;
 
-		/**
-		@param p Check for this Package
-		@return number of installed versions of this package
-		**/
-		InstVec::size_type numInstalled(const Package& p);
+  /**
+  @param p Check for this Package
+  @return number of installed versions of this package
+  **/
+  InstVec::size_type numInstalled(const Package& p);
 };
 
 #endif  // SRC_COREPKG_VARDBPKG_H_

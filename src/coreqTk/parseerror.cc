@@ -22,31 +22,30 @@
 
 using std::string;
 
-static WordUnorderedSet *printed = NULLPTR;
+static WordUnorderedSet* printed = NULLPTR;
 
 /**
 Provide a common look for error-messages for parse-errors in
 corepkg.{mask,keywords,..}
 **/
 void ParseError::output(const string& file, const LineVec::size_type line_nr, const string& line, const string& errtext) const {
-	if(tacit) {
-		return;
-	}
-	if(printed == NULLPTR) {
-		printed = new WordUnorderedSet;
-	}
-	string cache(coreq::format("%s\a%s\v%s") % file % line_nr % errtext);
-	if(printed->count(cache) != 0) {
-		return;
-	}
-	printed->INSERT(MOVE(cache));
-	coreq::say_error(_("-- invalid line %s in %s: \"%s\""))
-		% line_nr % file % line;
+  if (tacit) {
+    return;
+  }
+  if (printed == NULLPTR) {
+    printed = new WordUnorderedSet;
+  }
+  string cache(coreq::format("%s\a%s\v%s") % file % line_nr % errtext);
+  if (printed->count(cache) != 0) {
+    return;
+  }
+  printed->INSERT(MOVE(cache));
+  coreq::say_error(_("-- invalid line %s in %s: \"%s\"")) % line_nr % file % line;
 
-	// Indent the message correctly
-	WordVec lines;
-	split_string(&lines, errtext, false, "\n", false);
-	for(WordVec::const_iterator i(lines.begin()); likely(i != lines.end()); ++i) {
-		coreq::say_error("    %s") % (*i);
-	}
+  // Indent the message correctly
+  WordVec lines;
+  split_string(&lines, errtext, false, "\n", false);
+  for (WordVec::const_iterator i(lines.begin()); likely(i != lines.end()); ++i) {
+    coreq::say_error("    %s") % (*i);
+  }
 }
