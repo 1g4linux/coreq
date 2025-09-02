@@ -12,10 +12,12 @@
 
 #include <config.h>  // IWYU pragma: keep
 
+#include <cstring>
 #include <string>
 
 #include "coreqTk/attribute.h"
 #include "coreqTk/dialect.h"
+#include "coreqTk/null.h"
 #include "coreqTk/regexp.h"
 #include "coreqTk/unordered_map.h"
 #include "search/levenshtein.h"
@@ -97,7 +99,7 @@ substring matching
 **/
 class SubstringAlgorithm FINAL : public BaseAlgorithm {
  public:
-  ATTRIBUTE_NONNULL((2)) bool operator()(const char* s, Package* /* p */) const OVERRIDE { return (std::string(s).find(search_string) != std::string::npos); }
+  ATTRIBUTE_NONNULL((2)) bool operator()(const char* s, Package* /* p */) const OVERRIDE { return (std::strstr(s, search_string.c_str()) != NULLPTR); }
 };
 
 /**
