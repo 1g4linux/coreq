@@ -42,18 +42,19 @@ Levenshtein get_levenshtein_distance(const char* str_a, const char* str_b) {
     return m;
   }
 
-  vector<Levenshtein> arr(n + 1);
+  static vector<Levenshtein> arr;
+  arr.resize(n + 1);
   for (Levenshtein i(0); likely(i <= n); ++i) {
     arr[i] = i;  // start with 0 and add 1 (insert) for each char
   }
-  for (; m > 0; ++str_a, --m) {
+  for (; m > 0; ++str_b, --m) {
     vector<Levenshtein>::iterator it(arr.begin());
-    Levenshtein sub((*it)++);  // add 1 (delete *str_a)
+    Levenshtein sub((*it)++);  // add 1 (delete *str_b)
     for (size_t i(0); i < n; ++i) {
       Levenshtein c(*it);
-      // +1: insert str_b[i] or delete *str_a
+      // +1: insert str_a[i] or delete *str_b
       c = min(c, *(++it)) + 1;
-      if (str_b[i] != *str_a) {
+      if (str_a[i] != *str_b) {
         ++sub;  // +1: Substitute
       }
       if (c > sub) {

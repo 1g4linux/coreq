@@ -131,7 +131,7 @@ class FuzzyAlgorithm FINAL : public BaseAlgorithm {
   access from the static FuzzyAlgorithm::compare.
   I really don't know how to do this ..
   **/
-  typedef UNORDERED_MAP<std::string, Levenshtein> LevenshteinMap;
+  typedef UNORDERED_MAP<Package*, Levenshtein> LevenshteinMap;
   static LevenshteinMap* levenshtein_map;
 
   bool can_simplify() const OVERRIDE { return false; }

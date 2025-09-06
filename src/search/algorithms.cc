@@ -66,7 +66,7 @@ void FuzzyAlgorithm::init_static() {
 }
 
 bool FuzzyAlgorithm::compare(Package* p1, Package* p2) {
-  return ((*levenshtein_map)[p1->category + "/" + p1->name] < (*levenshtein_map)[p2->category + "/" + p2->name]);
+  return ((*levenshtein_map)[p1] < (*levenshtein_map)[p2]);
 }
 
 bool FuzzyAlgorithm::operator()(const char* s, Package* p) const {
@@ -75,7 +75,7 @@ bool FuzzyAlgorithm::operator()(const char* s, Package* p) const {
   bool ok(d <= max_levenshteindistance);
   if (ok) {
     if (p != NULLPTR) {
-      (*levenshtein_map)[p->category + "/" + p->name] = d;
+      (*levenshtein_map)[p] = d;
     }
   }
   return ok;
