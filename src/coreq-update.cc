@@ -66,7 +66,7 @@ class Pathname {
 
   ATTRIBUTE_NONNULL_ string resolve(CorePkgSettings* corepkg_settings) { return corepkg_settings->resolve_overlay_name(name, must_resolve); }
 
-  Pathname(string n, bool r) : name(n), must_resolve(r) {}
+  Pathname(const string& n, bool r) : name(n), must_resolve(r) {}
 };
 
 class Override {

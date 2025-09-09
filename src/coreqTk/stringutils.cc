@@ -699,7 +699,7 @@ void StringHash::output_depends() const {
   }
 }
 
-bool StringHash::frequency_comparison(const string a, const string b) {
+bool StringHash::frequency_comparison(const string& a, const string& b) {
   return ((comparison_this->str_map)[b] < (comparison_this->str_map)[a]);
 }
 

@@ -39,9 +39,9 @@ class CoreqRcOption {
 
   CoreqRcOption(OptionType t, const char* name, const char* val, const char* desc) : type(t), key(name), value(val), description(desc) {}
 
-  CoreqRcOption(const OptionType t, const std::string name, const std::string val, const std::string desc) : type(t), key(name), value(val), description(desc) {}
+  CoreqRcOption(const OptionType t, const std::string& name, const std::string& val, const std::string& desc) : type(t), key(name), value(val), description(desc) {}
 
-  CoreqRcOption(const std::string name, const std::string val) : type(LOCAL), key(name), local_value(val) {}
+  CoreqRcOption(const std::string& name, const std::string& val) : type(LOCAL), key(name), local_value(val) {}
 };
 
 class CoreqRc {

@@ -54,7 +54,7 @@ bool Category::deletePackage(const std::string& pkg_name) {
 }
 #endif
 
-Package* Category::addPackage(const string cat_name, const string& pkg_name) {
+Package* Category::addPackage(const string& cat_name, const string& pkg_name) {
   Package* p(new Package(cat_name, pkg_name));
   addPackage(p);
   return p;

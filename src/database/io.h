@@ -71,7 +71,7 @@ class File {
 
   bool read(char* s, std::string::size_type len) { return (std::fread(s, sizeof(*s), len, fp) == len); }
 
-  bool write(const std::string str) { return (std::fwrite(static_cast<const void*>(str.c_str()), sizeof(*(str.c_str())), str.size(), fp) == str.size()); }
+  bool write(const std::string& str) { return (std::fwrite(static_cast<const void*>(str.c_str()), sizeof(*(str.c_str())), str.size(), fp) == str.size()); }
 
   ATTRIBUTE_NONNULL((2)) bool read_string_plain(char* s, std::string::size_type len, std::string* errtext);
   bool write_string_plain(const std::string& str, std::string* errtext);

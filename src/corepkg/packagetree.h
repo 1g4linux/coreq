@@ -43,7 +43,7 @@ class Category : public coreq::ptr_container<std::set<PackagePtr> > {
 
   ATTRIBUTE_NONNULL_ void addPackage(Package* pkg) { insert(PackagePtr(pkg)); }
 
-  Package* addPackage(const std::string cat_name, const std::string& pkg_name);
+  Package* addPackage(const std::string& cat_name, const std::string& pkg_name);
 };
 
 class PackageTree : public std::map<std::string, Category*> {

@@ -485,7 +485,7 @@ class StringHash : public WordVec {
   typedef UNORDERED_MAP<std::string, StringHash::size_type> StrSizeMap;
   StrSizeMap str_map;
   static StringHash* comparison_this;
-  static bool frequency_comparison(const std::string a, const std::string b);
+  static bool frequency_comparison(const std::string& a, const std::string& b);
 };
 
 // Implementation of the templates:
