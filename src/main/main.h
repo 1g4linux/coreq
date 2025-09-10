@@ -21,5 +21,6 @@ int run_coreq_header(int argc, char* argv[]);
 int run_coreq_drop_permissions(int argc, char* argv[]);
 int run_masked_packages(int argc, char* argv[]);
 int run_versionsort(int argc, char* argv[]);
+int run_q(int argc, char* argv[]);
 
 #endif  // SRC_MAIN_MAIN_H_

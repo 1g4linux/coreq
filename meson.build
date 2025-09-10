@@ -1835,6 +1835,12 @@ coreq_only_lib += cli_lib
 coreq_only_lib += printformats_lib
 coreq_only_lib += search_lib
 
+q_only_lib = [ static_library('q_only',
+	join_paths('src', 'q.cc'),
+	join_paths('src', 'various', 'dispatch.cc'),
+	include_directories : incdir,
+) ]
+
 diff_only_lib = [ static_library('diff',
 	join_paths('src', 'coreq-diff.cc'),
 	include_directories : incdir,
@@ -2025,6 +2031,17 @@ coreq_dep += protobuf_dep
 executable('coreq', coreq_src,
 	dependencies : coreq_dep,
 	link_with : coreq_link_with,
+	include_directories : incdir,
+	install : true,
+)
+
+q_link_with = q_only_lib
+q_link_with += coreq_only_lib
+q_link_with += output_lib
+q_link_with += common_lib
+executable('q', join_paths('src', 'main', 'main_q.cc'),
+	dependencies : coreq_dep,
+	link_with : q_link_with,
 	include_directories : incdir,
 	install : true,
 )

@@ -100,6 +100,15 @@ If several are selected, main() will select depending on the call name.
 #endif
 #endif
 
+#ifdef Q_BINARY
+#ifdef USE_BINARY
+#undef BINARY_COLLECTION
+#define BINARY_COLLECTION 1
+#else
+#define USE_BINARY run_q
+#endif
+#endif
+
 #ifdef BINARY_COLLECTION
 #undef USE_BINARY
 #define USE_BINARY run_program
@@ -201,7 +210,11 @@ inline static int run_program(int argc, char* argv[]) {
     return run_versionsort(argc, argv);
 #endif
 #ifdef COREQ_BINARY
-  return run_coreq(argc, argv);
+  if (likely(program_lower.find("coreq") != string::npos))
+    return run_coreq(argc, argv);
+#endif
+#ifdef Q_BINARY
+  return run_q(argc, argv);
 #endif
 }
 #endif
