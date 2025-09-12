@@ -86,6 +86,7 @@ class VarDbPkg {
   ATTRIBUTE_NONNULL_ void readRestricted(const Package& p, InstVersion* v, const DBHeader& header) const;
   ATTRIBUTE_NONNULL_ void readInstDate(const Package& p, InstVersion* v) const;
   ATTRIBUTE_NONNULL_ void readDepend(const Package& p, InstVersion* v, const DBHeader& header) const;
+  ATTRIBUTE_NONNULL_ bool readContents(const Package& p, InstVersion* v) const;
 
   ATTRIBUTE_NONNULL_ bool readOverlay(const Package& p, InstVersion* v, const DBHeader& header) const;
   ATTRIBUTE_NONNULL_ std::string readOverlayLabel(const Package* p, const BasicVersion* v) const;

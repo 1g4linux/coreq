@@ -13,6 +13,7 @@
 #include <config.h>  // IWYU pragma: keep
 
 #include <ctime>
+#include <vector>
 
 #include "coreqTk/attribute.h"
 #include "coreqTk/dialect.h"
@@ -57,12 +58,32 @@ class InstVersion FINAL : public ExtendedVersion, public Keywords {
   WordVec inst_iuse;     ///< Useflags in iuse according to vardbpkg
   WordSet usedUse;       ///< Those useflags in iuse actually used
 
+  struct ContentsEntry {
+    enum Type { DIR_T, OBJ_T, SYM_T } type;
+    std::string path;
+    std::string sum;
+    std::time_t mtime;
+    std::string target;  // for symlinks
+  };
+  bool know_contents;
+  std::vector<ContentsEntry> contents;
+
   /**
   Similarly for overlay_keys
   **/
   bool know_overlay, overlay_failed;
 
-  InstVersion() : know_slot(false), read_failed(false), know_use(false), know_restricted(false), know_deps(false), know_eapi(false), know_instDate(false), know_overlay(false), overlay_failed(false) {}
+  InstVersion()
+      : know_slot(false),
+        read_failed(false),
+        know_use(false),
+        know_restricted(false),
+        know_deps(false),
+        know_eapi(false),
+        know_instDate(false),
+        know_contents(false),
+        know_overlay(false),
+        overlay_failed(false) {}
 
   ATTRIBUTE_PURE static coreq::SignedBool compare(const InstVersion& left, const InstVersion& right);
 

@@ -365,6 +365,51 @@ void VarDbPkg::readDepend(const Package& p, InstVersion* v, const DBHeader& head
   v->depend.set(depend[0], depend[1], depend[2], depend[3], depend[4], true);
 }
 
+bool VarDbPkg::readContents(const Package& p, InstVersion* v) const {
+  if (v->know_contents) {
+    return true;
+  }
+  v->know_contents = true;
+  v->contents.clear();
+  string dirname(m_directory + p.category + "/" + p.name + "-" + v->getFull());
+  LineVec lines;
+  if (unlikely(!pushback_lines((dirname + "/CONTENTS").c_str(), &lines, false, false, 0))) {
+    return false;
+  }
+  for (LineVec::const_iterator it(lines.begin()); it != lines.end(); ++it) {
+    WordVec words;
+    split_string(&words, *it);
+    if (words.empty()) {
+      continue;
+    }
+    InstVersion::ContentsEntry entry;
+    if (words[0] == "dir") {
+      if (words.size() < 2) continue;
+      entry.type = InstVersion::ContentsEntry::DIR_T;
+      entry.path = words[1];
+    }
+    else if (words[0] == "obj") {
+      if (words.size() < 4) continue;
+      entry.type = InstVersion::ContentsEntry::OBJ_T;
+      entry.path = words[1];
+      entry.sum = words[2];
+      entry.mtime = my_atos(words[3].c_str());
+    }
+    else if (words[0] == "sym") {
+      if (words.size() < 5) continue;
+      entry.type = InstVersion::ContentsEntry::SYM_T;
+      entry.path = words[1];
+      entry.target = words[3];
+      entry.mtime = my_atos(words[4].c_str());
+    }
+    else {
+      continue;
+    }
+    v->contents.PUSH_BACK(MOVE(entry));
+  }
+  return true;
+}
+
 /**
 Read category from db-directory
 **/
