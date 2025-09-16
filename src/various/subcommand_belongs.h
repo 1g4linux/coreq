@@ -10,6 +10,8 @@
 #include <vector>
 #include <climits>
 #include <cstdlib>
+#include <sys/stat.h>
+#include <unistd.h>
 #include "various/subcommand.h"
 #include "corepkg/vardbpkg.h"
 #include "corepkg/conf/corepkgsettings.h"
@@ -49,7 +51,18 @@ class SubcommandBelongs : public Subcommand {
       return EXIT_FAILURE;
     }
 
-    std::string full_vdb_path = coreqrc["EPREFIX_INSTALLED"] + VAR_DB_PKG;
+    std::string full_vdb_path;
+    struct stat st;
+    if (stat("pkg", &st) == 0 && S_ISDIR(st.st_mode)) {
+        char cwd[PATH_MAX];
+        if (getcwd(cwd, sizeof(cwd)) != NULL) {
+            full_vdb_path = std::string(cwd) + "/pkg/";
+        } else {
+            full_vdb_path = "pkg/";
+        }
+    } else {
+        full_vdb_path = coreqrc["EPREFIX_INSTALLED"] + VAR_DB_PKG;
+    }
 
     VarDbPkg vardb(full_vdb_path, true, true, false, false, false, false);
 
@@ -102,7 +115,7 @@ class SubcommandBelongs : public Subcommand {
                     if (vardb.readContents(pkg, &(*v_it))) {
                         for (std::vector<InstVersion::ContentsEntry>::const_iterator c_it = v_it->contents.begin(); c_it != v_it->contents.end(); ++c_it) {
                             if (c_it->path == query_file) {
-                                coreq::say("%s/%s") % pkg.category % v_it->getFull();
+                                coreq::say("%s/%s-%s") % pkg.category % pkg.name % v_it->getFull();
                                 found = true;
                                 break;
                             }

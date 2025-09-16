@@ -6,6 +6,7 @@
 #include "various/subcommand_list.h"
 #include "various/subcommand_files.h"
 #include "various/subcommand_belongs.h"
+#include "various/subcommand_check.h"
 #include "coreqrc/global.h"
 #include "coreqrc/coreqrc.h"
 #include "corepkg/eapi.h"
@@ -26,5 +27,6 @@ int run_q(int argc, char** argv) {
   dispatcher.registerSubcommand(new SubcommandList());
   dispatcher.registerSubcommand(new SubcommandFiles());
   dispatcher.registerSubcommand(new SubcommandBelongs());
+  dispatcher.registerSubcommand(new SubcommandCheck());
   return dispatcher.dispatch(argc, argv);
 }

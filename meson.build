@@ -2039,6 +2039,7 @@ q_link_with = q_only_lib
 q_link_with += coreq_only_lib
 q_link_with += output_lib
 q_link_with += common_lib
+q_link_with += cache_lib
 executable('q', join_paths('src', 'main', 'main_q.cc'),
 	dependencies : coreq_dep,
 	link_with : q_link_with,

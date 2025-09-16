@@ -8,6 +8,9 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <climits>
+#include <unistd.h>
+#include <sys/stat.h>
 #include "various/subcommand.h"
 #include "corepkg/vardbpkg.h"
 #include "corepkg/conf/corepkgsettings.h"
@@ -17,6 +20,10 @@
 #include "coreqTk/formated.h"
 #include "coreqTk/i18n.h"
 #include "coreqTk/parseerror.h"
+#include "coreqTk/stringutils.h"
+#include "coreqTk/utils.h"
+
+#define VAR_DB_PKG "/var/db/pkg/"
 
 class SubcommandFiles : public Subcommand {
  public:
@@ -43,38 +50,90 @@ class SubcommandFiles : public Subcommand {
       return EXIT_FAILURE;
     }
 
-    VarDbPkg vardb(corepkgsettings["ROOT"] + corepkgsettings["VDB_PATH"], 
-                   true, true, false, false, false, false);
+    std::string full_vdb_path;
+    struct stat st;
+    if (stat("pkg", &st) == 0 && S_ISDIR(st.st_mode)) {
+        char cwd[PATH_MAX];
+        if (getcwd(cwd, sizeof(cwd)) != NULL) {
+            full_vdb_path = std::string(cwd) + "/pkg/";
+        } else {
+            full_vdb_path = "pkg/";
+        }
+    } else {
+        full_vdb_path = coreqrc["EPREFIX_INSTALLED"] + VAR_DB_PKG;
+    }
+
+    VarDbPkg vardb(full_vdb_path, true, true, false, false, false, false);
 
     for (ArgumentReader::const_iterator it = ar.begin(); it != ar.end(); ++it) {
       if (it->type != Parameter::ARGUMENT) continue;
       
       std::string pattern = it->m_argument;
       
-      std::string category, name;
+      std::string category, name_ver;
       size_t slash = pattern.find('/');
       if (slash != std::string::npos) {
         category = pattern.substr(0, slash);
-        name = pattern.substr(slash + 1);
+        name_ver = pattern.substr(slash + 1);
       } else {
-        name = pattern;
+        name_ver = pattern;
+      }
+
+      std::string pkg_name, pkg_version;
+      if (!ExplodeAtom::split(&pkg_name, &pkg_version, name_ver.c_str())) {
+          pkg_name = name_ver;
+          pkg_version = "";
       }
 
       Package pkg;
       pkg.category = category;
-      pkg.name = name;
+      pkg.name = pkg_name;
 
-      InstVec* inst_vec = vardb.getInstalledVector(pkg);
-      if (inst_vec && !inst_vec->empty()) {
-        for (InstVec::iterator v_it = inst_vec->begin(); v_it != inst_vec->end(); ++v_it) {
-          if (vardb.readContents(pkg, &(*v_it))) {
-            for (std::vector<InstVersion::ContentsEntry>::const_iterator c_it = v_it->contents.begin(); c_it != v_it->contents.end(); ++c_it) {
-              coreq::say("%s") % c_it->path;
-            }
+      if (category.empty()) {
+          // If category is missing, we might need to search for it.
+          // But for now, let's assume it must be provided or we only find it if it's unique?
+          // Actually, let's try to get all categories and search.
+          WordVec categories;
+          if (pushback_files(full_vdb_path, &categories, NULLPTR, 2, true, false)) {
+              for (WordVec::const_iterator cat_it = categories.begin(); cat_it != categories.end(); ++cat_it) {
+                  pkg.category = *cat_it;
+                  InstVec* inst_vec = vardb.getInstalledVector(pkg);
+                  if (inst_vec && !inst_vec->empty()) {
+                      bool found_any = false;
+                      for (InstVec::iterator v_it = inst_vec->begin(); v_it != inst_vec->end(); ++v_it) {
+                          if (pkg_version.empty() || v_it->getFull() == pkg_version) {
+                              if (vardb.readContents(pkg, &(*v_it))) {
+                                  for (std::vector<InstVersion::ContentsEntry>::const_iterator c_it = v_it->contents.begin(); c_it != v_it->contents.end(); ++c_it) {
+                                      coreq::say("%s") % c_it->path;
+                                  }
+                                  found_any = true;
+                              }
+                          }
+                      }
+                      if (found_any) break; // Stop after first category matching package name
+                  }
+              }
           }
-        }
       } else {
-        coreq::say_error(_("Package not found: %s")) % pattern;
+          InstVec* inst_vec = vardb.getInstalledVector(pkg);
+          if (inst_vec && !inst_vec->empty()) {
+            bool found_any = false;
+            for (InstVec::iterator v_it = inst_vec->begin(); v_it != inst_vec->end(); ++v_it) {
+              if (pkg_version.empty() || v_it->getFull() == pkg_version) {
+                if (vardb.readContents(pkg, &(*v_it))) {
+                  for (std::vector<InstVersion::ContentsEntry>::const_iterator c_it = v_it->contents.begin(); c_it != v_it->contents.end(); ++c_it) {
+                    coreq::say("%s") % c_it->path;
+                  }
+                  found_any = true;
+                }
+              }
+            }
+            if (!found_any) {
+                coreq::say_error(_("Package found but version mismatch: %s")) % pattern;
+            }
+          } else {
+            coreq::say_error(_("Package not found: %s")) % pattern;
+          }
       }
     }
 
