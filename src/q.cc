@@ -10,6 +10,9 @@
 #include "various/subcommand_depends.h"
 #include "various/subcommand_depgraph.h"
 #include "various/subcommand_has.h"
+#include "various/subcommand_hasuse.h"
+#include "various/subcommand_keywords.h"
+#include "various/subcommand_meta.h"
 #include "coreqrc/global.h"
 #include "coreqrc/coreqrc.h"
 #include "corepkg/eapi.h"
@@ -17,6 +20,7 @@
 #include "corepkg/extendedversion.h"
 #include "corepkg/packagetree.h"
 #include "corepkg/conf/corepkgsettings.h"
+#include "coreqTk/ansicolor.h"
 
 int run_q(int argc, char** argv) {
   // Initialize static classes
@@ -24,6 +28,7 @@ int run_q(int argc, char** argv) {
   Category::init_static();
   ExtendedVersion::init_static();
   CorePkgSettings::init_static();
+  AnsiColor::init_static();
 
   get_coreqrc(COREQ_VARS_PREFIX);
   SubcommandDispatcher dispatcher;
@@ -34,5 +39,8 @@ int run_q(int argc, char** argv) {
   dispatcher.registerSubcommand(new SubcommandDepends());
   dispatcher.registerSubcommand(new SubcommandDepgraph());
   dispatcher.registerSubcommand(new SubcommandHas());
+  dispatcher.registerSubcommand(new SubcommandHasuse());
+  dispatcher.registerSubcommand(new SubcommandKeywords());
+  dispatcher.registerSubcommand(new SubcommandMeta());
   return dispatcher.dispatch(argc, argv);
 }
