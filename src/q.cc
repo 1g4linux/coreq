@@ -15,6 +15,7 @@
 #include "various/subcommand_meta.h"
 #include "various/subcommand_size.h"
 #include "various/subcommand_uses.h"
+#include "various/subcommand_which.h"
 #include "coreqrc/global.h"
 #include "coreqrc/coreqrc.h"
 #include "corepkg/eapi.h"
@@ -46,5 +47,6 @@ int run_q(int argc, char** argv) {
   dispatcher.registerSubcommand(new SubcommandMeta());
   dispatcher.registerSubcommand(new SubcommandSize());
   dispatcher.registerSubcommand(new SubcommandUses());
+  dispatcher.registerSubcommand(new SubcommandWhich());
   return dispatcher.dispatch(argc, argv);
 }
