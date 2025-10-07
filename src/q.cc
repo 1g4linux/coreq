@@ -13,6 +13,7 @@
 #include "various/subcommand_hasuse.h"
 #include "various/subcommand_keywords.h"
 #include "various/subcommand_meta.h"
+#include "various/subcommand_regen.h"
 #include "various/subcommand_size.h"
 #include "various/subcommand_uses.h"
 #include "various/subcommand_which.h"
@@ -45,6 +46,7 @@ int run_q(int argc, char** argv) {
   dispatcher.registerSubcommand(new SubcommandHasuse());
   dispatcher.registerSubcommand(new SubcommandKeywords());
   dispatcher.registerSubcommand(new SubcommandMeta());
+  dispatcher.registerSubcommand(new SubcommandRegen());
   dispatcher.registerSubcommand(new SubcommandSize());
   dispatcher.registerSubcommand(new SubcommandUses());
   dispatcher.registerSubcommand(new SubcommandWhich());
