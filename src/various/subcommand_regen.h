@@ -127,43 +127,50 @@ class SubcommandRegen : public Subcommand {
             }
 
             // Reconciliation
-            bool needs_manifest = false;
-            bool needs_fetch = false;
+            bool needs_regen = false;
             std::vector<std::string> missing_in_manifest;
-            std::vector<std::string> missing_in_distdir;
+            std::vector<std::string> extra_in_manifest;
             std::vector<std::string> size_mismatch;
 
+            // Check if all expected files are in Manifest
             for (std::set<std::string>::iterator it = expected_distfiles.begin(); it != expected_distfiles.end(); ++it) {
                 std::string filename = *it;
                 if (manifest_dists.find(filename) == manifest_dists.end()) {
                     missing_in_manifest.push_back(filename);
-                    needs_manifest = true;
-                }
-
-                struct stat st;
-                std::string distfile_path = distdir + "/" + filename;
-                if (stat(distfile_path.c_str(), &st) != 0) {
-                    missing_in_distdir.push_back(filename);
-                    needs_fetch = true;
-                } else if (manifest_dists.count(filename) && st.st_size != (off_t)manifest_dists[filename].size) {
-                    size_mismatch.push_back(filename);
-                    needs_fetch = true;
-                    needs_manifest = true;
+                    needs_regen = true;
+                } else {
+                    // File is in Manifest, check if it exists in DISTDIR and has correct size
+                    struct stat st;
+                    std::string distfile_path = distdir + "/" + filename;
+                    if (stat(distfile_path.c_str(), &st) == 0) {
+                        if (st.st_size != (off_t)manifest_dists[filename].size) {
+                            size_mismatch.push_back(filename);
+                            needs_regen = true;
+                        }
+                    }
                 }
             }
 
-            if (needs_manifest || needs_fetch) {
+            // Check if Manifest has files that are no longer expected
+            for (std::map<std::string, ManifestDist>::iterator it = manifest_dists.begin(); it != manifest_dists.end(); ++it) {
+                if (expected_distfiles.find(it->first) == expected_distfiles.end()) {
+                    extra_in_manifest.push_back(it->first);
+                    needs_regen = true;
+                }
+            }
+
+            if (needs_regen) {
                 if (verbose || check) {
-                    coreq::say("%s/%s: %s") % *cat_it % *pkg_it % (needs_fetch ? "NEEDS_FETCH" : "NEEDS_MANIFEST");
+                    coreq::say("%s/%s: %s") % *cat_it % *pkg_it % "NEEDS_REGEN";
                     if (verbose) {
                         for (size_t i = 0; i < missing_in_manifest.size(); ++i) coreq::say("  - Missing in Manifest: %s") % missing_in_manifest[i];
-                        for (size_t i = 0; i < missing_in_distdir.size(); ++i) coreq::say("  - Missing in DISTDIR: %s") % missing_in_distdir[i];
-                        for (size_t i = 0; i < size_mismatch.size(); ++i) coreq::say("  - Size mismatch: %s") % size_mismatch[i];
+                        for (size_t i = 0; i < extra_in_manifest.size(); ++i) coreq::say("  - Extra in Manifest: %s") % extra_in_manifest[i];
+                        for (size_t i = 0; i < size_mismatch.size(); ++i) coreq::say("  - Size mismatch in DISTDIR: %s") % size_mismatch[i];
                     }
                 }
 
                 if (fix && !newest_ebuild.empty()) {
-                    coreq::say(_("Fixing %s/%s...")) % *cat_it % *pkg_it;
+                    coreq::say(_("Regenerating Manifest for %s/%s...")) % *cat_it % *pkg_it;
                     std::string cmd = "ebuild " + pkg_path + "/" + newest_ebuild + " manifest";
                     if (verbose) coreq::say("  Running: %s") % cmd;
                     if (system(cmd.c_str()) != 0) {
