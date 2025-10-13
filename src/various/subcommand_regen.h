@@ -12,6 +12,7 @@
 #include <set>
 #include <fstream>
 #include <cstdlib>
+#include <csignal>
 #include <sys/stat.h>
 #include <unistd.h>
 #include "various/subcommand.h"
@@ -28,6 +29,12 @@
 #include "coreqTk/varsreader.h"
 #include "cache/common/selectors.h"
 
+static volatile std::sig_atomic_t sigint_received = 0;
+
+static void handle_sigint(int) {
+    sigint_received = 1;
+}
+
 struct ManifestDist {
     std::string filename;
     uint64_t size;
@@ -37,19 +44,26 @@ struct ManifestDist {
 class SubcommandRegen : public Subcommand {
  public:
   virtual int run(int argc, char** argv) {
+    sigint_received = 0;
+#ifdef HAVE_SIGACTION
+    struct sigaction sa;
+    sa.sa_handler = handle_sigint;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+    sigaction(SIGINT, &sa, NULLPTR);
+#else
+    std::signal(SIGINT, handle_sigint);
+#endif
+
     CoreqRc& coreqrc = get_coreqrc();
     ParseError parse_error;
     CorePkgSettings corepkgsettings(&coreqrc, &parse_error, true, true);
 
     bool help = false;
-    bool fix = false;
-    bool check = false;
     bool verbose = false;
     
     OptionList opt_table;
     opt_table.PUSH_BACK(Option("help", 'h', Option::BOOLEAN, &help));
-    opt_table.PUSH_BACK(Option("fix", 'f', Option::BOOLEAN, &fix));
-    opt_table.PUSH_BACK(Option("check", 'c', Option::BOOLEAN, &check));
     opt_table.PUSH_BACK(Option("verbose", 'v', Option::BOOLEAN, &verbose));
     
     ArgumentReader ar(argc, argv, opt_table);
@@ -58,8 +72,6 @@ class SubcommandRegen : public Subcommand {
       return EXIT_SUCCESS;
     }
     
-    if (!fix && !check) check = true; // Default to check
-
     std::string portdir = corepkgsettings["PORTDIR"];
     if (portdir.empty()) {
         struct stat st;
@@ -89,6 +101,7 @@ class SubcommandRegen : public Subcommand {
     }
 
     for (WordVec::const_iterator cat_it = categories.begin(); cat_it != categories.end(); ++cat_it) {
+        if (sigint_received) break;
         std::string cat_dir = portdir + "/" + *cat_it;
         WordVec packages;
         if (!pushback_files(cat_dir, &packages, NULLPTR, 2, true, false)) {
@@ -96,6 +109,7 @@ class SubcommandRegen : public Subcommand {
         }
 
         for (WordVec::const_iterator pkg_it = packages.begin(); pkg_it != packages.end(); ++pkg_it) {
+            if (sigint_received) break;
             std::string pkg_path = cat_dir + "/" + *pkg_it;
             std::string manifest_path = pkg_path + "/Manifest";
             
@@ -160,25 +174,27 @@ class SubcommandRegen : public Subcommand {
             }
 
             if (needs_regen) {
-                if (verbose || check) {
-                    coreq::say("%s/%s: %s") % *cat_it % *pkg_it % "NEEDS_REGEN";
+                if (!newest_ebuild.empty()) {
+                    coreq::say(_("Regenerating Manifest for %s/%s...")) % *cat_it % *pkg_it;
                     if (verbose) {
                         for (size_t i = 0; i < missing_in_manifest.size(); ++i) coreq::say("  - Missing in Manifest: %s") % missing_in_manifest[i];
                         for (size_t i = 0; i < extra_in_manifest.size(); ++i) coreq::say("  - Extra in Manifest: %s") % extra_in_manifest[i];
                         for (size_t i = 0; i < size_mismatch.size(); ++i) coreq::say("  - Size mismatch in DISTDIR: %s") % size_mismatch[i];
                     }
-                }
-
-                if (fix && !newest_ebuild.empty()) {
-                    coreq::say(_("Regenerating Manifest for %s/%s...")) % *cat_it % *pkg_it;
                     std::string cmd = "ebuild " + pkg_path + "/" + newest_ebuild + " manifest";
                     if (verbose) coreq::say("  Running: %s") % cmd;
                     if (system(cmd.c_str()) != 0) {
                         coreq::say_error(_("Failed to run: %s")) % cmd;
                     }
+                    if (sigint_received) break;
                 }
             }
         }
+    }
+
+    if (sigint_received) {
+        coreq::say(_("Interrupted by user."));
+        return EXIT_FAILURE;
     }
 
     return EXIT_SUCCESS;
@@ -247,8 +263,6 @@ class SubcommandRegen : public Subcommand {
   virtual const char* usage() const { return "Usage: q regen [options]\n"
                                              "Options:\n"
                                              "  -h, --help     show this help\n"
-                                             "  -c, --check    check only (default)\n"
-                                             "  -f, --fix      fetch missing and regenerate manifests\n"
                                              "  -v, --verbose  be more talkative"; }
 };
 
