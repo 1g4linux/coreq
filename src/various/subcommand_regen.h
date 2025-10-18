@@ -119,6 +119,7 @@ class SubcommandRegen : public Subcommand {
             parse_manifest(manifest_path, manifest_dists);
 
             std::set<std::string> expected_distfiles;
+            bool is_complex = false;
             WordVec ebuild_files;
             if (!scandir_cc(pkg_path, &ebuild_files, ebuild_selector)) {
                 continue;
@@ -137,7 +138,9 @@ class SubcommandRegen : public Subcommand {
                 std::string::size_type pos = ebuild_pos(*eb_it);
                 if (pos != std::string::npos) {
                     if (ExplodeAtom::split(&pn, &pv, eb_it->substr(0, pos).c_str())) {
-                        parse_ebuild_src_uri(full_eb_path, pn, pv, expected_distfiles);
+                        if (!parse_ebuild_src_uri(full_eb_path, pn, pv, expected_distfiles)) {
+                            is_complex = true;
+                        }
                     }
                 }
             }
@@ -168,10 +171,12 @@ class SubcommandRegen : public Subcommand {
             }
 
             // Check if Manifest has files that are no longer expected
-            for (std::map<std::string, ManifestDist>::iterator it = manifest_dists.begin(); it != manifest_dists.end(); ++it) {
-                if (expected_distfiles.find(it->first) == expected_distfiles.end()) {
-                    extra_in_manifest.push_back(it->first);
-                    needs_regen = true;
+            if (!is_complex) {
+                for (std::map<std::string, ManifestDist>::iterator it = manifest_dists.begin(); it != manifest_dists.end(); ++it) {
+                    if (expected_distfiles.find(it->first) == expected_distfiles.end()) {
+                        extra_in_manifest.push_back(it->first);
+                        needs_regen = true;
+                    }
                 }
             }
 
@@ -228,7 +233,7 @@ class SubcommandRegen : public Subcommand {
     }
   }
 
-  void parse_ebuild_src_uri(const std::string& path, const std::string& pn, const std::string& pv, std::set<std::string>& expected) {
+  bool parse_ebuild_src_uri(const std::string& path, const std::string& pn, const std::string& pv, std::set<std::string>& expected) {
     WordIterateMap env;
     env["PN"] = pn;
     env["PV"] = pv;
@@ -237,35 +242,63 @@ class SubcommandRegen : public Subcommand {
     std::string err;
     VarsReader reader(VarsReader::SUBST_VARS | VarsReader::INTO_MAP);
     reader.useMap(&env);
-    if (!reader.read(path.c_str(), &err, false)) return;
+    if (!reader.read(path.c_str(), &err, false)) return true;
     
     const std::string* src_uri = reader.find("SRC_URI");
-    if (!src_uri) return;
+    if (!src_uri) return true;
     
-    extract_distfiles(*src_uri, expected);
+    return extract_distfiles(*src_uri, expected);
   }
 
-  void extract_distfiles(const std::string& src_uri, std::set<std::string>& files) {
+  bool extract_distfiles(const std::string& src_uri, std::set<std::string>& files) {
     WordVec parts = split_string(src_uri);
+    bool complete = true;
     for (size_t i = 0; i < parts.size(); ++i) {
+        if (parts[i].find("?") != std::string::npos) {
+            // Found a conditional. We want to skip the next part (usually '(') and everything until its ')'
+            if (i + 1 < parts.size() && parts[i+1] == "(") {
+                int depth = 1;
+                i += 2; // Move past 'use?' and '('
+                while (i < parts.size() && depth > 0) {
+                    if (parts[i] == "(") depth++;
+                    else if (parts[i] == ")") depth--;
+                    i++;
+                }
+                i--; // Back off to current ')' so the loop increment handles it
+            } else {
+                // Single part conditional like 'use? http://url'
+                i++;
+            }
+            continue;
+        }
+        
         if (parts[i] == "(" || parts[i] == ")") continue;
-        if (parts[i].find("?") != std::string::npos) continue; // Skip USE conditionals for Tier A
 
+        std::string filename;
         if (parts[i] == "->") {
             if (i + 1 < parts.size()) {
-                files.insert(parts[i+1]);
+                filename = parts[i+1];
                 i++;
             }
         } else if (parts[i].find("://") != std::string::npos) {
             // It's a URL. If NOT followed by ->, use basename
-            if (i + 1 == parts.size() || parts[i+1] != "->") {
+            if (i + 1 >= parts.size() || parts[i+1] != "->") {
                 size_t last_slash = parts[i].find_last_of('/');
                 if (last_slash != std::string::npos) {
-                    files.insert(parts[i].substr(last_slash + 1));
+                    filename = parts[i].substr(last_slash + 1);
                 }
             }
         }
+
+        if (!filename.empty()) {
+            if (filename.find('$') != std::string::npos || filename.find('(') != std::string::npos || filename.find('{') != std::string::npos) {
+                complete = false;
+            } else {
+                files.insert(filename);
+            }
+        }
     }
+    return complete;
   }
 
   virtual const char* name() const { return "regen"; }

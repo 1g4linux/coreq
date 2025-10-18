@@ -215,6 +215,9 @@ inline static int run_program(int argc, char* argv[]) {
 #endif
 #ifdef Q_BINARY
   return run_q(argc, argv);
+#else
+  coreq::say_error(_("cannot identify which binary to run: %s")) % program_name;
+  return EXIT_FAILURE;
 #endif
 }
 #endif
