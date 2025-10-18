@@ -61,10 +61,12 @@ class SubcommandRegen : public Subcommand {
 
     bool help = false;
     bool verbose = false;
+    bool dry_run = false;
     
     OptionList opt_table;
     opt_table.PUSH_BACK(Option("help", 'h', Option::BOOLEAN, &help));
     opt_table.PUSH_BACK(Option("verbose", 'v', Option::BOOLEAN, &verbose));
+    opt_table.PUSH_BACK(Option("dry-run", 'n', Option::BOOLEAN, &dry_run));
     
     ArgumentReader ar(argc, argv, opt_table);
     if (help) {
@@ -175,16 +177,24 @@ class SubcommandRegen : public Subcommand {
 
             if (needs_regen) {
                 if (!newest_ebuild.empty()) {
-                    coreq::say(_("Regenerating Manifest for %s/%s...")) % *cat_it % *pkg_it;
-                    if (verbose) {
+                    if (dry_run) {
+                        coreq::say(_("[DRY-RUN] Would regenerate Manifest for %s/%s")) % *cat_it % *pkg_it;
+                    } else {
+                        coreq::say(_("Regenerating Manifest for %s/%s...")) % *cat_it % *pkg_it;
+                    }
+
+                    if (verbose || dry_run) {
                         for (size_t i = 0; i < missing_in_manifest.size(); ++i) coreq::say("  - Missing in Manifest: %s") % missing_in_manifest[i];
                         for (size_t i = 0; i < extra_in_manifest.size(); ++i) coreq::say("  - Extra in Manifest: %s") % extra_in_manifest[i];
                         for (size_t i = 0; i < size_mismatch.size(); ++i) coreq::say("  - Size mismatch in DISTDIR: %s") % size_mismatch[i];
                     }
-                    std::string cmd = "ebuild " + pkg_path + "/" + newest_ebuild + " manifest";
-                    if (verbose) coreq::say("  Running: %s") % cmd;
-                    if (system(cmd.c_str()) != 0) {
-                        coreq::say_error(_("Failed to run: %s")) % cmd;
+
+                    if (!dry_run) {
+                        std::string cmd = "ebuild " + pkg_path + "/" + newest_ebuild + " manifest";
+                        if (verbose) coreq::say("  Running: %s") % cmd;
+                        if (system(cmd.c_str()) != 0) {
+                            coreq::say_error(_("Failed to run: %s")) % cmd;
+                        }
                     }
                     if (sigint_received) break;
                 }
@@ -263,6 +273,7 @@ class SubcommandRegen : public Subcommand {
   virtual const char* usage() const { return "Usage: q regen [options]\n"
                                              "Options:\n"
                                              "  -h, --help     show this help\n"
+                                             "  -n, --dry-run  show what would be done and why\n"
                                              "  -v, --verbose  be more talkative"; }
 };
 
