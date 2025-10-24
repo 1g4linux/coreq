@@ -28,6 +28,9 @@
 #include "coreqTk/stringutils.h"
 #include "coreqTk/varsreader.h"
 #include "cache/common/selectors.h"
+#include "cache/common/assign_reader.h"
+#include "cache/common/flat_reader.h"
+#include "corepkg/depend.h"
 
 static volatile std::sig_atomic_t sigint_received = 0;
 
@@ -138,9 +141,15 @@ class SubcommandRegen : public Subcommand {
                 std::string::size_type pos = ebuild_pos(*eb_it);
                 if (pos != std::string::npos) {
                     if (ExplodeAtom::split(&pn, &pv, eb_it->substr(0, pos).c_str())) {
-                        if (!parse_ebuild_src_uri(full_eb_path, pn, pv, expected_distfiles)) {
-                            is_complex = true;
+                        bool eb_complex = false;
+                        // Try metadata cache first for proper expansion
+                        if (!parse_metadata_src_uri(portdir, *cat_it, *pkg_it, *eb_it, expected_distfiles)) {
+                            // Fallback to static ebuild parsing
+                            if (!parse_ebuild_src_uri(full_eb_path, pn, pv, expected_distfiles)) {
+                                eb_complex = true;
+                            }
                         }
+                        if (eb_complex) is_complex = true;
                     }
                 }
             }
@@ -231,6 +240,36 @@ class SubcommandRegen : public Subcommand {
             dists[info.filename] = info;
         }
     }
+  }
+
+  bool parse_metadata_src_uri(const std::string& portdir, const std::string& cat, const std::string& pkg, const std::string& ebuild, std::set<std::string>& expected) {
+    std::string p = ebuild;
+    if (p.size() > 7 && p.compare(p.size() - 7, 7, ".ebuild") == 0) {
+        p.erase(p.size() - 7);
+    }
+    
+    std::string md5_path = portdir + "/metadata/md5-cache/" + cat + "/" + p;
+    struct stat st;
+    if (stat(md5_path.c_str(), &st) != 0) return false;
+
+    // We need a dummy cache for the readers
+    class DummyCache : public BasicCache {
+    public:
+        virtual bool initialize(const std::string&) { return true; }
+        virtual const char* getType() const { return "dummy"; }
+        virtual bool readCategoryPrepare(const char*) { return true; }
+        virtual bool readCategory(Category*) { return true; }
+    } dummy;
+
+    AssignReader reader(&dummy);
+    std::string eapi, keywords, slot, iuse, req_use, restr, props, src_uri;
+    Depend dep;
+    reader.get_keywords_slot_iuse_restrict(md5_path, &eapi, &keywords, &slot, &iuse, &req_use, &restr, &props, &dep, &src_uri);
+    
+    if (src_uri.empty()) return false;
+    
+    extract_distfiles(src_uri, expected);
+    return true;
   }
 
   bool parse_ebuild_src_uri(const std::string& path, const std::string& pn, const std::string& pv, std::set<std::string>& expected) {
