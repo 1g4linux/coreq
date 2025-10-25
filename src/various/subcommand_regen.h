@@ -129,6 +129,7 @@ class SubcommandRegen : public Subcommand {
             }
 
             std::string newest_ebuild;
+            std::string newest_non_live;
             for (WordVec::const_iterator eb_it = ebuild_files.begin(); eb_it != ebuild_files.end(); ++eb_it) {
                 if (eb_it->find(".ebuild") == std::string::npos) continue;
                 
@@ -141,6 +142,13 @@ class SubcommandRegen : public Subcommand {
                 std::string::size_type pos = ebuild_pos(*eb_it);
                 if (pos != std::string::npos) {
                     if (ExplodeAtom::split(&pn, &pv, eb_it->substr(0, pos).c_str())) {
+                        bool is_live = (pv == "9999" || (pv.size() >= 5 && pv.compare(pv.size() - 5, 5, ".9999") == 0));
+                        if (is_live) continue;
+
+                        if (newest_non_live.empty() || *eb_it > newest_non_live) {
+                            newest_non_live = *eb_it;
+                        }
+
                         bool eb_complex = false;
                         // Try metadata cache first for proper expansion
                         if (!parse_metadata_src_uri(portdir, *cat_it, *pkg_it, *eb_it, expected_distfiles)) {
@@ -153,6 +161,8 @@ class SubcommandRegen : public Subcommand {
                     }
                 }
             }
+
+            if (newest_non_live.empty()) newest_non_live = newest_ebuild;
 
             // Reconciliation
             bool needs_regen = false;
@@ -190,7 +200,7 @@ class SubcommandRegen : public Subcommand {
             }
 
             if (needs_regen) {
-                if (!newest_ebuild.empty()) {
+                if (!newest_non_live.empty()) {
                     if (dry_run) {
                         coreq::say(_("[DRY-RUN] Would regenerate Manifest for %s/%s")) % *cat_it % *pkg_it;
                     } else {
@@ -204,7 +214,7 @@ class SubcommandRegen : public Subcommand {
                     }
 
                     if (!dry_run) {
-                        std::string cmd = "ebuild " + pkg_path + "/" + newest_ebuild + " manifest";
+                        std::string cmd = "ebuild " + pkg_path + "/" + newest_non_live + " manifest";
                         if (verbose) coreq::say("  Running: %s") % cmd;
                         if (system(cmd.c_str()) != 0) {
                             coreq::say_error(_("Failed to run: %s")) % cmd;
@@ -330,7 +340,13 @@ class SubcommandRegen : public Subcommand {
         }
 
         if (!filename.empty()) {
-            if (filename.find('$') != std::string::npos || filename.find('(') != std::string::npos || filename.find('{') != std::string::npos) {
+            if (filename.find('$') != std::string::npos || 
+                filename.find('(') != std::string::npos || 
+                filename.find('{') != std::string::npos ||
+                filename.find(')') != std::string::npos ||
+                filename.find('}') != std::string::npos ||
+                filename.find('*') != std::string::npos ||
+                filename.find('?') != std::string::npos) {
                 complete = false;
             } else {
                 files.insert(filename);
