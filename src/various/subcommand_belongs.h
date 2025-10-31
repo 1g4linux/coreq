@@ -136,6 +136,7 @@ class SubcommandBelongs : public Subcommand {
   }
 
   virtual const char* name() const { return "belongs"; }
+  virtual const char* alias() const { return "b"; }
   virtual const char* description() const { return "list what package FILES belong to"; }
   virtual const char* usage() const { return "Usage: q belongs [options] <FILE>"; }
 };

@@ -142,6 +142,7 @@ class SubcommandHasuse : public Subcommand {
   }
 
   virtual const char* name() const { return "hasuse"; }
+  virtual const char* alias() const { return "h"; }
   virtual const char* description() const { return "list all packages that have USE flag"; }
   virtual const char* usage() const { return "Usage: q hasuse [options] <flag>"; }
 };

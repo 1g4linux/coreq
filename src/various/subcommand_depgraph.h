@@ -210,6 +210,7 @@ class SubcommandDepgraph : public Subcommand {
   }
 
   virtual const char* name() const { return "depgraph"; }
+  virtual const char* alias() const { return "g"; }
   virtual const char* description() const { return "display a tree of all dependencies for PKG"; }
   virtual const char* usage() const { return "Usage: q depgraph [options] <PKG>"; }
 };

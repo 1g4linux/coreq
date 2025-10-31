@@ -202,6 +202,7 @@ class SubcommandUses : public Subcommand {
   }
 
   virtual const char* name() const { return "uses"; }
+  virtual const char* alias() const { return "u"; }
   virtual const char* description() const { return "display USE flags for PKG"; }
   virtual const char* usage() const { return "Usage: q uses [options] <PKG>"; }
 };

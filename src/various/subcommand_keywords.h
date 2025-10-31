@@ -189,6 +189,7 @@ class SubcommandKeywords : public Subcommand {
   }
 
   virtual const char* name() const { return "keywords"; }
+  virtual const char* alias() const { return "y"; }
   virtual const char* description() const { return "display keywords for specified PKG"; }
   virtual const char* usage() const { return "Usage: q keywords [options] <PKG>"; }
 };

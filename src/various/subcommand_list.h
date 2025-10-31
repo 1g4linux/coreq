@@ -12,6 +12,7 @@ class SubcommandList : public Subcommand {
  public:
   virtual int run(int argc, char** argv) { return run_coreq(argc, argv); }
   virtual const char* name() const { return "list"; }
+  virtual const char* alias() const { return "l"; }
   virtual const char* description() const { return "list packages matching a pattern"; }
   virtual const char* usage() const { return "Usage: q list [options] <pattern>"; }
 };

@@ -164,6 +164,7 @@ class SubcommandMeta : public Subcommand {
   }
 
   virtual const char* name() const { return "meta"; }
+  virtual const char* alias() const { return "m"; }
   virtual const char* description() const { return "display metadata about PKG"; }
   virtual const char* usage() const { return "Usage: q meta [options] <PKG>"; }
 };

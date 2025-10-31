@@ -141,6 +141,7 @@ class SubcommandWhich : public Subcommand {
   }
 
   virtual const char* name() const { return "which"; }
+  virtual const char* alias() const { return "w"; }
   virtual const char* description() const { return "print full path to ebuild for PKG"; }
   virtual const char* usage() const { return "Usage: q which [options] <PKG>"; }
 };

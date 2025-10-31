@@ -16,6 +16,7 @@ class Subcommand {
   virtual const char* name() const = 0;
   virtual const char* description() const = 0;
   virtual const char* usage() const = 0;
+  virtual const char* alias() const { return nullptr; }
 };
 
 #endif  // SRC_VARIOUS_SUBCOMMAND_H_

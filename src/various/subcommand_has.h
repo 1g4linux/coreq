@@ -114,6 +114,7 @@ class SubcommandHas : public Subcommand {
   }
 
   virtual const char* name() const { return "has"; }
+  virtual const char* alias() const { return "a"; }
   virtual const char* description() const { return "list all packages for matching ENVIRONMENT data stored in /var/db/pkg"; }
   virtual const char* usage() const { return "Usage: q has <variable> <value>"; }
 };

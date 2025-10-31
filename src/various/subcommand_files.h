@@ -141,6 +141,7 @@ class SubcommandFiles : public Subcommand {
   }
 
   virtual const char* name() const { return "files"; }
+  virtual const char* alias() const { return "f"; }
   virtual const char* description() const { return "list all files installed by PKG"; }
   virtual const char* usage() const { return "Usage: q files [options] <PKG>"; }
 };

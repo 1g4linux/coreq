@@ -175,6 +175,7 @@ class SubcommandDepends : public Subcommand {
   }
 
   virtual const char* name() const { return "depends"; }
+  virtual const char* alias() const { return "d"; }
   virtual const char* description() const { return "list all packages directly depending on ATOM"; }
   virtual const char* usage() const { return "Usage: q depends [options] <ATOM>"; }
 };

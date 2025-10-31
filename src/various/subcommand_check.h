@@ -199,6 +199,7 @@ class SubcommandCheck : public Subcommand {
   }
 
   virtual const char* name() const { return "check"; }
+  virtual const char* alias() const { return "k"; }
   virtual const char* description() const { return "verify checksums and timestamps for PKG"; }
   virtual const char* usage() const { return "Usage: q check [options] <PKG>"; }
 };

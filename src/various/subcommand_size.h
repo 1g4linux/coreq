@@ -172,6 +172,7 @@ class SubcommandSize : public Subcommand {
   }
 
   virtual const char* name() const { return "size"; }
+  virtual const char* alias() const { return "s"; }
   virtual const char* description() const { return "display total size of all files owned by PKG"; }
   virtual const char* usage() const { return "Usage: q size [options] <PKG>"; }
 };

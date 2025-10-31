@@ -357,6 +357,7 @@ class SubcommandRegen : public Subcommand {
   }
 
   virtual const char* name() const { return "regen"; }
+  virtual const char* alias() const { return "r"; }
   virtual const char* description() const { return "intelligently check and regenerate manifests"; }
   virtual const char* usage() const { return "Usage: q regen [options]\n"
                                              "Options:\n"
