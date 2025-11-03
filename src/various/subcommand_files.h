@@ -22,6 +22,7 @@
 #include "coreqTk/parseerror.h"
 #include "coreqTk/stringutils.h"
 #include "coreqTk/utils.h"
+#include "coreqTk/ansicolor.h"
 
 #define VAR_DB_PKG "/var/db/pkg/"
 
@@ -32,6 +33,7 @@ class SubcommandFiles : public Subcommand {
     
     ParseError parse_error;
     CorePkgSettings corepkgsettings(&coreqrc, &parse_error, true, true);
+    AnsiColor& c = get_ansicolor();
 
     OptionList opt_table;
     bool help = false;
@@ -45,7 +47,7 @@ class SubcommandFiles : public Subcommand {
     }
 
     if (ar.empty()) {
-      coreq::say_error(_("No package specified."));
+      coreq::say_error(c.red(_("No package specified.")));
       coreq::say("%s") % usage();
       return EXIT_FAILURE;
     }
@@ -90,9 +92,6 @@ class SubcommandFiles : public Subcommand {
       pkg.name = pkg_name;
 
       if (category.empty()) {
-          // If category is missing, we might need to search for it.
-          // But for now, let's assume it must be provided or we only find it if it's unique?
-          // Actually, let's try to get all categories and search.
           WordVec categories;
           if (pushback_files(full_vdb_path, &categories, NULLPTR, 2, true, false)) {
               for (WordVec::const_iterator cat_it = categories.begin(); cat_it != categories.end(); ++cat_it) {
@@ -103,14 +102,21 @@ class SubcommandFiles : public Subcommand {
                       for (InstVec::iterator v_it = inst_vec->begin(); v_it != inst_vec->end(); ++v_it) {
                           if (pkg_version.empty() || v_it->getFull() == pkg_version) {
                               if (vardb.readContents(pkg, &(*v_it))) {
+                                  coreq::say(c.bold(c.cyan(_("Contents of %s/%s:"))) ) % pkg.category % v_it->getFull();
                                   for (std::vector<InstVersion::ContentsEntry>::const_iterator c_it = v_it->contents.begin(); c_it != v_it->contents.end(); ++c_it) {
-                                      coreq::say("%s") % c_it->path;
+                                      if (c_it->type == InstVersion::ContentsEntry::DIR) {
+                                          coreq::say(c.bold(c.blue("%s"))) % c_it->path;
+                                      } else if (c_it->type == InstVersion::ContentsEntry::SYM) {
+                                          coreq::say(c.cyan("%s") + " -> %s") % c_it->path % c_it->target;
+                                      } else {
+                                          coreq::say("%s") % c_it->path;
+                                      }
                                   }
                                   found_any = true;
                               }
                           }
                       }
-                      if (found_any) break; // Stop after first category matching package name
+                      if (found_any) break;
                   }
               }
           }
@@ -121,18 +127,25 @@ class SubcommandFiles : public Subcommand {
             for (InstVec::iterator v_it = inst_vec->begin(); v_it != inst_vec->end(); ++v_it) {
               if (pkg_version.empty() || v_it->getFull() == pkg_version) {
                 if (vardb.readContents(pkg, &(*v_it))) {
+                  coreq::say(c.bold(c.cyan(_("Contents of %s/%s:"))) ) % pkg.category % v_it->getFull();
                   for (std::vector<InstVersion::ContentsEntry>::const_iterator c_it = v_it->contents.begin(); c_it != v_it->contents.end(); ++c_it) {
-                    coreq::say("%s") % c_it->path;
+                    if (c_it->type == InstVersion::ContentsEntry::DIR) {
+                        coreq::say(c.bold(c.blue("%s"))) % c_it->path;
+                    } else if (c_it->type == InstVersion::ContentsEntry::SYM) {
+                        coreq::say(c.cyan("%s") + " -> %s") % c_it->path % c_it->target;
+                    } else {
+                        coreq::say("%s") % c_it->path;
+                    }
                   }
                   found_any = true;
                 }
               }
             }
             if (!found_any) {
-                coreq::say_error(_("Package found but version mismatch: %s")) % pattern;
+                coreq::say_error(c.red(_("Package found but version mismatch: %s"))) % pattern;
             }
           } else {
-            coreq::say_error(_("Package not found: %s")) % pattern;
+            coreq::say_error(c.red(_("Package not found: %s"))) % pattern;
           }
       }
     }

@@ -23,6 +23,7 @@
 #include "coreqTk/parseerror.h"
 #include "coreqTk/utils.h"
 #include "corepkg/packagetree.h"
+#include "coreqTk/ansicolor.h"
 
 #define VAR_DB_PKG "/var/db/pkg/"
 
@@ -33,6 +34,7 @@ class SubcommandBelongs : public Subcommand {
     
     ParseError parse_error;
     CorePkgSettings corepkgsettings(&coreqrc, &parse_error, true, true);
+    AnsiColor& c = get_ansicolor();
 
     OptionList opt_table;
     bool help = false;
@@ -46,7 +48,7 @@ class SubcommandBelongs : public Subcommand {
     }
 
     if (ar.empty()) {
-      coreq::say_error(_("No file specified."));
+      coreq::say_error(c.red(_("No file specified.")));
       coreq::say("%s") % usage();
       return EXIT_FAILURE;
     }
@@ -82,7 +84,7 @@ class SubcommandBelongs : public Subcommand {
       // Get all categories
       WordVec categories;
       if (!pushback_files(full_vdb_path, &categories, NULLPTR, 2, true, false)) {
-          coreq::say_error(_("Could not read VDB directory: %s")) % full_vdb_path;
+          coreq::say_error(c.red(_("Could not read VDB directory: %s"))) % full_vdb_path;
           return EXIT_FAILURE;
       }
 
@@ -115,7 +117,7 @@ class SubcommandBelongs : public Subcommand {
                     if (vardb.readContents(pkg, &(*v_it))) {
                         for (std::vector<InstVersion::ContentsEntry>::const_iterator c_it = v_it->contents.begin(); c_it != v_it->contents.end(); ++c_it) {
                             if (c_it->path == query_file) {
-                                coreq::say("%s/%s-%s") % pkg.category % pkg.name % v_it->getFull();
+                                coreq::say(c.cyan("%s/%s-%s")) % pkg.category % pkg.name % v_it->getFull();
                                 found = true;
                                 break;
                             }
@@ -128,7 +130,7 @@ class SubcommandBelongs : public Subcommand {
       }
       
       if (!found) {
-          coreq::say_error(_("None of the installed packages own the file: %s")) % query_file;
+          coreq::say_error(c.red(_("None of the installed packages own the file: %s"))) % query_file;
       }
     }
 

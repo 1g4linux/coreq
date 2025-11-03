@@ -24,6 +24,7 @@
 #include "coreqTk/parseerror.h"
 #include "coreqTk/stringutils.h"
 #include "coreqTk/utils.h"
+#include "coreqTk/ansicolor.h"
 
 #define VAR_DB_PKG "/var/db/pkg/"
 
@@ -34,6 +35,7 @@ class SubcommandSize : public Subcommand {
     
     ParseError parse_error;
     CorePkgSettings corepkgsettings(&coreqrc, &parse_error, true, true);
+    AnsiColor& c = get_ansicolor();
 
     OptionList opt_table;
     bool help = false;
@@ -47,7 +49,7 @@ class SubcommandSize : public Subcommand {
     }
 
     if (ar.empty()) {
-      coreq::say_error(_("No package specified."));
+      coreq::say_error(c.red(_("No package specified.")));
       coreq::say("%s") % usage();
       return EXIT_FAILURE;
     }
@@ -107,7 +109,7 @@ class SubcommandSize : public Subcommand {
     }
 
     if (matching_packages.empty()) {
-        coreq::say_error(_("Package not found: %s")) % pattern;
+        coreq::say_error(c.red(_("Package not found: %s"))) % pattern;
         return EXIT_FAILURE;
     }
 
@@ -148,9 +150,9 @@ class SubcommandSize : public Subcommand {
                 }
             }
             
-            coreq::say(_(" * %s/%s-%s")) % pkg_it->category % pkg_it->name % v_it->getFull();
-            coreq::say(_("   Total files : %d")) % num_files;
-            coreq::say(_("   Total size  : %s")) % format_size(total_size);
+            coreq::say(c.bold(c.cyan(_(" * %s/%s-%s")))) % pkg_it->category % pkg_it->name % v_it->getFull();
+            coreq::say(_("   Total files : ") + c.green("%d")) % num_files;
+            coreq::say(_("   Total size  : ") + c.green("%s")) % format_size(total_size);
         }
     }
 

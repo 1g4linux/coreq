@@ -23,6 +23,7 @@
 #include "coreqTk/stringutils.h"
 #include "coreqTk/utils.h"
 #include "coreqTk/md5.h"
+#include "coreqTk/ansicolor.h"
 
 #define VAR_DB_PKG "/var/db/pkg/"
 
@@ -33,6 +34,7 @@ class SubcommandCheck : public Subcommand {
     
     ParseError parse_error;
     CorePkgSettings corepkgsettings(&coreqrc, &parse_error, true, true);
+    AnsiColor& c = get_ansicolor();
 
     OptionList opt_table;
     bool help = false;
@@ -46,7 +48,7 @@ class SubcommandCheck : public Subcommand {
     }
 
     if (ar.empty()) {
-      coreq::say_error(_("No package specified."));
+      coreq::say_error(c.red(_("No package specified.")));
       coreq::say("%s") % usage();
       return EXIT_FAILURE;
     }
@@ -111,7 +113,7 @@ class SubcommandCheck : public Subcommand {
       }
 
       if (matching_packages.empty()) {
-          coreq::say_error(_("Package not found: %s")) % pattern;
+          coreq::say_error(c.red(_("Package not found: %s"))) % pattern;
           exit_status = EXIT_FAILURE;
           continue;
       }
@@ -120,7 +122,7 @@ class SubcommandCheck : public Subcommand {
           InstVec* inst_vec = vardb.getInstalledVector(*pkg_it);
           if (!inst_vec || inst_vec->empty()) {
               if (!category.empty()) {
-                  coreq::say_error(_("Package not found: %s")) % pattern;
+                  coreq::say_error(c.red(_("Package not found: %s"))) % pattern;
                   exit_status = EXIT_FAILURE;
               }
               continue;
@@ -129,10 +131,10 @@ class SubcommandCheck : public Subcommand {
           for (InstVec::iterator v_it = inst_vec->begin(); v_it != inst_vec->end(); ++v_it) {
               if (!pkg_version.empty() && v_it->getFull() != pkg_version) continue;
 
-              coreq::say(_("Checking %s/%s-%s ...")) % pkg_it->category % pkg_it->name % v_it->getFull();
+              coreq::say(c.cyan(_("Checking %s/%s-%s ..."))) % pkg_it->category % pkg_it->name % v_it->getFull();
               
               if (!vardb.readContents(*pkg_it, &(*v_it))) {
-                  coreq::say_error(_("Could not read CONTENTS for %s/%s-%s")) % pkg_it->category % pkg_it->name % v_it->getFull();
+                  coreq::say_error(c.red(_("Could not read CONTENTS for %s/%s-%s"))) % pkg_it->category % pkg_it->name % v_it->getFull();
                   exit_status = EXIT_FAILURE;
                   continue;
               }
@@ -146,28 +148,24 @@ class SubcommandCheck : public Subcommand {
                   if (c_it->type == InstVersion::ContentsEntry::DIR_T) {
                       struct stat st_file;
                       if (stat(c_it->path.c_str(), &st_file) != 0) {
-                          coreq::say_error(_("%s: directory missing")) % c_it->path;
+                          coreq::say_error(c.red(_("%s: directory missing"))) % c_it->path;
                           files_missing++;
                       } else if (!S_ISDIR(st_file.st_mode)) {
-                          coreq::say_error(_("%s: not a directory")) % c_it->path;
+                          coreq::say_error(c.red(_("%s: not a directory"))) % c_it->path;
                           files_checksum_mismatch++; // sort of
                       }
                   } else if (c_it->type == InstVersion::ContentsEntry::OBJ_T) {
                       files_checked++;
                       struct stat st_file;
                       if (stat(c_it->path.c_str(), &st_file) != 0) {
-                          coreq::say_error(_("%s: file missing")) % c_it->path;
+                          coreq::say_error(c.red(_("%s: file missing"))) % c_it->path;
                           files_missing++;
                       } else {
                           if (!verify_md5sum(c_it->path.c_str(), c_it->sum)) {
-                              coreq::say_error(_("%s: checksum mismatch")) % c_it->path;
+                              coreq::say_error(c.red(_("%s: checksum mismatch"))) % c_it->path;
                               files_checksum_mismatch++;
                           }
                           if (st_file.st_mtime != c_it->mtime) {
-                              // Portage often updates mtime during installation (prelink, python byte-compilation etc)
-                              // so this might be noisy. But let's report it if requested or for now.
-                              // Actually equery check usually reports mtime too.
-                              // coreq::say_error(_("%s: mtime mismatch")) % c_it->path;
                               files_mtime_mismatch++;
                           }
                       }
@@ -175,19 +173,19 @@ class SubcommandCheck : public Subcommand {
                       files_checked++;
                       struct stat st_file;
                       if (lstat(c_it->path.c_str(), &st_file) != 0) {
-                          coreq::say_error(_("%s: symlink missing")) % c_it->path;
+                          coreq::say_error(c.red(_("%s: symlink missing"))) % c_it->path;
                           files_missing++;
                       } else if (!S_ISLNK(st_file.st_mode)) {
-                          coreq::say_error(_("%s: not a symlink")) % c_it->path;
+                          coreq::say_error(c.red(_("%s: not a symlink"))) % c_it->path;
                           files_checksum_mismatch++;
                       }
                   }
               }
               
               if (files_missing == 0 && files_checksum_mismatch == 0) {
-                  coreq::say(_(" * %s/%s-%s: %d files checked, 0 errors")) % pkg_it->category % pkg_it->name % v_it->getFull() % files_checked;
+                  coreq::say(c.bold(c.green(_(" * %s/%s-%s: %d files checked, 0 errors")))) % pkg_it->category % pkg_it->name % v_it->getFull() % files_checked;
               } else {
-                  coreq::say(_(" * %s/%s-%s: %d files checked, %d missing, %d checksum mismatches")) 
+                  coreq::say(c.bold(c.red(_(" * %s/%s-%s: %d files checked, %d missing, %d checksum mismatches"))))
                       % pkg_it->category % pkg_it->name % v_it->getFull() % files_checked % files_missing % files_checksum_mismatch;
                   exit_status = EXIT_FAILURE;
               }

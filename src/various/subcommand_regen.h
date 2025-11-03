@@ -27,6 +27,7 @@
 #include "coreqTk/utils.h"
 #include "coreqTk/stringutils.h"
 #include "coreqTk/varsreader.h"
+#include "coreqTk/ansicolor.h"
 #include "cache/common/selectors.h"
 #include "cache/common/assign_reader.h"
 #include "cache/common/flat_reader.h"
@@ -61,6 +62,7 @@ class SubcommandRegen : public Subcommand {
     CoreqRc& coreqrc = get_coreqrc();
     ParseError parse_error;
     CorePkgSettings corepkgsettings(&coreqrc, &parse_error, true, true);
+    AnsiColor& c = get_ansicolor();
 
     bool help = false;
     bool verbose = false;
@@ -89,7 +91,7 @@ class SubcommandRegen : public Subcommand {
     }
 
     if (portdir.empty()) {
-        coreq::say_error(_("PORTDIR not set and current directory is not a repository."));
+        coreq::say_error(c.red(_("PORTDIR not set and current directory is not a repository.")));
         return EXIT_FAILURE;
     }
 
@@ -101,7 +103,7 @@ class SubcommandRegen : public Subcommand {
     WordVec categories;
     std::string cat_file = portdir + "/profiles/categories";
     if (!pushback_lines(cat_file.c_str(), &categories, false, false)) {
-        coreq::say_error(_("Could not read categories from %s")) % cat_file;
+        coreq::say_error(c.red(_("Could not read categories from %s"))) % cat_file;
         return EXIT_FAILURE;
     }
 
@@ -201,23 +203,24 @@ class SubcommandRegen : public Subcommand {
 
             if (needs_regen) {
                 if (!newest_non_live.empty()) {
+                    std::string pkg_name = c.cyan(*cat_it + "/" + *pkg_it);
                     if (dry_run) {
-                        coreq::say(_("[DRY-RUN] Would regenerate Manifest for %s/%s")) % *cat_it % *pkg_it;
+                        coreq::say(c.bold(c.yellow(_("[DRY-RUN]"))) + " " + _("Would regenerate Manifest for %s")) % pkg_name;
                     } else {
-                        coreq::say(_("Regenerating Manifest for %s/%s...")) % *cat_it % *pkg_it;
+                        coreq::say(c.bold(c.green(_("Regenerating Manifest"))) + " " + _("for %s...")) % pkg_name;
                     }
 
                     if (verbose || dry_run) {
-                        for (size_t i = 0; i < missing_in_manifest.size(); ++i) coreq::say("  - Missing in Manifest: %s") % missing_in_manifest[i];
-                        for (size_t i = 0; i < extra_in_manifest.size(); ++i) coreq::say("  - Extra in Manifest: %s") % extra_in_manifest[i];
-                        for (size_t i = 0; i < size_mismatch.size(); ++i) coreq::say("  - Size mismatch in DISTDIR: %s") % size_mismatch[i];
+                        for (size_t i = 0; i < missing_in_manifest.size(); ++i) coreq::say("  - " + c.red(_("Missing in Manifest:")) + " %s") % missing_in_manifest[i];
+                        for (size_t i = 0; i < extra_in_manifest.size(); ++i) coreq::say("  - " + c.yellow(_("Extra in Manifest:")) + " %s") % extra_in_manifest[i];
+                        for (size_t i = 0; i < size_mismatch.size(); ++i) coreq::say("  - " + c.red(_("Size mismatch in DISTDIR:")) + " %s") % size_mismatch[i];
                     }
 
                     if (!dry_run) {
                         std::string cmd = "ebuild " + pkg_path + "/" + newest_non_live + " manifest";
-                        if (verbose) coreq::say("  Running: %s") % cmd;
+                        if (verbose) coreq::say("  " + c.blue(_("Running:")) + " %s") % cmd;
                         if (system(cmd.c_str()) != 0) {
-                            coreq::say_error(_("Failed to run: %s")) % cmd;
+                            coreq::say_error(c.red(_("Failed to run: %s"))) % cmd;
                         }
                     }
                     if (sigint_received) break;
@@ -227,7 +230,7 @@ class SubcommandRegen : public Subcommand {
     }
 
     if (sigint_received) {
-        coreq::say(_("Interrupted by user."));
+        coreq::say(c.bold(c.red(_("Interrupted by user."))));
         return EXIT_FAILURE;
     }
 

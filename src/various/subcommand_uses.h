@@ -34,6 +34,7 @@ class SubcommandUses : public Subcommand {
     
     ParseError parse_error;
     CorePkgSettings corepkgsettings(&coreqrc, &parse_error, true, true);
+    AnsiColor& c = get_ansicolor();
 
     OptionList opt_table;
     bool help = false;
@@ -47,7 +48,7 @@ class SubcommandUses : public Subcommand {
     }
 
     if (ar.empty()) {
-      coreq::say_error(_("No package specified."));
+      coreq::say_error(c.red(_("No package specified.")));
       coreq::say("%s") % usage();
       return EXIT_FAILURE;
     }
@@ -107,13 +108,9 @@ class SubcommandUses : public Subcommand {
     }
 
     if (matching_packages.empty()) {
-        coreq::say_error(_("Package not found: %s")) % pattern;
+        coreq::say_error(c.red(_("Package not found: %s"))) % pattern;
         return EXIT_FAILURE;
     }
-
-    AnsiColor green("green", NULLPTR);
-    AnsiColor red("red", NULLPTR);
-    std::string reset = AnsiColor::reset();
 
     for (std::vector<Package>::iterator pkg_it = matching_packages.begin(); pkg_it != matching_packages.end(); ++pkg_it) {
         InstVec* inst_vec = vardb.getInstalledVector(*pkg_it);
@@ -124,7 +121,7 @@ class SubcommandUses : public Subcommand {
 
             std::string pkg_dir = full_vdb_path + pkg_it->category + "/" + pkg_it->name + "-" + v_it->getFull();
             
-            coreq::say(_(" * %s/%s-%s")) % pkg_it->category % pkg_it->name % v_it->getFull();
+            coreq::say(c.bold(c.cyan(_(" * %s/%s-%s")))) % pkg_it->category % pkg_it->name % v_it->getFull();
             
             // Get enabled flags
             std::set<std::string> enabled_flags;
@@ -188,9 +185,11 @@ class SubcommandUses : public Subcommand {
             } else {
                 for (std::set<std::string>::iterator f_it = iuse_flags.begin(); f_it != iuse_flags.end(); ++f_it) {
                     bool enabled = enabled_flags.count(*f_it);
-                    std::string sign = enabled ? "+" : "-";
-                    std::string colored_flag = enabled ? (green.asString() + *f_it + reset) : (red.asString() + *f_it + reset);
-                    coreq::say("  %s %s") % sign % colored_flag;
+                    if (enabled) {
+                        coreq::say("  " + c.bold(c.green("+")) + " " + c.green("%s")) % *f_it;
+                    } else {
+                        coreq::say("  " + c.bold(c.red("-")) + " " + c.red("%s")) % *f_it;
+                    }
                 }
             }
             

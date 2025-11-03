@@ -22,6 +22,7 @@
 #include "coreqTk/parseerror.h"
 #include "coreqTk/stringutils.h"
 #include "coreqTk/utils.h"
+#include "coreqTk/ansicolor.h"
 
 #define VAR_DB_PKG "/var/db/pkg/"
 
@@ -32,6 +33,7 @@ class SubcommandWhich : public Subcommand {
     
     ParseError parse_error;
     CorePkgSettings corepkgsettings(&coreqrc, &parse_error, true, true);
+    AnsiColor& c = get_ansicolor();
 
     OptionList opt_table;
     bool help = false;
@@ -45,7 +47,7 @@ class SubcommandWhich : public Subcommand {
     }
 
     if (ar.empty()) {
-      coreq::say_error(_("No package specified."));
+      coreq::say_error(c.red(_("No package specified.")));
       coreq::say("%s") % usage();
       return EXIT_FAILURE;
     }
@@ -105,7 +107,7 @@ class SubcommandWhich : public Subcommand {
     }
 
     if (matching_packages.empty()) {
-        coreq::say_error(_("Package not found: %s")) % pattern;
+        coreq::say_error(c.red(_("Package not found: %s"))) % pattern;
         return EXIT_FAILURE;
     }
 
@@ -121,18 +123,18 @@ class SubcommandWhich : public Subcommand {
             std::string ebuild_path = pkg_dir + "/" + ebuild_name;
             
             if (stat(ebuild_path.c_str(), &st) == 0) {
-                coreq::say("%s") % ebuild_path;
+                coreq::say(c.cyan("%s")) % ebuild_path;
             } else {
                 // Try searching in the tree if configured
                 std::string portdir = corepkgsettings["PORTDIR"];
                 if (!portdir.empty()) {
                     std::string tree_ebuild = portdir + "/" + pkg_it->category + "/" + pkg_it->name + "/" + ebuild_name;
                     if (stat(tree_ebuild.c_str(), &st) == 0) {
-                        coreq::say("%s") % tree_ebuild;
+                        coreq::say(c.cyan("%s")) % tree_ebuild;
                         continue;
                     }
                 }
-                coreq::say_error(_("Ebuild not found for %s/%s-%s")) % pkg_it->category % pkg_it->name % v_it->getFull();
+                coreq::say_error(c.red(_("Ebuild not found for %s/%s-%s"))) % pkg_it->category % pkg_it->name % v_it->getFull();
             }
         }
     }
