@@ -140,9 +140,9 @@ bool Database::writeUChar(coreq::UChar c, string* errtext) {
 
 bool Database::write_string_plain(const string& str, string* errtext) {
   if (counting) {
-    GCC_DIAG_OFF(sign - conversion)
+    GCC_DIAG_OFF(sign-conversion)
     counter += str.size();
-    GCC_DIAG_ON(sign - conversion)
+    GCC_DIAG_ON(sign-conversion)
     return true;
   }
   return File::write_string_plain(str, errtext);
@@ -168,11 +168,11 @@ bool Database::skip_string(string* errtext) {
     return false;
   }
   if (len != 0) {
-    GCC_DIAG_OFF(sign - conversion)
+    GCC_DIAG_OFF(sign-conversion)
     if (unlikely(!seekrel(len, errtext))) {
       return false;
     }
-    GCC_DIAG_ON(sign - conversion)
+    GCC_DIAG_ON(sign-conversion)
   }
   return true;
 }

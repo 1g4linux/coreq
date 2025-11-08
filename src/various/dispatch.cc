@@ -14,8 +14,12 @@
 SubcommandDispatcher::SubcommandDispatcher() {}
 
 SubcommandDispatcher::~SubcommandDispatcher() {
+  std::set<Subcommand*> unique_cmds;
   for (std::map<std::string, Subcommand*>::iterator it = m_subcommands.begin(); it != m_subcommands.end(); ++it) {
-    delete it->second;
+    unique_cmds.insert(it->second);
+  }
+  for (std::set<Subcommand*>::iterator it = unique_cmds.begin(); it != unique_cmds.end(); ++it) {
+    delete *it;
   }
 }
 

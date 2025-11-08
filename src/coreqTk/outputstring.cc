@@ -111,9 +111,9 @@ void OutputString::append_escape(const char** pos) {
       const char* start(++band_position);
       const char* end(std::strchr(start, '>'));
       if (likely(end != NULLPTR)) {
-        GCC_DIAG_OFF(sign - conversion)
+        GCC_DIAG_OFF(sign-conversion)
         string num(start, end - start);
-        GCC_DIAG_ON(sign - conversion)
+        GCC_DIAG_ON(sign-conversion)
         if (likely(is_numeric(num.c_str()))) {
           string::size_type s(my_atou(num.c_str()));
           if (s > 0) {

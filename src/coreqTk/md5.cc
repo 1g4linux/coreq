@@ -246,16 +246,16 @@ bool verify_md5sum(const char* file, const string& md5sum) {
       close(fd);
       return false;
     }
-    GCC_DIAG_OFF(sign - conversion)
+    GCC_DIAG_OFF(sign-conversion)
     filesize = st.st_size;
-    GCC_DIAG_ON(sign - conversion)
+    GCC_DIAG_ON(sign-conversion)
   }
   if (filesize != 0) {
     filebuffer = static_cast<char*>(mmap(NULLPTR, filesize, PROT_READ, MAP_SHARED, fd, 0));
     close(fd);
-    GCC_DIAG_OFF(old - style - cast)
+    GCC_DIAG_OFF(old-style-cast)
     if (filebuffer == MAP_FAILED) {
-      GCC_DIAG_ON(old - style - cast)
+      GCC_DIAG_ON(old-style-cast)
       return false;
     }
   }

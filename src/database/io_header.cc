@@ -41,9 +41,9 @@ bool Database::read_header(DBHeader* hdr, string* errtext, DBHeader::DBVersion m
   if (unlikely(std::strcmp(DBHeader::magic, buf.get()) != 0)) {
     char c(buf.get()[0]);
     // Until version 30 the first char is the version:
-    GCC_DIAG_OFF(sign - conversion)
+    GCC_DIAG_OFF(sign-conversion)
     hdr->version = (((c > 0) && (c <= 30)) ? c : 0);
-    GCC_DIAG_ON(sign - conversion)
+    GCC_DIAG_ON(sign-conversion)
   }
   else if (unlikely(!read_num(&(hdr->version), errtext))) {
     return false;

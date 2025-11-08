@@ -121,9 +121,9 @@ BasicVersion::ParseResult Mask::parseMask(const char* str, string* errtext, core
       m_test_slot = true;
       const char* slot_end(std::strchr(source, ':'));
       if (unlikely(slot_end != NULLPTR)) {
-        GCC_DIAG_OFF(sign - conversion)
+        GCC_DIAG_OFF(sign-conversion)
         m_slotname.assign(source, slot_end - source);
-        GCC_DIAG_ON(sign - conversion)
+        GCC_DIAG_ON(sign-conversion)
         if (unlikely(slot_end[1] != ':')) {
           *errtext = _("repository name must be separated with \"::\" (one \":\" is missing)");
           return parsedError;
@@ -147,9 +147,9 @@ BasicVersion::ParseResult Mask::parseMask(const char* str, string* errtext, core
     }
     const char* usestart(std::strchr(source, '['));
     if ((usestart != NULLPTR) && (std::strchr(usestart + 1, ']') == NULLPTR)) {
-      GCC_DIAG_OFF(sign - conversion)
+      GCC_DIAG_OFF(sign-conversion)
       dest->assign(source, usestart - source);
-      GCC_DIAG_ON(sign - conversion)
+      GCC_DIAG_ON(sign-conversion)
     }
     else {
       dest->assign(source);
@@ -194,9 +194,9 @@ BasicVersion::ParseResult Mask::parseMask(const char* str, string* errtext, core
   }
 
   if (have_version) {
-    GCC_DIAG_OFF(sign - conversion)
+    GCC_DIAG_OFF(sign-conversion)
     m_name = string(str, (p - 1) - str);
-    GCC_DIAG_ON(sign - conversion)
+    GCC_DIAG_ON(sign-conversion)
 
     // Check for wildcard-version
     const char* wildcard((m_type != maskPseudomask) ? std::strchr(p, '*') : NULLPTR);
@@ -228,9 +228,9 @@ BasicVersion::ParseResult Mask::parseMask(const char* str, string* errtext, core
       }
       end = wildcard;
     }
-    GCC_DIAG_OFF(sign - conversion)
+    GCC_DIAG_OFF(sign-conversion)
     BasicVersion::ParseResult r(parseVersion(((end != NULLPTR) ? string(p, end - p) : p), errtext, accept_garbage));
-    GCC_DIAG_ON(sign - conversion)
+    GCC_DIAG_ON(sign-conversion)
     if (likely(m_operator != maskOpAll)) {
       return r;
     }
@@ -241,9 +241,9 @@ BasicVersion::ParseResult Mask::parseMask(const char* str, string* errtext, core
     }
   }
   // Everything else is the package-name
-  GCC_DIAG_OFF(sign - conversion)
+  GCC_DIAG_OFF(sign-conversion)
   m_name = ((end != NULLPTR) ? string(str, end - str) : str);
-  GCC_DIAG_ON(sign - conversion)
+  GCC_DIAG_ON(sign-conversion)
   return parsedOK;
 }
 

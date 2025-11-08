@@ -295,9 +295,9 @@ void VarsReader::FIND_ASSIGNMENT() {
         const char* beginning(x);
         SKIP_SPACE;
         if (isValidKeyCharacter(INPUT)) {
-          GCC_DIAG_OFF(sign - conversion)
+          GCC_DIAG_OFF(sign-conversion)
           key_len += (x - beginning);
-          GCC_DIAG_ON(sign - conversion)
+          GCC_DIAG_ON(sign-conversion)
         }
       }
       else {
@@ -1229,14 +1229,14 @@ bool VarsReader::read(const char* filename, string* errtext, bool noexist_ok, Wo
     close(fd);
     return true;
   }
-  GCC_DIAG_OFF(sign - conversion)
+  GCC_DIAG_OFF(sign-conversion)
   void* buffer = mmap(NULLPTR, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
   filebuffer = static_cast<const char*>(buffer);
-  GCC_DIAG_ON(sign - conversion)
+  GCC_DIAG_ON(sign-conversion)
   close(fd);
-  GCC_DIAG_OFF(old - style - cast)
+  GCC_DIAG_OFF(old-style-cast)
   if (buffer == MAP_FAILED) {
-    GCC_DIAG_ON(old - style - cast)
+    GCC_DIAG_ON(old-style-cast)
     if (errtext != NULLPTR) {
       *errtext = coreq::format(_("cannot map file %s")) % filename;
     }
@@ -1262,9 +1262,9 @@ bool VarsReader::read(const char* filename, string* errtext, bool noexist_ok, Wo
 
   sourced_files->INSERT(truename);
   bool ret = parse();
-  GCC_DIAG_OFF(sign - conversion)
+  GCC_DIAG_OFF(sign-conversion)
   munmap(buffer, st.st_size);
-  GCC_DIAG_ON(sign - conversion)
+  GCC_DIAG_ON(sign-conversion)
   if (likely(topcall)) {
     delete sourced_files;
     sourced_files = NULLPTR;
@@ -1340,9 +1340,9 @@ bool VarsReader::source(const string& filename, string* errtext) {
       }
     }
     else {
-      GCC_DIAG_OFF(sign - conversion)
+      GCC_DIAG_OFF(sign-conversion)
       currprefix.assign(file_name, (last_slash - file_name) + 1);
-      GCC_DIAG_ON(sign - conversion)
+      GCC_DIAG_ON(sign-conversion)
     }
   }
   bool rvalue(includefile.read((currprefix + filename).c_str(), errtext, false, sourced_files));

@@ -252,3 +252,32 @@ void AnsiColor::AnsiPalette() {
     coreq::print() % buffer.data();
   }
 }
+
+AnsiColor& get_ansicolor() {
+  static AnsiColor instance;
+  return instance;
+}
+
+std::string AnsiColor::red(const std::string& s) const {
+  return std::string("\x1B[31m") + s + reset_string;
+}
+
+std::string AnsiColor::green(const std::string& s) const {
+  return std::string("\x1B[32m") + s + reset_string;
+}
+
+std::string AnsiColor::yellow(const std::string& s) const {
+  return std::string("\x1B[33m") + s + reset_string;
+}
+
+std::string AnsiColor::blue(const std::string& s) const {
+  return std::string("\x1B[34m") + s + reset_string;
+}
+
+std::string AnsiColor::cyan(const std::string& s) const {
+  return std::string("\x1B[36m") + s + reset_string;
+}
+
+std::string AnsiColor::bold(const std::string& s) const {
+  return std::string("\x1B[1m") + s + reset_string;
+}

@@ -73,7 +73,7 @@ void ebuild_sig_handler(int sig) {
 // this is not a problem from "outside" this class.
 
 void EbuildExec::add_handler() {
-  GCC_DIAG_OFF(old - style - cast)
+  GCC_DIAG_OFF(old-style-cast)
   handler_arg = this;
   // Set the signals "empty" to avoid a race condition:
   // On a signal, we should cleanup only the signals actually set.
@@ -120,7 +120,7 @@ void EbuildExec::add_handler() {
     std::signal(SIGTERM, ebuild_sig_handler);
   }
 #endif
-  GCC_DIAG_ON(old - style - cast)
+  GCC_DIAG_ON(old-style-cast)
 }
 
 void EbuildExec::remove_handler() {
@@ -329,7 +329,7 @@ string* EbuildExec::make_cachefile(const char* name, const string& dir, const Pa
   delete[] c_env;
   delete envstrings;
 
-  GCC_DIAG_OFF(old - style - cast)
+  GCC_DIAG_OFF(old-style-cast)
   // Only now we check for the child exit status or signals:
   if (unlikely(got_exit_signal)) {
     base->m_error_callback(coreq::format(_("got signal %s")) % type_of_exit_signal);
@@ -358,7 +358,7 @@ string* EbuildExec::make_cachefile(const char* name, const string& dir, const Pa
   else {
     base->m_error_callback(_("child aborted in a strange way"));
   }
-  GCC_DIAG_ON(old - style - cast)
+  GCC_DIAG_ON(old-style-cast)
   delete_cachefile();
   return NULLPTR;
 }
@@ -388,11 +388,11 @@ bool EbuildExec::corepkgq(std::string* result, const char* var) const {
   coreq::array<char, 8192> buffer;
   size_t curr;
   string res;
-  GCC_DIAG_OFF(sign - conversion)
+  GCC_DIAG_OFF(sign-conversion)
   while ((curr = read(fds[0], buffer.data(), buffer.size())), ((curr > 0) && (curr <= buffer.size()))) {
     res.append(buffer.data(), curr);
   }
-  GCC_DIAG_ON(sign - conversion)
+  GCC_DIAG_ON(sign-conversion)
   close(fds[0]);
   int ret_status;
   while (waitpid(child, &ret_status, 0) != child) {

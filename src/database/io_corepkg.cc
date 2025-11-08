@@ -280,11 +280,11 @@ bool Database::read_depend(Depend* dep, const DBHeader& hdr, string* errtext) {
   }
   else {
     dep->clear();
-    GCC_DIAG_OFF(sign - conversion)
+    GCC_DIAG_OFF(sign-conversion)
     if (unlikely(!seekrel(len, errtext))) {
       return false;
     }
-    GCC_DIAG_ON(sign - conversion)
+    GCC_DIAG_ON(sign-conversion)
   }
   return true;
 }

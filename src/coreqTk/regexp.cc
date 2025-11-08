@@ -93,14 +93,14 @@ bool Regex::match(const char* s, string::size_type* b, string::size_type* e) con
     return false;
   }
   if (likely(b != NULLPTR)) {
-    GCC_DIAG_OFF(sign - conversion)
+    GCC_DIAG_OFF(sign-conversion)
     *b = pmatch[0].rm_so;
-    GCC_DIAG_ON(sign - conversion)
+    GCC_DIAG_ON(sign-conversion)
   }
   if (likely(e != NULLPTR)) {
-    GCC_DIAG_OFF(sign - conversion)
+    GCC_DIAG_OFF(sign-conversion)
     *e = pmatch[0].rm_eo;
-    GCC_DIAG_ON(sign - conversion)
+    GCC_DIAG_ON(sign-conversion)
   }
   return true;
 }

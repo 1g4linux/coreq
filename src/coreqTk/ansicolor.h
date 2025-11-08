@@ -60,7 +60,16 @@ class AnsiColor {
                             PALETTE_B = 16, PALETTE_ALL = (PALETTE_D | PALETTE_L | PALETTE_B);
 
   static void PrintPalette(WhichPalette which);
+
+  std::string red(const std::string& s) const;
+  std::string green(const std::string& s) const;
+  std::string yellow(const std::string& s) const;
+  std::string blue(const std::string& s) const;
+  std::string cyan(const std::string& s) const;
+  std::string bold(const std::string& s) const;
 };
+
+ATTRIBUTE_PURE AnsiColor& get_ansicolor();
 
 inline static std::ostream& operator<<(std::ostream& os, const AnsiColor& ac) {
   os << ac.asString();

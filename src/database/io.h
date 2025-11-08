@@ -214,9 +214,9 @@ bool Database::read_num(m_Tp* ret, std::string* errtext) {
 
 template <typename m_Tp>
 bool Database::write_num(m_Tp t, std::string* errtext) {
-  GCC_DIAG_OFF(sign - conversion)
+  GCC_DIAG_OFF(sign-conversion)
   coreq::UChar c(t & 0xFFU);
-  GCC_DIAG_ON(sign - conversion)
+  GCC_DIAG_ON(sign-conversion)
   // Test the most common case explicitly to speed up:
   if (t == static_cast<m_Tp>(c)) {
     if (counting) {
@@ -243,17 +243,17 @@ bool Database::write_num(m_Tp t, std::string* errtext) {
     unsigned int count(0);
     do {
       mask <<= 8;
-      GCC_DIAG_OFF(sign - conversion)
+      GCC_DIAG_OFF(sign-conversion)
       mask |= 0xFFU;
-      GCC_DIAG_ON(sign - conversion)
+      GCC_DIAG_ON(sign-conversion)
       ++count;
     } while ((t & mask) != t);
     // We have count > 0 here
     if (counting) {
-      GCC_DIAG_OFF(sign - conversion)
+      GCC_DIAG_OFF(sign-conversion)
       coreq::UChar d((t >> (8 * count)) & 0xFFU);
       counter += ((unlikely(d == MAGICNUMCHAR)) ? 2 : 1) + (2 * count);
-      GCC_DIAG_ON(sign - conversion)
+      GCC_DIAG_ON(sign-conversion)
       return true;
     }
     for (unsigned int r(count);;) {
@@ -261,9 +261,9 @@ bool Database::write_num(m_Tp t, std::string* errtext) {
         break;
       }
       if (--r == 0) {
-        GCC_DIAG_OFF(sign - conversion)
+        GCC_DIAG_OFF(sign-conversion)
         coreq::UChar d((t >> (8 * count)) & 0xFFU);
-        GCC_DIAG_ON(sign - conversion)
+        GCC_DIAG_ON(sign-conversion)
         if (unlikely(!putch(d))) {
           break;
         }
@@ -275,9 +275,9 @@ bool Database::write_num(m_Tp t, std::string* errtext) {
         }
         // neither rely on (t>>0)==t nor use count-- when count==0:
         while (--count != 0) {
-          GCC_DIAG_OFF(sign - conversion)
+          GCC_DIAG_OFF(sign-conversion)
           if (unlikely(!putch((t >> (8 * count)) & 0xFFU))) {
-            GCC_DIAG_ON(sign - conversion)
+            GCC_DIAG_ON(sign-conversion)
             break;
           }
         }

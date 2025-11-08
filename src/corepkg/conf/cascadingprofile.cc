@@ -308,9 +308,9 @@ void CascadingProfile::applyMasks(Package* p) const {
   }
   else {
     for (Package::iterator it(p->begin()); likely(it != p->end()); ++it) {
-      GCC_DIAG_OFF(sign - conversion)
+      GCC_DIAG_OFF(sign-conversion)
       (*it)->maskflags.clearbits(~MaskFlags::MASK_WORLD);
-      GCC_DIAG_ON(sign - conversion)
+      GCC_DIAG_ON(sign-conversion)
     }
   }
   m_profile.applyMasks(p);

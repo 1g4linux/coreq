@@ -467,9 +467,9 @@ void FormatParser::getPosition(size_t* line, size_t* column) {
     if (x != NULLPTR) {
       ++x;
       ++*line;
-      GCC_DIAG_OFF(sign - conversion)
+      GCC_DIAG_OFF(sign-conversion)
       *column = band_position - y;
-      GCC_DIAG_ON(sign - conversion)
+      GCC_DIAG_ON(sign-conversion)
     }
   }
 }
@@ -520,9 +520,9 @@ FormatParser::ParserState FormatParser::state_COLOR() {
   if (enable_colors) {
     AnsiColor ac;
     string errtext;
-    GCC_DIAG_OFF(sign - conversion)
+    GCC_DIAG_OFF(sign-conversion)
     if (unlikely(!ac.initcolor(string(band_position, q - band_position), &errtext))) {
-      GCC_DIAG_ON(sign - conversion)
+      GCC_DIAG_ON(sign-conversion)
       last_error = coreq::format(_("error while parsing color: %s")) % errtext;
       return ERROR;
     }
@@ -559,9 +559,9 @@ FormatParser::ParserState FormatParser::state_PROPERTY() {
      "parse_colors(·, enable_colors)".
      With the currently available attribute this is not necessary.
   */
-  GCC_DIAG_OFF(sign - conversion)
+  GCC_DIAG_OFF(sign-conversion)
   keller.push(new Property(string(band_position, q - band_position), user_variable));
-  GCC_DIAG_ON(sign - conversion)
+  GCC_DIAG_ON(sign-conversion)
   band_position = q + 1;
   return START;
 }
@@ -692,9 +692,9 @@ FormatParser::ParserState FormatParser::state_IF() {
       bool is_color(false);
       if (likely(*q == ')')) {
         AnsiColor ac;
-        GCC_DIAG_OFF(sign - conversion)
+        GCC_DIAG_OFF(sign-conversion)
         if (likely(ac.initcolor(string(band_position, q - band_position), NULLPTR))) {
-          GCC_DIAG_ON(sign - conversion)
+          GCC_DIAG_ON(sign-conversion)
           is_color = true;
           if (enable_colors) {
             textbuffer.append(ac.asString(), 0);

@@ -104,9 +104,9 @@ class SubcommandFiles : public Subcommand {
                               if (vardb.readContents(pkg, &(*v_it))) {
                                   coreq::say(c.bold(c.cyan(_("Contents of %s/%s:"))) ) % pkg.category % v_it->getFull();
                                   for (std::vector<InstVersion::ContentsEntry>::const_iterator c_it = v_it->contents.begin(); c_it != v_it->contents.end(); ++c_it) {
-                                      if (c_it->type == InstVersion::ContentsEntry::DIR) {
+                                      if (c_it->type == InstVersion::ContentsEntry::DIR_T) {
                                           coreq::say(c.bold(c.blue("%s"))) % c_it->path;
-                                      } else if (c_it->type == InstVersion::ContentsEntry::SYM) {
+                                      } else if (c_it->type == InstVersion::ContentsEntry::SYM_T) {
                                           coreq::say(c.cyan("%s") + " -> %s") % c_it->path % c_it->target;
                                       } else {
                                           coreq::say("%s") % c_it->path;
@@ -129,9 +129,9 @@ class SubcommandFiles : public Subcommand {
                 if (vardb.readContents(pkg, &(*v_it))) {
                   coreq::say(c.bold(c.cyan(_("Contents of %s/%s:"))) ) % pkg.category % v_it->getFull();
                   for (std::vector<InstVersion::ContentsEntry>::const_iterator c_it = v_it->contents.begin(); c_it != v_it->contents.end(); ++c_it) {
-                    if (c_it->type == InstVersion::ContentsEntry::DIR) {
+                    if (c_it->type == InstVersion::ContentsEntry::DIR_T) {
                         coreq::say(c.bold(c.blue("%s"))) % c_it->path;
-                    } else if (c_it->type == InstVersion::ContentsEntry::SYM) {
+                    } else if (c_it->type == InstVersion::ContentsEntry::SYM_T) {
                         coreq::say(c.cyan("%s") + " -> %s") % c_it->path % c_it->target;
                     } else {
                         coreq::say("%s") % c_it->path;

@@ -136,9 +136,9 @@ const char* date_conv(const char* dateFormat, std::time_t mydate) {
   string old_lcall = setlocale(LC_ALL, NULLPTR);
   setlocale(LC_ALL, "");
   struct tm* loctime(localtime(&mydate));
-  GCC_DIAG_OFF(format - nonliteral)
+  GCC_DIAG_OFF(format-nonliteral)
   strftime(buffer, max_datelen, dateFormat, loctime);
-  GCC_DIAG_ON(format - nonliteral)
+  GCC_DIAG_ON(format-nonliteral)
   setlocale(LC_ALL, old_lcall.c_str());
   return buffer;
 }

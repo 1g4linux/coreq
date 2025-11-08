@@ -223,9 +223,9 @@ bool ExplodeAtom::split_name(string* name, const char* str) {
   if (unlikely(x == NULLPTR)) {
     return false;
   }
-  GCC_DIAG_OFF(sign - conversion)
+  GCC_DIAG_OFF(sign-conversion)
   name->assign(str, ((x - 1) - str));
-  GCC_DIAG_ON(sign - conversion)
+  GCC_DIAG_ON(sign-conversion)
   return true;
 }
 
@@ -235,9 +235,9 @@ bool ExplodeAtom::split(string* name, string* version, const char* str) {
     return false;
   }
   version->assign(x);
-  GCC_DIAG_OFF(sign - conversion)
+  GCC_DIAG_OFF(sign-conversion)
   name->assign(str, ((x - 1) - str));
-  GCC_DIAG_ON(sign - conversion)
+  GCC_DIAG_ON(sign-conversion)
   return true;
 }
 

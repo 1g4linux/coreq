@@ -1102,14 +1102,14 @@ int run_coreq(int argc, char** argv) {
   delete marked_list;
 
   if (unlikely(!count)) {
-    GCC_DIAG_OFF(sign - conversion)
+    GCC_DIAG_OFF(sign-conversion)
     return coreqrc.getInteger("NOFOUND_STATUS");
-    GCC_DIAG_ON(sign - conversion)
+    GCC_DIAG_ON(sign-conversion)
   }
   if (count > 1) {
-    GCC_DIAG_OFF(sign - conversion)
+    GCC_DIAG_OFF(sign-conversion)
     return coreqrc.getInteger("MOREFOUND_STATUS");
-    GCC_DIAG_ON(sign - conversion)
+    GCC_DIAG_ON(sign-conversion)
   }
   return EXIT_SUCCESS;
 }  // NOLINT(readability/fn_size)

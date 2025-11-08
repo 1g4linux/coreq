@@ -37,9 +37,9 @@ class ParseError {
 
   template <class Iterator>
   void output(const std::string& file, const Iterator& begin, const Iterator& line, const std::string& errtext) const {
-    GCC_DIAG_OFF(sign - conversion)
+    GCC_DIAG_OFF(sign-conversion)
     output(file, std::distance(begin, line) + 1, *line, errtext);
-    GCC_DIAG_ON(sign - conversion)
+    GCC_DIAG_ON(sign-conversion)
   }
 };
 

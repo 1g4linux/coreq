@@ -25,9 +25,9 @@
 #include "coreqTk/null.h"
 
 ArgumentReader::ArgumentReader(int argc, const char* const* argv, const OptionList& opt_table) {
-  GCC_DIAG_OFF(sign - conversion)
+  GCC_DIAG_OFF(sign-conversion)
   reserve(argc);  // argc is 1 too large, but there might be bundeled options
-  GCC_DIAG_ON(sign - conversion)
+  GCC_DIAG_ON(sign-conversion)
   bool seen_escape(false);
   name = argv[0];
   coreq::TinyUnsigned paramarg_remain(0);

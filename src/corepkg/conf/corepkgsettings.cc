@@ -465,15 +465,15 @@ void CorePkgSettings::init(CoreqRc* coreqrc, const ParseError* e, bool getlocal,
         if (sets_dirs[i].size() > 1) {
           app.assign(sets_dirs[i], 1, string::npos);
         }
-        GCC_DIAG_OFF(sign - conversion)
+        GCC_DIAG_OFF(sign-conversion)
         sets_dirs.erase(sets_dirs.begin() + i);
-        GCC_DIAG_ON(sign - conversion)
+        GCC_DIAG_ON(sign-conversion)
         WordVec::size_type j(i);
         for (RepoList::const_iterator it(repos.second()); likely(it != repos.end()); ++it) {
           if (it->know_path) {
-            GCC_DIAG_OFF(sign - conversion)
+            GCC_DIAG_OFF(sign-conversion)
             sets_dirs.insert(sets_dirs.begin() + j, 1, (it->path) + app);
-            GCC_DIAG_ON(sign - conversion)
+            GCC_DIAG_ON(sign-conversion)
             ++i;
           }
         }
@@ -737,9 +737,9 @@ WordVec::size_type CorePkgSettings::verify_categories(const string& name, WordVe
         parse_error->output(name, line, s, (_("bad category name")));
       }
     }
-    GCC_DIAG_OFF(sign - conversion)
+    GCC_DIAG_OFF(sign-conversion)
     vec->erase((vec->begin()) + index);
-    GCC_DIAG_ON(sign - conversion)
+    GCC_DIAG_ON(sign-conversion)
   }
   return index;
 }
