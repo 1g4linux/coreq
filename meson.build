@@ -13,6 +13,7 @@ project('coreq', 'cpp',
 )
 
 jumbo_build = get_option('jumbo-build')
+tests = get_option('tests')
 new_dialect = get_option('new-dialect')
 dead_code = get_option('dead-code')
 debugging = get_option('debugging')
@@ -73,6 +74,7 @@ endif
 
 result = [ 'Passed options:' ]
 result += [ 'jumbo-build=' + jumbo_build.to_string() ]
+result += [ 'tests=' + tests.to_string() ]
 result += [ 'debugging=' + debugging.to_string() ]
 result += [ 'debug-format=' + debug_format.to_string() ]
 result += [ 'paranoic-asserts=' + paranoic_asserts.to_string() + paranoic_asserts_msg ]
@@ -2186,6 +2188,10 @@ foreach p : install_in
 	)
 	install_data(c, install_dir : p.get(2))
 endforeach
+
+if tests
+	subdir('tests')
+endif
 
 message('\n-D'.join(result) + '\n\n' +
 	'Added CXXFLAGS:\n' + ' '.join(cxxflags_add) + '\n\n' +

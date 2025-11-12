@@ -1,3 +1,5 @@
+option('tests', type : 'boolean', value : true,
+	description : 'build and run tests')
 option('jumbo-build', type : 'boolean', value : true,
 	description : 'use jumbo build')
 option('new-dialect', type : 'boolean', value : false,
