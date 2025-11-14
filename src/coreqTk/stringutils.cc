@@ -278,6 +278,7 @@ void unescape_string(string* str) {
     if (p == str->size())
       return;
     str->replace(pos, 2, 1, get_escape((*str)[p]));
+    ++pos;
   }
 }
 
