@@ -33,6 +33,13 @@ void Eapi::init_static() {
   eapi_vec->push_back("0");
 }
 
+void Eapi::free_static() {
+  delete eapi_map;
+  eapi_map = NULLPTR;
+  delete eapi_vec;
+  eapi_vec = NULLPTR;
+}
+
 void Eapi::assign(const std::string& str) {
   coreq_assert_static(eapi_map != NULLPTR);
   EapiMap::const_iterator it(eapi_map->find(str));

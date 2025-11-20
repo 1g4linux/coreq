@@ -162,6 +162,11 @@ void CascadingProfile::init_static() {
   profile_filenames = new ProfileFilenames;
 }
 
+void CascadingProfile::free_static() {
+  delete profile_filenames;
+  profile_filenames = NULLPTR;
+}
+
 bool CascadingProfile::readremoveFiles() {
   coreq_assert_static(profile_filenames != NULLPTR);
   bool ret(false);

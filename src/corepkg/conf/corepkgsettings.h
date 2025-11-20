@@ -312,6 +312,7 @@ class CorePkgSettings : public WordIterateMap {
   ATTRIBUTE_NONNULL_ bool use_expand(std::string* var, std::string* expvar, const std::string& value) const;
 
   static void init_static();
+  static void free_static();
 };
 
 #endif  // SRC_COREPKG_CONF_COREPKGSETTINGS_H_

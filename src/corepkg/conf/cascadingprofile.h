@@ -160,6 +160,7 @@ class CascadingProfile {
   ATTRIBUTE_NONNULL_ void applyKeywords(Package* p) const;
 
   static void init_static();
+  static void free_static();
 };
 
 #endif  // SRC_COREPKG_CONF_CASCADINGPROFILE_H_

@@ -27,6 +27,9 @@
 #include "coreqTk/likely.h"
 #include "coreqTk/null.h"
 #include "coreqTk/stringutils.h"
+#include "corepkg/eapi.h"
+#include "corepkg/conf/corepkgsettings.h"
+#include "cache/common/ebuild_exec.h"
 
 /*
 You must define by a wrapper file - one or several of
@@ -222,7 +225,17 @@ inline static int run_program(int argc, char* argv[]) {
 }
 #endif
 
+class StaticCleanup {
+ public:
+  ~StaticCleanup() {
+    Eapi::free_static();
+    CorePkgSettings::free_static();
+    EbuildExec::free_static();
+  }
+};
+
 int main(int argc, char** argv) {
+  StaticCleanup cleanup;
 #ifdef ENABLE_NLS
   /* Initialize GNU gettext support */
   setlocale(LC_ALL, "");

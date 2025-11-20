@@ -1407,3 +1407,10 @@ void CorePkgSettings::init_static() {
   OverlayIdent::init_static();
   CascadingProfile::init_static();
 }
+
+void CorePkgSettings::free_static() {
+  delete emptystring;
+  emptystring = NULLPTR;
+  OverlayIdent::free_static();
+  CascadingProfile::free_static();
+}

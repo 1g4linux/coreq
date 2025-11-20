@@ -48,9 +48,9 @@ class EbuildExec {
   local data for make_cachefile which should be saved for vfork
   **/
   const char* exec_name;
-  const char** c_env;
+  std::vector<std::string> envstrings;
+  std::vector<const char*> c_env_vec;
   int exec_status;
-  WordVec* envstrings;
   ATTRIBUTE_NONNULL_ void calc_environment(const char* name, const std::string& dir, const Package& package, const Version& version, const std::string& eapi, int fd);
 
   static EbuildExecSettings* settings;
@@ -70,6 +70,8 @@ class EbuildExec {
   ~EbuildExec() { delete_cachefile(); }
 
   bool use_sh() const { return use_ebuild_sh; }
+
+  static void free_static();
 };
 
 #endif  // SRC_CACHE_COMMON_EBUILD_EXEC_H_

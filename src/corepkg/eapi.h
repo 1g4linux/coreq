@@ -23,6 +23,7 @@ class Eapi {
 
  public:
   static void init_static();  // must be called exactly once
+  static void free_static();
 
   Eapi() : eapi_index(0) {}
 

@@ -32,6 +32,11 @@ void OverlayIdent::init_static() {
   path_label_hash = new WordUnorderedMap;
 }
 
+void OverlayIdent::free_static() {
+  delete path_label_hash;
+  path_label_hash = NULLPTR;
+}
+
 coreq::SignedBool OverlayIdent::compare(const OverlayIdent& left, const OverlayIdent& right) {
   WZERO_AS_NULL_POINTER_CONSTANT_OFF
   if (left.priority < right.priority) {

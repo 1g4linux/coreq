@@ -23,6 +23,7 @@
 #include <string>
 
 #include "cache/base.h"
+#include "coreqTk/auto_array.h"
 #include "coreqTk/diagnostics.h"
 #include "coreqTk/dialect.h"
 #include "coreqTk/coreqarray.h"
@@ -142,22 +143,20 @@ void EbuildExec::remove_handler() {
 int EbuildExec::make_tempfile() {
   const string& tmpdir = settings->tmpdir;
   string::size_type l(tmpdir.size());
-  char* temp = new char[256 + l];
+  coreq::auto_array<char> temp(new char[256 + l]);
   if (l == 0) {
-    std::strcpy(temp, "/tmp/ebuild-cache.XXXXXXXX");  // NOLINT(runtime/printf)
+    std::strcpy(temp.get(), "/tmp/ebuild-cache.XXXXXXXX");  // NOLINT(runtime/printf)
   }
   else {
-    std::strcpy(temp, tmpdir.c_str());                // NOLINT(runtime/printf)
-    std::strcpy(temp + l, "/ebuild-cache.XXXXXXXX");  // NOLINT(runtime/printf)
+    std::strcpy(temp.get(), tmpdir.c_str());                // NOLINT(runtime/printf)
+    std::strcpy(temp.get() + l, "/ebuild-cache.XXXXXXXX");  // NOLINT(runtime/printf)
   }
-  int fd(mkstemp(temp));
+  int fd(mkstemp(temp.get()));
   if (fd == -1) {
-    delete[] temp;
     return fd;
   }
-  cachefile.assign(temp);
+  cachefile.assign(temp.get());
   cache_defined = true;
-  delete[] temp;
   return fd;
 }
 
@@ -187,8 +186,6 @@ This is a subfunction of make_cachefile() to ensure that make_cachefile()
 has no local variable when vfork() is called.
 **/
 void EbuildExec::calc_environment(const char* name, const string& dir, const Package& package, const Version& version, const string& eapi, int fd) {
-  c_env = NULLPTR;
-  envstrings = NULLPTR;
   // non-sh: environment is kept except for possibly new PORTDIR_OVERLAY
   if (!use_ebuild_sh) {  // Shortcut if this is done globally or undesired
 #ifndef HAVE_SETENV
@@ -251,17 +248,17 @@ void EbuildExec::calc_environment(const char* name, const string& dir, const Pac
   }
 
   // transform env into c_env (pointing to envstrings[i].c_str())
-  c_env = new const char*[env.size() + 1];
+  c_env_vec.assign(env.size() + 1, static_cast<const char*>(NULLPTR));
+  envstrings.assign(env.size(), "");
   WordVec::size_type i(0);
   if (!env.empty()) {
-    envstrings = new WordVec(env.size());
     for (WordIterateMap::const_iterator it(env.begin()); likely(it != env.end()); ++it) {
-      (*envstrings)[i] = ((it->first) + '=' + (it->second));
-      c_env[i] = (*envstrings)[i].c_str();
+      envstrings[i] = ((it->first) + '=' + (it->second));
+      c_env_vec[i] = envstrings[i].c_str();
       ++i;
     }
   }
-  c_env[i] = NULLPTR;
+  c_env_vec[i] = NULLPTR;
 }
 
 static CONSTEXPR const int EXECLE_FAILED = 127;
@@ -290,6 +287,7 @@ string* EbuildExec::make_cachefile(const char* name, const string& dir, const Pa
     cache_defined = true;
   }
   calc_environment(name, dir, package, version, eapi, fd);
+  const char* const* c_env = (c_env_vec.empty() ? NULLPTR : c_env_vec.data());
 #ifndef HAVE_SETENV
   if ((!use_ebuild_sh) && (c_env != NULLPTR)) {
     exec_name = settings->exec_ebuild.c_str();
@@ -324,10 +322,6 @@ string* EbuildExec::make_cachefile(const char* name, const string& dir, const Pa
   if (fd != -1) {
     close(fd);
   }
-
-  // Free memory needed only for the child process:
-  delete[] c_env;
-  delete envstrings;
 
   GCC_DIAG_OFF(old-style-cast)
   // Only now we check for the child exit status or signals:
@@ -444,4 +438,9 @@ bool EbuildExec::calc_settings() {
     return true;
   }
   return settings->init_ebuild_sh(this);
+}
+
+void EbuildExec::free_static() {
+  delete settings;
+  settings = NULLPTR;
 }

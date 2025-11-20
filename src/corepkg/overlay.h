@@ -60,6 +60,7 @@ class OverlayIdent {
   std::string name() const;
 
   static void init_static();
+  static void free_static();
 };
 
 inline static bool operator<(const OverlayIdent& left, const OverlayIdent& right);

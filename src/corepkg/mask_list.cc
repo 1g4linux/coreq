@@ -37,13 +37,12 @@ ATTRIBUTE_NONNULL_ bool MaskList<Mask>::add_file(const char* file, Mask::Type ma
     return false;
   }
   bool added(false), finishcomment(false);
-  StringList* comments(NULLPTR);
+  StringList comments;
   for (LineVec::iterator it(lines.begin()); likely(it != lines.end()); ++it) {
     if (it->empty()) {
       if (keep_commentlines) {
         finishcomment = false;
-        delete comments;
-        comments = NULLPTR;
+        comments = StringList();
       }
       continue;
     }
@@ -53,13 +52,9 @@ ATTRIBUTE_NONNULL_ bool MaskList<Mask>::add_file(const char* file, Mask::Type ma
         trim(&line);
         if (finishcomment) {
           finishcomment = false;
-          delete comments;
-          comments = NULLPTR;
+          comments = StringList();
         }
-        if (comments == NULLPTR) {
-          comments = new StringList;
-        }
-        comments->push_back(MOVE(line));
+        comments.push_back(MOVE(line));
         continue;
       }
     }
@@ -71,18 +66,15 @@ ATTRIBUTE_NONNULL_ bool MaskList<Mask>::add_file(const char* file, Mask::Type ma
       parse_error->output(file, lines.begin(), it, errtext);
     }
     if (likely(r != BasicVersion::parsedError)) {
-      if (keep_commentlines && (comments != NULLPTR)) {
-        comments->finalize();
-        if (!(comments->empty())) {
-          m.comments = *comments;
+      if (keep_commentlines && !(comments.empty())) {
+        comments.finalize();
+        if (!(comments.empty())) {
+          m.comments = comments;
         }
       }
       add(m);
       added = true;
     }
-  }
-  if (keep_commentlines) {
-    delete comments;
   }
   return added;
 }
@@ -352,7 +344,7 @@ void PreList::finalize() {
 
 void PreList::initialize(MaskList<Mask>* l, Mask::Type t, bool keep_commentlines, const ParseError* parse_error) {
   finalize();
-  StringList* comments(NULLPTR);
+  StringList comments;
   bool finishcomment(false);
   PreListEntry::FilenameIndex lastfile(0);
   for (const_iterator it(begin()); likely(it != end()); ++it) {
@@ -362,8 +354,7 @@ void PreList::initialize(MaskList<Mask>* l, Mask::Type t, bool keep_commentlines
     PreListEntry::FilenameIndex currfile(it->filename_index);
     if (lastfile != currfile) {
       // In the first iteration, this may be executed by accident but does not hurt
-      delete comments;
-      comments = NULLPTR;
+      comments = StringList();
     }
     lastfile = currfile;
     if (it->name[0] == '#') {
@@ -373,21 +364,16 @@ void PreList::initialize(MaskList<Mask>* l, Mask::Type t, bool keep_commentlines
       const string& comment(it->args[0]);
       if (comment.empty()) {
         finishcomment = false;
-        delete comments;
-        comments = NULLPTR;
+        comments = StringList();
         continue;
       }
       string line(comment.substr(1));
       trim(&line);
       if (finishcomment) {
         finishcomment = false;
-        delete comments;
-        comments = NULLPTR;
+        comments = StringList();
       }
-      if (comments == NULLPTR) {
-        comments = new StringList;
-      }
-      comments->push_back(MOVE(line));
+      comments.push_back(MOVE(line));
       continue;
     }
     finishcomment = true;
@@ -402,17 +388,14 @@ void PreList::initialize(MaskList<Mask>* l, Mask::Type t, bool keep_commentlines
       parse_error->output(file_name(it->filename_index), it->linenumber, it->name + " ...", errtext);
     }
     if (likely(r != BasicVersion::parsedError)) {
-      if (keep_commentlines && (comments != NULLPTR)) {
-        comments->finalize();
-        if (!(comments->empty())) {
-          m.comments = *comments;
+      if (keep_commentlines && !(comments.empty())) {
+        comments.finalize();
+        if (!(comments.empty())) {
+          m.comments = comments;
         }
       }
       l->add(m);
     }
-  }
-  if (keep_commentlines) {
-    delete comments;
   }
   l->finalize();
   clear();
