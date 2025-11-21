@@ -16,4 +16,5 @@
 #define DROP_PERMISSIONS_BINARY 1
 #define VERSIONSORT_BINARY 1
 #define MASKED_BINARY 1
+#define Q_BINARY 1
 #include "main/main.cc"  // NOLINT(build/include)

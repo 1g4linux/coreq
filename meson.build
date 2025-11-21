@@ -1984,9 +1984,9 @@ endif
 coreq_update_link_with += update_only_lib
 coreq_update_link_with += common_lib
 coreq_dep = sqlite_dep
-coreq_update_link = 'coreq'
+coreq_update_link = 'q'
 if separate_binaries or separate_update
-	coreq_update_link = 'coreq'
+	coreq_update_link = 'coreq-update'
 	executable('coreq-update', coreq_update_src,
 		dependencies : coreq_dep,
 		link_with : coreq_update_link_with,
@@ -2001,6 +2001,7 @@ foreach l : inst_link_tools
 	]
 endforeach
 coreq_link_with = coreq_only_lib
+coreq_link_with += q_only_lib
 coreq_link_with += main_all_link_with
 if separate_binaries
 	coreq_src = main_coreq_src
@@ -2014,7 +2015,7 @@ if separate_binaries
 	)
 else
 	inst_link += [
-		[ 'coreq', 'coreq-diff' ],
+		[ 'q', 'coreq-diff' ],
 	]
 	coreq_link_with += diff_only_lib
 	if separate_update
@@ -2022,29 +2023,18 @@ else
 	else
 		coreq_src = main_all_src
 		inst_link += [
-			[ 'coreq', 'coreq-update' ],
+			[ 'q', 'coreq-update' ],
 		]
 		coreq_link_with += update_only_lib
 	endif
 endif
 coreq_link_with += output_lib
 coreq_link_with += common_lib
+coreq_link_with += cache_lib
 coreq_dep += protobuf_dep
-executable('coreq', coreq_src,
+executable('q', coreq_src,
 	dependencies : coreq_dep,
 	link_with : coreq_link_with,
-	include_directories : incdir,
-	install : true,
-)
-
-q_link_with = q_only_lib
-q_link_with += coreq_only_lib
-q_link_with += output_lib
-q_link_with += common_lib
-q_link_with += cache_lib
-executable('q', join_paths('src', 'main', 'main_q.cc'),
-	dependencies : coreq_dep,
-	link_with : q_link_with,
 	include_directories : incdir,
 	install : true,
 )

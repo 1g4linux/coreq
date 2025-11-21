@@ -14,4 +14,4 @@ DEFAULT_FORMAT=normal
 FORMAT='%{FORMAT_ETCAT}'
 export DEFAULT_IS_OR DEFAULT_MATCH_ALGORITHM DEFAULT_MATCH_FIELD \
 	DEFAULT_FORMAT FORMAT
-exec coreq --pure-packages ${1+"$@"}
+exec q --pure-packages ${1+"$@"}

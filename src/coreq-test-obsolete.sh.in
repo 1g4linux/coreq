@@ -8,7 +8,7 @@
 # This script gives a structured output of coreq -tTc (@PACKAGE_STRING@).
 set -u
 
-read_var_prg=coreq
+read_var_prg=q
 if coreq_funcs=`./coreq-functions.sh.in 2>/dev/null`
 then	eval "$coreq_funcs"
 else	echo "${0##*/}: cannot find coreq-functions.sh" >&2
@@ -66,7 +66,7 @@ myarg=
 # Once an option with paths as arguments is introduced, it is probably
 # necessary to turn the next command into eval "Push -c ..."
 # In the moment this seems not necessary, so we avoid that security risk:
-Push -c opt `coreq --print COREQ_TEST_OBSOLETE_OPTS`
+Push -c opt `q --print COREQ_TEST_OBSOLETE_OPTS`
 Push opt "$@"
 set -f
 eval "set -- a $opt"
@@ -102,7 +102,7 @@ FORMAT='%{FORMAT_TEST_OBSOLETE}'
 export DEFAULT_FORMAT FORMAT
 
 Statusline "`pgettext 'Statusline coreq-test-obsolete' 'coreq -t'`"
-coreq '-t*!sb'
+q '-t*!sb'
 
 # sets is the list of all "*" for which there are set_* variables
 sets=
@@ -117,7 +117,7 @@ DefineSet() {
 # Return true if all variables in arg are "false" according to coreq.
 AllFalse() {
 	for s
-	do	ReadBoolean "$s" coreq && return 1
+	do	ReadBoolean "$s" q && return 1
 	done
 	return 0
 }
@@ -138,13 +138,13 @@ FalseExcept() {
 }
 
 Output() {
-	if ! NOFOUND_STATUS=1 COUNT_ONLY_PRINTED=false coreq --nowarn -Tq0sb
+	if ! NOFOUND_STATUS=1 COUNT_ONLY_PRINTED=false q --nowarn -Tq0sb
 	then	[ -z "${1:++}" ] || Echo "$1"
 		return
 	fi
 	printf '\n%s\n' "$2"
 	if [ $# -le 3 ] || $nodetails
-	then	coreq --nowarn -Tsb
+	then	q --nowarn -Tsb
 		echo
 		return
 	fi

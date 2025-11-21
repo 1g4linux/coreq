@@ -6,7 +6,7 @@
 #   Martin V\"ath <martin@mvath.de>
 set -u
 
-read_var_prg=coreq
+read_var_prg=q
 if coreq_funcs=`./coreq-functions.sh.in 2>/dev/null`
 then	eval "$coreq_funcs"
 else	echo "${0##*/}: cannot find coreq-functions.sh" >&2

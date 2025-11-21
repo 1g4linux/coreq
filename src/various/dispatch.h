@@ -16,6 +16,7 @@ class SubcommandDispatcher {
   ~SubcommandDispatcher();
 
   void registerSubcommand(Subcommand* cmd);
+  bool hasSubcommand(const std::string& cmd_name) const;
   int dispatch(int argc, char** argv);
   void showHelp();
 

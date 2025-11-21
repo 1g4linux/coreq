@@ -10,4 +10,5 @@
 #include <config.h>  // IWYU pragma: keep
 
 #define COREQ_BINARY 1
+#define Q_BINARY 1
 #include "main/main.cc"  // NOLINT(build/include)

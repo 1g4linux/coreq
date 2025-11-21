@@ -30,6 +30,10 @@ void SubcommandDispatcher::registerSubcommand(Subcommand* cmd) {
   }
 }
 
+bool SubcommandDispatcher::hasSubcommand(const std::string& cmd_name) const {
+  return (m_subcommands.find(cmd_name) != m_subcommands.end());
+}
+
 int SubcommandDispatcher::dispatch(int argc, char** argv) {
   if (argc < 2) {
     showHelp();
