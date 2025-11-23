@@ -21,3 +21,11 @@ test_package = executable('test_package',
 )
 
 test('package', test_package)
+
+test('q_dispatch',
+    sh,
+    args : [
+        files('test_q_dispatch.sh'),
+        join_paths(meson.current_build_dir(), '..', 'q'),
+    ],
+)

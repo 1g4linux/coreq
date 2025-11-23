@@ -13,13 +13,11 @@
 #include <sys/stat.h>
 #include "various/subcommand.h"
 #include "corepkg/vardbpkg.h"
-#include "corepkg/conf/corepkgsettings.h"
 #include "coreqrc/coreqrc.h"
 #include "coreqrc/global.h"
 #include "coreqTk/argsreader.h"
 #include "coreqTk/formated.h"
 #include "coreqTk/i18n.h"
-#include "coreqTk/parseerror.h"
 #include "coreqTk/stringutils.h"
 #include "coreqTk/utils.h"
 
@@ -28,11 +26,6 @@
 class SubcommandHas : public Subcommand {
  public:
   virtual int run(int argc, char** argv) {
-    CoreqRc& coreqrc = get_coreqrc();
-    
-    ParseError parse_error;
-    CorePkgSettings corepkgsettings(&coreqrc, &parse_error, true, true);
-
     OptionList opt_table;
     bool help = false;
     Option help_opt("help", 'h', Option::BOOLEAN, &help);
@@ -49,6 +42,8 @@ class SubcommandHas : public Subcommand {
       coreq::say("%s") % usage();
       return EXIT_FAILURE;
     }
+
+    CoreqRc& coreqrc = get_coreqrc();
 
     std::string target_var = "";
     std::string target_value = "";
