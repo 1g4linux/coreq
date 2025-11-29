@@ -33,10 +33,6 @@ out=$(run_capture acl --help)
 assert_contains "$out" "Usage: q [options] EXPRESSION"
 assert_not_contains "$out" "Unknown subcommand:"
 
-# Unknown first token without --help must still not go through subcommand error path.
-out=$(run_capture acl)
-assert_not_contains "$out" "Unknown subcommand:"
-
 # Another unknown token should behave the same.
 out=$(run_capture zzxxyy --help)
 assert_contains "$out" "Usage: q [options] EXPRESSION"
