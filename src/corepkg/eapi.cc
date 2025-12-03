@@ -20,13 +20,27 @@
 using std::string;
 
 typedef UNORDERED_MAP<string, Eapi::EapiIndex> EapiMap;
+
+static WordVec& eapi_vec_storage() {
+  static WordVec storage;
+  return storage;
+}
+
+static EapiMap& eapi_map_storage() {
+  static EapiMap storage;
+  return storage;
+}
+
 static WordVec* eapi_vec(NULLPTR);
 static EapiMap* eapi_map(NULLPTR);
 
 void Eapi::init_static() {
   coreq_assert_static(eapi_vec == NULLPTR);
-  eapi_map = new EapiMap;
-  eapi_vec = new WordVec;
+  coreq_assert_static(eapi_map == NULLPTR);
+  eapi_map = &eapi_map_storage();
+  eapi_vec = &eapi_vec_storage();
+  eapi_map->clear();
+  eapi_vec->clear();
   (*eapi_map)["0"] = 0;
   // The following gives a memory leak with -flto for unknown reasons:
   // eapi_vec->PUSH_BACK("0");
@@ -34,9 +48,11 @@ void Eapi::init_static() {
 }
 
 void Eapi::free_static() {
-  delete eapi_map;
+  coreq_assert_static(eapi_map != NULLPTR);
+  coreq_assert_static(eapi_vec != NULLPTR);
+  eapi_map->clear();
+  eapi_vec->clear();
   eapi_map = NULLPTR;
-  delete eapi_vec;
   eapi_vec = NULLPTR;
 }
 

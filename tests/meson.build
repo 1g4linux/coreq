@@ -22,6 +22,22 @@ test_package = executable('test_package',
 
 test('package', test_package)
 
+test_eapi = executable('test_eapi',
+    'test_eapi.cc',
+    include_directories : [incdir, include_directories('..')],
+    link_with : [corepkg_lib, stringutils_lib],
+)
+
+test('eapi', test_eapi)
+
+test('eapi_no_heap_statics',
+    sh,
+    args : [
+        files('test_eapi_no_heap_statics.sh'),
+        join_paths(meson.current_source_dir(), '..', 'src', 'corepkg', 'eapi.cc'),
+    ],
+)
+
 test('q_dispatch',
     sh,
     args : [
