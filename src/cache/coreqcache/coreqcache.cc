@@ -35,11 +35,19 @@ using std::string;
 
 CoreqCache::CachesList* CoreqCache::all_coreqcaches = NULLPTR;
 
+static coreq::ptr_container<std::vector<CoreqCache*> >& all_coreqcaches_storage() {
+  static coreq::ptr_container<std::vector<CoreqCache*> > storage;
+  return storage;
+}
+
 CoreqCache::~CoreqCache() {
   if (all_coreqcaches != NULLPTR) {
     CachesList::iterator it(std::find(all_coreqcaches->begin(), all_coreqcaches->end(), this));
     if (it != all_coreqcaches->end()) {
       all_coreqcaches->erase(it);
+      if (all_coreqcaches->empty()) {
+        all_coreqcaches = NULLPTR;
+      }
     }
   }
 }
@@ -88,7 +96,7 @@ bool CoreqCache::initialize(const string& name) {
   }
   slavemode = false;
   if (all_coreqcaches == NULLPTR) {
-    all_coreqcaches = new CachesList;
+    all_coreqcaches = &all_coreqcaches_storage();
   }
   all_coreqcaches->PUSH_BACK(this);
   return (args.size() <= 3);

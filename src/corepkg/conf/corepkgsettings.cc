@@ -48,6 +48,11 @@
 using std::string;
 using std::vector;
 
+static string& emptystring_storage() {
+  static string storage;
+  return storage;
+}
+
 static string* emptystring = NULLPTR;
 
 typedef char ArchUsed;
@@ -1403,13 +1408,15 @@ bool CorePkgSettings::use_expand(string* var, string* expvar, const string& valu
 
 void CorePkgSettings::init_static() {
   coreq_assert_static(emptystring == NULLPTR);
-  emptystring = new string;
+  emptystring = &emptystring_storage();
+  emptystring->clear();
   OverlayIdent::init_static();
   CascadingProfile::init_static();
 }
 
 void CorePkgSettings::free_static() {
-  delete emptystring;
+  coreq_assert_static(emptystring != NULLPTR);
+  emptystring->clear();
   emptystring = NULLPTR;
   OverlayIdent::free_static();
   CascadingProfile::free_static();

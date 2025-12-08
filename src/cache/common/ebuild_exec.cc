@@ -429,9 +429,14 @@ bool EbuildExecSettings::init_ebuild_sh(const EbuildExec* e) {
 
 EbuildExecSettings* EbuildExec::settings = NULLPTR;
 
+static EbuildExecSettings& ebuild_exec_settings_storage() {
+  static EbuildExecSettings storage;
+  return storage;
+}
+
 bool EbuildExec::calc_settings() {
   if (unlikely(settings == NULLPTR)) {
-    settings = new EbuildExecSettings;
+    settings = &ebuild_exec_settings_storage();
     settings->init();
   }
   if (!use_ebuild_sh) {
@@ -441,6 +446,8 @@ bool EbuildExec::calc_settings() {
 }
 
 void EbuildExec::free_static() {
-  delete settings;
+  if (likely(settings != NULLPTR)) {
+    settings->init();
+  }
   settings = NULLPTR;
 }

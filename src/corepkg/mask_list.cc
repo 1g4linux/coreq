@@ -206,30 +206,25 @@ bool PreList::handle_line(const std::string& line, FilenameIndex file, LineNumbe
 }
 
 bool PreList::add_line(const std::string& line, FilenameIndex file, LineNumber number, bool keep_commentlines) {
-  static string* unique = NULLPTR;
+  static string unique("#a");
   LineVec l;
   if (keep_commentlines) {
     if (line.empty() || (line[0] == '#')) {
-      if (unique == NULLPTR) {
-        unique = new string("#a");
-      }
-      else {
-        for (string::size_type i(unique->length() - 1);;) {
-          char a((*unique)[i]);
-          if (a != 'z') {
-            (*unique)[i] = ++a;
+      for (string::size_type i(unique.length() - 1);;) {
+        char a(unique[i]);
+        if (a != 'z') {
+          unique[i] = ++a;
+          break;
+        }
+        else {
+          unique[i] = 'a';
+          if (--i == 0) {
+            unique.insert(1, 1, 'a');
             break;
-          }
-          else {
-            (*unique)[i] = 'a';
-            if (--i == 0) {
-              unique->insert(1, 1, 'a');
-              break;
-            }
           }
         }
       }
-      l.PUSH_BACK(*unique);
+      l.PUSH_BACK(unique);
       l.PUSH_BACK(line);
       add_splitted(l, file, number);
       return false;

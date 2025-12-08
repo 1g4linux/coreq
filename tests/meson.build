@@ -38,6 +38,38 @@ test('eapi_no_heap_statics',
     ],
 )
 
+test('ebuild_exec_no_heap_statics',
+    sh,
+    args : [
+        files('test_ebuild_exec_no_heap_statics.sh'),
+        join_paths(meson.current_source_dir(), '..', 'src', 'cache', 'common', 'ebuild_exec.cc'),
+    ],
+)
+
+test('corepkgsettings_no_heap_statics',
+    sh,
+    args : [
+        files('test_corepkgsettings_no_heap_statics.sh'),
+        join_paths(meson.current_source_dir(), '..', 'src', 'corepkg', 'conf', 'corepkgsettings.cc'),
+    ],
+)
+
+test('mask_list_no_heap_statics',
+    sh,
+    args : [
+        files('test_mask_list_no_heap_statics.sh'),
+        join_paths(meson.current_source_dir(), '..', 'src', 'corepkg', 'mask_list.cc'),
+    ],
+)
+
+test('coreqcache_no_heap_statics',
+    sh,
+    args : [
+        files('test_coreqcache_no_heap_statics.sh'),
+        join_paths(meson.current_source_dir(), '..', 'src', 'cache', 'coreqcache', 'coreqcache.cc'),
+    ],
+)
+
 test('q_dispatch',
     sh,
     args : [
