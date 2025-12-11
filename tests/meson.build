@@ -6,6 +6,22 @@ test_stringutils = executable('test_stringutils',
 
 test('stringutils', test_stringutils)
 
+test_ansicolor = executable('test_ansicolor',
+    'test_ansicolor.cc',
+    include_directories : [incdir, include_directories('..')],
+    link_with : [coreqtk_lib],
+)
+
+test('ansicolor', test_ansicolor)
+
+test_argsreader = executable('test_argsreader',
+    'test_argsreader.cc',
+    include_directories : [incdir, include_directories('..')],
+    link_with : [coreqtk_lib],
+)
+
+test('argsreader', test_argsreader)
+
 test_version = executable('test_version',
     'test_version.cc',
     include_directories : [incdir, include_directories('..')],
@@ -67,6 +83,14 @@ test('coreqcache_no_heap_statics',
     args : [
         files('test_coreqcache_no_heap_statics.sh'),
         join_paths(meson.current_source_dir(), '..', 'src', 'cache', 'coreqcache', 'coreqcache.cc'),
+    ],
+)
+
+test('ebuild_exec_safe_buffers',
+    sh,
+    args : [
+        files('test_ebuild_exec_safe_buffers.sh'),
+        join_paths(meson.current_source_dir(), '..', 'src', 'cache', 'common', 'ebuild_exec.cc'),
     ],
 )
 

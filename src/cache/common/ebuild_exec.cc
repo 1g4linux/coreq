@@ -21,9 +21,9 @@
 #include <cstring>
 
 #include <string>
+#include <vector>
 
 #include "cache/base.h"
-#include "coreqTk/auto_array.h"
 #include "coreqTk/diagnostics.h"
 #include "coreqTk/dialect.h"
 #include "coreqTk/coreqarray.h"
@@ -142,20 +142,14 @@ void EbuildExec::remove_handler() {
 // You should have called add_handler() in advance
 int EbuildExec::make_tempfile() {
   const string& tmpdir = settings->tmpdir;
-  string::size_type l(tmpdir.size());
-  coreq::auto_array<char> temp(new char[256 + l]);
-  if (l == 0) {
-    std::strcpy(temp.get(), "/tmp/ebuild-cache.XXXXXXXX");  // NOLINT(runtime/printf)
-  }
-  else {
-    std::strcpy(temp.get(), tmpdir.c_str());                // NOLINT(runtime/printf)
-    std::strcpy(temp.get() + l, "/ebuild-cache.XXXXXXXX");  // NOLINT(runtime/printf)
-  }
-  int fd(mkstemp(temp.get()));
+  const string template_name = (tmpdir.empty() ? string("/tmp/ebuild-cache.XXXXXXXX") : (tmpdir + "/ebuild-cache.XXXXXXXX"));
+  std::vector<char> temp(template_name.begin(), template_name.end());
+  temp.push_back('\0');
+  int fd(mkstemp(temp.data()));
   if (fd == -1) {
     return fd;
   }
-  cachefile.assign(temp.get());
+  cachefile.assign(temp.data());
   cache_defined = true;
   return fd;
 }
