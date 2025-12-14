@@ -22,6 +22,14 @@ test_argsreader = executable('test_argsreader',
 
 test('argsreader', test_argsreader)
 
+test_compare = executable('test_compare',
+    'test_compare.cc',
+    include_directories : [incdir, include_directories('..')],
+    link_with : stringutils_lib,
+)
+
+test('compare', test_compare)
+
 test_version = executable('test_version',
     'test_version.cc',
     include_directories : [incdir, include_directories('..')],
