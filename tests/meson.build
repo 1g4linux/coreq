@@ -30,6 +30,14 @@ test_compare = executable('test_compare',
 
 test('compare', test_compare)
 
+test_filenames = executable('test_filenames',
+    'test_filenames.cc',
+    include_directories : [incdir, include_directories('..')],
+    link_with : [filenames_lib, sysutils_lib],
+)
+
+test('filenames', test_filenames)
+
 test_version = executable('test_version',
     'test_version.cc',
     include_directories : [incdir, include_directories('..')],
