@@ -38,6 +38,14 @@ test_filenames = executable('test_filenames',
 
 test('filenames', test_filenames)
 
+test_formated = executable('test_formated',
+    'test_formated.cc',
+    include_directories : [incdir, include_directories('..')],
+    link_with : stringutils_lib,
+)
+
+test('formated', test_formated)
+
 test_version = executable('test_version',
     'test_version.cc',
     include_directories : [incdir, include_directories('..')],

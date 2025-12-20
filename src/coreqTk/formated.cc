@@ -59,9 +59,10 @@ void format::init() {
     }
     char c(m_text[i]);
     if (c == '%') {
-      m_text.erase(start, len);
-      if (likely(start != m_text.size())) {
-        i = start;
+      // "%%" is an escaped literal percent; keep one '%' in the result.
+      m_text.erase(start, 1);
+      if (likely(start + 1 < m_text.size())) {
+        i = start + 1;
         continue;
       }
       break;
