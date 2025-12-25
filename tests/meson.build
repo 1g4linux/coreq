@@ -46,6 +46,23 @@ test_formated = executable('test_formated',
 
 test('formated', test_formated)
 
+test_md5 = executable('test_md5',
+    'test_md5.cc',
+    join_paths('..', 'src', 'coreqTk', 'md5.cc'),
+    include_directories : [incdir, include_directories('..')],
+)
+
+test('md5', test_md5)
+
+test_outputstring = executable('test_outputstring',
+    'test_outputstring.cc',
+    join_paths('..', 'src', 'coreqTk', 'outputstring.cc'),
+    include_directories : [incdir, include_directories('..')],
+    link_with : stringutils_lib,
+)
+
+test('outputstring', test_outputstring)
+
 test_version = executable('test_version',
     'test_version.cc',
     include_directories : [incdir, include_directories('..')],
