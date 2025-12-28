@@ -63,6 +63,14 @@ test_outputstring = executable('test_outputstring',
 
 test('outputstring', test_outputstring)
 
+test_parseerror = executable('test_parseerror',
+    'test_parseerror.cc',
+    include_directories : [incdir, include_directories('..')],
+    link_with : [parseerror_lib, stringutils_lib],
+)
+
+test('parseerror', test_parseerror)
+
 test_version = executable('test_version',
     'test_version.cc',
     include_directories : [incdir, include_directories('..')],
