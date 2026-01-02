@@ -107,6 +107,14 @@ test_sysutils = executable('test_sysutils',
 
 test('sysutils', test_sysutils)
 
+test_varsreader = executable('test_varsreader',
+    'test_varsreader.cc',
+    include_directories : [incdir, include_directories('..')],
+    link_with : [coreqtk_lib],
+)
+
+test('varsreader', test_varsreader)
+
 test_version = executable('test_version',
     'test_version.cc',
     include_directories : [incdir, include_directories('..')],
