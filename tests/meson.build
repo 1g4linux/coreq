@@ -88,6 +88,25 @@ test_regexp = executable('test_regexp',
 
 test('regexp', test_regexp)
 
+test_stringlist = executable('test_stringlist',
+    'test_stringlist.cc',
+    join_paths('..', 'src', 'coreqTk', 'stringlist.cc'),
+    join_paths('..', 'src', 'coreqTk', 'stringlist_output.cc'),
+    join_paths('..', 'src', 'coreqTk', 'outputstring.cc'),
+    include_directories : [incdir, include_directories('..')],
+    link_with : stringutils_lib,
+)
+
+test('stringlist', test_stringlist)
+
+test_sysutils = executable('test_sysutils',
+    'test_sysutils.cc',
+    include_directories : [incdir, include_directories('..')],
+    link_with : [sysutils_lib],
+)
+
+test('sysutils', test_sysutils)
+
 test_version = executable('test_version',
     'test_version.cc',
     include_directories : [incdir, include_directories('..')],
