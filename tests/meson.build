@@ -71,6 +71,23 @@ test_parseerror = executable('test_parseerror',
 
 test('parseerror', test_parseerror)
 
+test_percentage = executable('test_percentage',
+    'test_percentage.cc',
+    join_paths('..', 'src', 'coreqTk', 'percentage.cc'),
+    include_directories : [incdir, include_directories('..')],
+    link_with : stringutils_lib,
+)
+
+test('percentage', test_percentage)
+
+test_regexp = executable('test_regexp',
+    'test_regexp.cc',
+    include_directories : [incdir, include_directories('..')],
+    link_with : [coreqtk_lib],
+)
+
+test('regexp', test_regexp)
+
 test_version = executable('test_version',
     'test_version.cc',
     include_directories : [incdir, include_directories('..')],
