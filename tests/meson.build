@@ -131,6 +131,14 @@ test_package = executable('test_package',
 
 test('package', test_package)
 
+test_depend = executable('test_depend',
+    'test_depend.cc',
+    include_directories : [incdir, include_directories('..')],
+    link_with : [depend_lib, stringutils_lib],
+)
+
+test('depend', test_depend)
+
 test_eapi = executable('test_eapi',
     'test_eapi.cc',
     include_directories : [incdir, include_directories('..')],
@@ -138,6 +146,70 @@ test_eapi = executable('test_eapi',
 )
 
 test('eapi', test_eapi)
+
+test_extendedversion = executable('test_extendedversion',
+    'test_extendedversion.cc',
+    include_directories : [incdir, include_directories('..')],
+    link_with : [corepkg_lib, version_lib, basicversion_lib, stringutils_lib],
+)
+
+test('extendedversion', test_extendedversion)
+
+test_instversion = executable('test_instversion',
+    'test_instversion.cc',
+    include_directories : [incdir, include_directories('..')],
+    link_with : [corepkg_lib, version_lib, basicversion_lib, stringutils_lib],
+)
+
+test('instversion', test_instversion)
+
+test_keywords = executable('test_keywords',
+    'test_keywords.cc',
+    include_directories : [incdir, include_directories('..')],
+    link_with : [corepkg_lib, stringutils_lib],
+)
+
+test('keywords', test_keywords)
+
+test_overlay = executable('test_overlay',
+    'test_overlay.cc',
+    include_directories : [incdir, include_directories('..')],
+    link_with : [corepkg_lib, coreqtk_lib, filenames_lib, sysutils_lib, stringutils_lib],
+)
+
+test('overlay', test_overlay)
+
+test_packagesets = executable('test_packagesets',
+    'test_packagesets.cc',
+    include_directories : [incdir, include_directories('..')],
+    link_with : [corepkg_lib],
+)
+
+test('packagesets', test_packagesets)
+
+test_packagetree = executable('test_packagetree',
+    'test_packagetree.cc',
+    include_directories : [incdir, include_directories('..')],
+    link_with : [corepkg_lib, version_lib, basicversion_lib, stringutils_lib],
+)
+
+test('packagetree', test_packagetree)
+
+test_vardbpkg = executable('test_vardbpkg',
+    'test_vardbpkg.cc',
+    include_directories : [incdir, include_directories('..')],
+    link_with : [corepkg_lib, coreqtk_lib, sysutils_lib, stringutils_lib, version_lib, basicversion_lib],
+)
+
+test('vardbpkg', test_vardbpkg)
+
+test_db_header = executable('test_db_header',
+    'test_db_header.cc',
+    include_directories : [incdir, include_directories('..')],
+    link_with : [header_lib, corepkg_lib, coreqtk_lib, filenames_lib, stringutils_lib],
+)
+
+test('db_header', test_db_header)
 
 test('eapi_no_heap_statics',
     sh,
