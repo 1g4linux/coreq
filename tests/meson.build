@@ -211,6 +211,14 @@ test_db_header = executable('test_db_header',
 
 test('db_header', test_db_header)
 
+test_cache_base = executable('test_cache_base',
+    'test_cache_base.cc',
+    include_directories : [incdir, include_directories('..')],
+    link_with : [cache_lib, corepkg_lib, coreqtk_lib, filenames_lib, sysutils_lib, stringutils_lib],
+)
+
+test('cache_base', test_cache_base)
+
 test('eapi_no_heap_statics',
     sh,
     args : [
