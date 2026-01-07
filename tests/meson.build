@@ -219,6 +219,24 @@ test_cache_base = executable('test_cache_base',
 
 test('cache_base', test_cache_base)
 
+test_levenshtein = executable('test_levenshtein',
+    'test_levenshtein.cc',
+    join_paths('..', 'src', 'search', 'levenshtein.cc'),
+    include_directories : [incdir, include_directories('..')],
+)
+
+test('levenshtein', test_levenshtein)
+
+test_algorithms = executable('test_algorithms',
+    'test_algorithms.cc',
+    join_paths('..', 'src', 'search', 'algorithms.cc'),
+    join_paths('..', 'src', 'search', 'levenshtein.cc'),
+    include_directories : [incdir, include_directories('..')],
+    link_with : [corepkg_lib, coreqtk_lib, stringutils_lib],
+)
+
+test('algorithms', test_algorithms)
+
 test('eapi_no_heap_statics',
     sh,
     args : [
