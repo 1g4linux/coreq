@@ -237,6 +237,14 @@ test_algorithms = executable('test_algorithms',
 
 test('algorithms', test_algorithms)
 
+test_matchtree = executable('test_matchtree',
+    'test_matchtree.cc',
+    include_directories : [incdir, include_directories('..')],
+    link_with : [search_lib, common_lib, output_lib, corepkg_lib, coreqtk_lib, database_lib, header_lib, stringutils_lib, sysutils_lib, filenames_lib],
+)
+
+test('matchtree', test_matchtree)
+
 test('eapi_no_heap_statics',
     sh,
     args : [
