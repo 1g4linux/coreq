@@ -36,9 +36,10 @@ static int test_exact_begin_end_pattern() {
 
 static int test_substring_with_simplify() {
   SubstringAlgorithm sub;
+  BaseAlgorithm& base = sub;
   sub.setString("$$dev-libs/openssl##");
-  ASSERT_TRUE(sub("dev-libs/openssl", NULLPTR, true));
-  ASSERT_TRUE(!sub("sys-apps/portage", NULLPTR, true));
+  ASSERT_TRUE(base("dev-libs/openssl", NULLPTR, true));
+  ASSERT_TRUE(!base("sys-apps/portage", NULLPTR, true));
   return 0;
 }
 
