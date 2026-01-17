@@ -297,6 +297,6 @@ test('q_dispatch',
     sh,
     args : [
         files('test_q_dispatch.sh'),
-        join_paths(meson.current_build_dir(), '..', 'q'),
+        q_exe,
     ],
 )

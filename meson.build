@@ -2032,7 +2032,7 @@ coreq_link_with += output_lib
 coreq_link_with += common_lib
 coreq_link_with += cache_lib
 coreq_dep += protobuf_dep
-executable('q', coreq_src,
+q_exe = executable('q', coreq_src,
 	dependencies : coreq_dep,
 	link_with : coreq_link_with,
 	include_directories : incdir,
