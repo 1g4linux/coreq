@@ -253,6 +253,14 @@ test_formatstring_print = executable('test_formatstring_print',
 
 test('formatstring_print', test_formatstring_print)
 
+test_formatstring = executable('test_formatstring',
+    'test_formatstring.cc',
+    include_directories : [incdir, include_directories('..')],
+    link_with : [common_lib, output_lib, corepkg_lib, coreqtk_lib, database_lib, header_lib, stringutils_lib, sysutils_lib, filenames_lib],
+)
+
+test('formatstring', test_formatstring)
+
 test('eapi_no_heap_statics',
     sh,
     args : [
