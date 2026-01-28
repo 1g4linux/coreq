@@ -261,6 +261,14 @@ test_formatstring = executable('test_formatstring',
 
 test('formatstring', test_formatstring)
 
+test_corepkgsettings = executable('test_corepkgsettings',
+    'test_corepkgsettings.cc',
+    include_directories : [incdir, include_directories('..')],
+    link_with : [corepkg_lib, coreqtk_lib, coreqrc_lib, search_lib, stringutils_lib, sysutils_lib, filenames_lib],
+)
+
+test('corepkgsettings', test_corepkgsettings)
+
 test('eapi_no_heap_statics',
     sh,
     args : [
