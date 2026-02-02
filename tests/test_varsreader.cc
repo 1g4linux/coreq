@@ -191,13 +191,17 @@ static int test_source_and_source_varname_prefix() {
   char* tmpdir = mkdtemp(tmpdir_template);
   ASSERT_TRUE(tmpdir != NULLPTR);
   const std::string include_file = std::string(tmpdir) + "/include.conf";
+  const std::string main_file = std::string(tmpdir) + "/main.conf";
+  const std::string main_var_file = std::string(tmpdir) + "/main-var.conf";
   ASSERT_TRUE(write_text_file(include_file, "FROM_INCLUDE=1\n"));
+  ASSERT_TRUE(write_text_file(main_file, ". include.conf\nMAIN=ok\n"));
+  ASSERT_TRUE(write_text_file(main_var_file, ". include.conf\n"));
 
   {
     VarsReader reader(VarsReader::ALLOW_SOURCE);
     reader.setPrefix(tmpdir);
     std::string errtext;
-    ASSERT_TRUE(reader.readmem(". include.conf\nMAIN=ok\n", NULLPTR, &errtext));
+    ASSERT_TRUE(reader.read(main_file.c_str(), &errtext, false));
     ASSERT_TRUE(errtext.empty());
     const std::string* from_include = reader.find("FROM_INCLUDE");
     ASSERT_TRUE(from_include != NULLPTR);
@@ -210,13 +214,15 @@ static int test_source_and_source_varname_prefix() {
     reader.setPrefix("SRCROOT");
     reader["SRCROOT"] = tmpdir;
     std::string errtext;
-    ASSERT_TRUE(reader.readmem(". include.conf\n", NULLPTR, &errtext));
+    ASSERT_TRUE(reader.read(main_var_file.c_str(), &errtext, false));
     ASSERT_TRUE(errtext.empty());
     const std::string* from_include = reader.find("FROM_INCLUDE");
     ASSERT_TRUE(from_include != NULLPTR);
     ASSERT_EQ(*from_include, std::string("1"));
   }
 
+  ASSERT_TRUE(std::remove(main_file.c_str()) == 0);
+  ASSERT_TRUE(std::remove(main_var_file.c_str()) == 0);
   ASSERT_TRUE(std::remove(include_file.c_str()) == 0);
   ASSERT_TRUE(rmdir(tmpdir) == 0);
   return 0;
