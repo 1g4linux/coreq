@@ -269,6 +269,14 @@ test_corepkgsettings = executable('test_corepkgsettings',
 
 test('corepkgsettings', test_corepkgsettings)
 
+test_coreqrc_defaults = executable('test_coreqrc_defaults',
+    'test_coreqrc_defaults.cc',
+    include_directories : [incdir, include_directories('..')],
+    link_with : [coreqrc_lib, coreqtk_lib, stringutils_lib, sysutils_lib, filenames_lib],
+)
+
+test('coreqrc_defaults', test_coreqrc_defaults)
+
 test('eapi_no_heap_statics',
     sh,
     args : [
