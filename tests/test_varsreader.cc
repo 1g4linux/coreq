@@ -1,5 +1,8 @@
 #include <iostream>
+#include <cstdio>
+#include <cstdlib>
 #include <string>
+#include <unistd.h>
 
 #include "coreqTk/varsreader.h"
 
@@ -138,6 +141,87 @@ static int test_only_keywords_slot_stops_early() {
   return 0;
 }
 
+static bool write_text_file(const std::string& path, const std::string& text) {
+  FILE* fp = std::fopen(path.c_str(), "wb");
+  if (fp == NULLPTR) {
+    return false;
+  }
+  if (std::fwrite(text.data(), sizeof(char), text.size(), fp) != text.size()) {
+    std::fclose(fp);
+    return false;
+  }
+  return (std::fclose(fp) == 0);
+}
+
+static int test_corepkg_sections_and_references() {
+  const std::string input(
+      "[DEFAULT]\n"
+      "BASE = root\n"
+      "[repo one]\n"
+      "location = /gentoo\n"
+      "merged = %(location)s/%(BASE)s\n"
+      "escaped = 'a\n"
+      "b'\n");
+
+  VarsReader reader(VarsReader::SUBST_VARS | VarsReader::COREPKG_SECTIONS);
+  std::string errtext;
+  ASSERT_TRUE(reader.readmem(input.c_str(), NULLPTR, &errtext));
+  ASSERT_TRUE(errtext.empty());
+
+  const std::string* base = reader.find("BASE");
+  ASSERT_TRUE(base != NULLPTR);
+  ASSERT_EQ(*base, std::string("root"));
+
+  const std::string* location = reader.find("location:repo one");
+  ASSERT_TRUE(location != NULLPTR);
+  ASSERT_EQ(*location, std::string("/gentoo"));
+
+  const std::string* merged = reader.find("merged:repo one");
+  ASSERT_TRUE(merged != NULLPTR);
+  ASSERT_EQ(*merged, std::string("/gentoo/root"));
+
+  const std::string* escaped = reader.find("escaped:repo one");
+  ASSERT_TRUE(escaped != NULLPTR);
+  ASSERT_EQ(*escaped, std::string("a b"));
+  return 0;
+}
+
+static int test_source_and_source_varname_prefix() {
+  char tmpdir_template[] = "/tmp/coreq-varsreader-XXXXXX";
+  char* tmpdir = mkdtemp(tmpdir_template);
+  ASSERT_TRUE(tmpdir != NULLPTR);
+  const std::string include_file = std::string(tmpdir) + "/include.conf";
+  ASSERT_TRUE(write_text_file(include_file, "FROM_INCLUDE=1\n"));
+
+  {
+    VarsReader reader(VarsReader::ALLOW_SOURCE);
+    reader.setPrefix(tmpdir);
+    std::string errtext;
+    ASSERT_TRUE(reader.readmem(". include.conf\nMAIN=ok\n", NULLPTR, &errtext));
+    ASSERT_TRUE(errtext.empty());
+    const std::string* from_include = reader.find("FROM_INCLUDE");
+    ASSERT_TRUE(from_include != NULLPTR);
+    ASSERT_EQ(*from_include, std::string("1"));
+    ASSERT_EQ(*reader.find("MAIN"), std::string("ok"));
+  }
+
+  {
+    VarsReader reader(VarsReader::ALLOW_SOURCE_VARNAME);
+    reader.setPrefix("SRCROOT");
+    reader["SRCROOT"] = tmpdir;
+    std::string errtext;
+    ASSERT_TRUE(reader.readmem(". include.conf\n", NULLPTR, &errtext));
+    ASSERT_TRUE(errtext.empty());
+    const std::string* from_include = reader.find("FROM_INCLUDE");
+    ASSERT_TRUE(from_include != NULLPTR);
+    ASSERT_EQ(*from_include, std::string("1"));
+  }
+
+  ASSERT_TRUE(std::remove(include_file.c_str()) == 0);
+  ASSERT_TRUE(rmdir(tmpdir) == 0);
+  return 0;
+}
+
 int main() {
   int failed = 0;
   if (test_basic_shell_like_parsing() != 0) {
@@ -150,6 +234,12 @@ int main() {
     failed++;
   }
   if (test_only_keywords_slot_stops_early() != 0) {
+    failed++;
+  }
+  if (test_corepkg_sections_and_references() != 0) {
+    failed++;
+  }
+  if (test_source_and_source_varname_prefix() != 0) {
     failed++;
   }
 

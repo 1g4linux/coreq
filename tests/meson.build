@@ -277,6 +277,22 @@ test_coreqrc_defaults = executable('test_coreqrc_defaults',
 
 test('coreqrc_defaults', test_coreqrc_defaults)
 
+test_packagetest = executable('test_packagetest',
+    'test_packagetest.cc',
+    include_directories : [incdir, include_directories('..')],
+    link_with : [search_lib, common_lib, output_lib, corepkg_lib, coreqtk_lib, database_lib, header_lib, coreqrc_lib, stringutils_lib, sysutils_lib, filenames_lib],
+)
+
+test('packagetest', test_packagetest)
+
+test_package_best = executable('test_package_best',
+    'test_package_best.cc',
+    include_directories : [incdir, include_directories('..')],
+    link_with : [corepkg_lib, coreqtk_lib, version_lib, basicversion_lib, stringutils_lib, sysutils_lib, filenames_lib],
+)
+
+test('package_best', test_package_best)
+
 test('eapi_no_heap_statics',
     sh,
     args : [
