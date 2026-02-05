@@ -51,7 +51,20 @@ class VarsReader {
   /**
   Init and parse the FSM depending on supplied flags
   **/
-  explicit VarsReader(Flags flags) {
+  explicit VarsReader(Flags flags)
+      : STATE(NULLPTR),
+        retstate(false),
+        key_len(0),
+        key_begin(NULLPTR),
+        x(NULLPTR),
+        sourcecmd(false),
+        parse_flags(flags),
+        sourced_files(NULLPTR),
+        filebuffer(NULLPTR),
+        filebuffer_end(NULLPTR),
+        incremental_keys(NULLPTR),
+        vars(NULLPTR),
+        file_name("") {
     if ((flags & COREPKG_SECTIONS) != NONE) {
       flags |= COREPKG_ESCAPES;
     }

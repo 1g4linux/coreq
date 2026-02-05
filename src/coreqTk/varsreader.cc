@@ -1177,6 +1177,7 @@ void VarsReader::initFsm() {
 }
 
 bool VarsReader::readmem(const char* buffer, const char* buffer_end, string* errtext) {
+  static CONSTEXPR const char kMemoryFilename[] = "<memory>";
   filebuffer = buffer;
   if (buffer_end != NULLPTR) {
     filebuffer_end = buffer_end;
@@ -1184,7 +1185,17 @@ bool VarsReader::readmem(const char* buffer, const char* buffer_end, string* err
   else {
     filebuffer_end = buffer + std::strlen(buffer);
   }
-  if (likely(parse())) {
+  const char* previous_file_name = file_name;
+  WordUnorderedSet* previous_sourced_files = sourced_files;
+  WordUnorderedSet sourced;
+  file_name = kMemoryFilename;
+  sourced_files = &sourced;
+
+  bool success = parse();
+
+  sourced_files = previous_sourced_files;
+  file_name = previous_file_name;
+  if (likely(success)) {
     return true;
   }
   if (errtext != NULLPTR) {

@@ -228,6 +228,44 @@ static int test_source_and_source_varname_prefix() {
   return 0;
 }
 
+static int test_readmem_source_and_source_varname_prefix() {
+  char tmpdir_template[] = "/tmp/coreq-varsreader-mem-XXXXXX";
+  char* tmpdir = mkdtemp(tmpdir_template);
+  ASSERT_TRUE(tmpdir != NULLPTR);
+  const std::string include_file = std::string(tmpdir) + "/include.conf";
+  ASSERT_TRUE(write_text_file(include_file, "FROM_MEM_INCLUDE=1\n"));
+
+  {
+    const std::string input = ". include.conf\nMAIN_MEM=ok\n";
+    VarsReader reader(VarsReader::ALLOW_SOURCE);
+    reader.setPrefix(tmpdir);
+    std::string errtext;
+    ASSERT_TRUE(reader.readmem(input.c_str(), NULLPTR, &errtext));
+    ASSERT_TRUE(errtext.empty());
+    const std::string* from_include = reader.find("FROM_MEM_INCLUDE");
+    ASSERT_TRUE(from_include != NULLPTR);
+    ASSERT_EQ(*from_include, std::string("1"));
+    ASSERT_EQ(*reader.find("MAIN_MEM"), std::string("ok"));
+  }
+
+  {
+    const std::string input = ". include.conf\n";
+    VarsReader reader(VarsReader::ALLOW_SOURCE_VARNAME);
+    reader.setPrefix("SRCROOT");
+    reader["SRCROOT"] = tmpdir;
+    std::string errtext;
+    ASSERT_TRUE(reader.readmem(input.c_str(), NULLPTR, &errtext));
+    ASSERT_TRUE(errtext.empty());
+    const std::string* from_include = reader.find("FROM_MEM_INCLUDE");
+    ASSERT_TRUE(from_include != NULLPTR);
+    ASSERT_EQ(*from_include, std::string("1"));
+  }
+
+  ASSERT_TRUE(std::remove(include_file.c_str()) == 0);
+  ASSERT_TRUE(rmdir(tmpdir) == 0);
+  return 0;
+}
+
 int main() {
   int failed = 0;
   if (test_basic_shell_like_parsing() != 0) {
@@ -246,6 +284,9 @@ int main() {
     failed++;
   }
   if (test_source_and_source_varname_prefix() != 0) {
+    failed++;
+  }
+  if (test_readmem_source_and_source_varname_prefix() != 0) {
     failed++;
   }
 
