@@ -5,9 +5,16 @@
 #include "coreqrc/coreqrc.h"
 #include "coreqrc/global.h"
 
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wkeyword-macro"
+#endif
 #define private public
 #include "search/packagetest.h"
 #undef private
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
 
 #define ASSERT_TRUE(condition)                                                   \
   if (!(condition)) {                                                            \

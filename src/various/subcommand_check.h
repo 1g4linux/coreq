@@ -166,6 +166,7 @@ class SubcommandCheck : public Subcommand {
                               files_checksum_mismatch++;
                           }
                           if (st_file.st_mtime != c_it->mtime) {
+                              coreq::say_error(c.red(_("%s: mtime mismatch"))) % c_it->path;
                               files_mtime_mismatch++;
                           }
                       }
@@ -182,13 +183,13 @@ class SubcommandCheck : public Subcommand {
                   }
               }
               
-              if (files_missing == 0 && files_checksum_mismatch == 0) {
-                  coreq::say(c.bold(c.green(_(" * %s/%s-%s: %d files checked, 0 errors")))) % pkg_it->category % pkg_it->name % v_it->getFull() % files_checked;
-              } else {
-                  coreq::say(c.bold(c.red(_(" * %s/%s-%s: %d files checked, %d missing, %d checksum mismatches"))))
-                      % pkg_it->category % pkg_it->name % v_it->getFull() % files_checked % files_missing % files_checksum_mismatch;
-                  exit_status = EXIT_FAILURE;
-              }
+	              if (files_missing == 0 && files_checksum_mismatch == 0 && files_mtime_mismatch == 0) {
+	                  coreq::say(c.bold(c.green(_(" * %s/%s-%s: %d files checked, 0 errors")))) % pkg_it->category % pkg_it->name % v_it->getFull() % files_checked;
+	              } else {
+	                  coreq::say(c.bold(c.red(_(" * %s/%s-%s: %d files checked, %d missing, %d checksum mismatches, %d mtime mismatches"))))
+	                      % pkg_it->category % pkg_it->name % v_it->getFull() % files_checked % files_missing % files_checksum_mismatch % files_mtime_mismatch;
+	                  exit_status = EXIT_FAILURE;
+	              }
           }
       }
     }
