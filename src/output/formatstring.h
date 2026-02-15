@@ -418,7 +418,10 @@ class PrintFormat {
 
   explicit PrintFormat(GetProperty get_callback) { init(get_callback); }
 
-  ~PrintFormat() { delete root_node; }
+  ~PrintFormat() {
+    delete virtuals;
+    delete root_node;
+  }
 
   // Initialize those variables common to coreq and coreq-diff:
   ATTRIBUTE_NONNULL_ void setupResources(CoreqRc* coreqrc);

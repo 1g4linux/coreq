@@ -259,8 +259,10 @@ bool verify_md5sum(const char* file, const string& md5sum) {
       return false;
     }
   }
+  const char empty_file_buffer[1] = {'\0'};
+  const char* md5buffer = (filebuffer != NULLPTR) ? filebuffer : empty_file_buffer;
   uint32_t resarr[4];
-  calc_md5sum(filebuffer, filesize, resarr);
+  calc_md5sum(md5buffer, filesize, resarr);
   if (filebuffer != NULLPTR) {
     munmap(filebuffer, filesize);
   }

@@ -128,6 +128,16 @@ class StringList {
   StringList(StringList&& s) NOEXCEPT : ptr(s.ptr) { s.ptr = NULLPTR; }
 
   StringList& operator=(StringList&& s) NOEXCEPT {
+    if (this == &s) {
+      return *this;
+    }
+#ifdef STRINGLIST_FREE
+    if (ptr != NULLPTR) {
+      if (--(ptr->usage) == 0) {
+        delete ptr;
+      }
+    }
+#endif
     ptr = s.ptr;
     s.ptr = NULLPTR;
     return *this;

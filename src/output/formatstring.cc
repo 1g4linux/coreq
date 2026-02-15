@@ -80,6 +80,7 @@ void VarParserCache::clear_use() {
 
 void PrintFormat::init(GetProperty get_callback) {
   m_get_property = get_callback;
+  version_variables = NULLPTR;
   virtuals = NULLPTR;
   overlay_translations = NULLPTR;
   overlay_used = NULLPTR;
