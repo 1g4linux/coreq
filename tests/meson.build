@@ -293,6 +293,14 @@ test_package_best = executable('test_package_best',
 
 test('package_best', test_package_best)
 
+test_mask = executable('test_mask',
+    'test_mask.cc',
+    include_directories : [incdir, include_directories('..')],
+    link_with : [corepkg_lib, coreqtk_lib, version_lib, basicversion_lib, stringutils_lib, sysutils_lib, filenames_lib],
+)
+
+test('mask', test_mask)
+
 test('eapi_no_heap_statics',
     sh,
     args : [
