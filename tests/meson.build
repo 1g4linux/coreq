@@ -356,3 +356,11 @@ test('q_dispatch',
         q_exe,
     ],
 )
+
+test('output_cli_format',
+    sh,
+    args : [
+        files('test_output_cli_format.sh'),
+        q_exe,
+    ],
+)
