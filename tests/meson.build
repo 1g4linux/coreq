@@ -219,6 +219,15 @@ test_cache_base = executable('test_cache_base',
 
 test('cache_base', test_cache_base)
 
+test_cache_readers = executable('test_cache_readers',
+    'test_cache_readers.cc',
+    include_directories : [incdir, include_directories('..')],
+    dependencies : sqlite_dep,
+    link_with : [cache_lib, database_lib, header_lib, corepkg_lib, coreqrc_lib, coreqtk_lib, filenames_lib, sysutils_lib, stringutils_lib, version_lib, basicversion_lib],
+)
+
+test('cache_readers', test_cache_readers)
+
 test_levenshtein = executable('test_levenshtein',
     'test_levenshtein.cc',
     join_paths('..', 'src', 'search', 'levenshtein.cc'),
