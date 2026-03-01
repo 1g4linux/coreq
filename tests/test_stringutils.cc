@@ -89,6 +89,90 @@ int test_unescape_string() {
     return 0;
 }
 
+int test_trimall_and_optional_append() {
+    std::string s = "  alpha   beta\tgamma  ";
+    trimall(&s);
+    ASSERT_EQ(s, "alpha beta gamma");
+
+    s = "path";
+    optional_append(&s, '/');
+    optional_append(&s, '/');
+    ASSERT_EQ(s, "path/");
+    return 0;
+}
+
+int test_slot_subslot_helpers() {
+    std::string slot = "0/1";
+    std::string subslot;
+    ASSERT_TRUE(slot_subslot(&slot, &subslot));
+    ASSERT_EQ(slot, "");
+    ASSERT_EQ(subslot, "1");
+
+    slot = "2/0";
+    ASSERT_TRUE(!slot_subslot(&slot, &subslot));
+    ASSERT_EQ(slot, "2");
+    ASSERT_EQ(subslot, "");
+
+    std::string out_slot;
+    ASSERT_TRUE(slot_subslot("3/4", &out_slot, &subslot));
+    ASSERT_EQ(out_slot, "3");
+    ASSERT_EQ(subslot, "4");
+
+    ASSERT_TRUE(!slot_subslot("0", &out_slot, &subslot));
+    ASSERT_EQ(out_slot, "");
+    ASSERT_EQ(subslot, "");
+    return 0;
+}
+
+int test_explode_atom_splitters() {
+    std::string name;
+    std::string version;
+    ASSERT_TRUE(ExplodeAtom::split(&name, &version, "coreq-1.2.3-r1"));
+    ASSERT_EQ(name, "coreq");
+    ASSERT_EQ(version, "1.2.3-r1");
+
+    ASSERT_TRUE(ExplodeAtom::split_name(&name, "pkg-10"));
+    ASSERT_EQ(name, "pkg");
+    ASSERT_TRUE(ExplodeAtom::split_version(&version, "pkg-10"));
+    ASSERT_EQ(version, "10");
+
+    ASSERT_TRUE(!ExplodeAtom::split_name(&name, "pkg"));
+    return 0;
+}
+
+int test_escape_split_and_join() {
+    std::string s = "a b\\ c d\\\\e";
+    WordVec v = split_string(s, true, " ", true);
+    ASSERT_EQ(v.size(), 3u);
+    ASSERT_EQ(v[0], "a");
+    ASSERT_EQ(v[1], "b c");
+    ASSERT_EQ(v[2], "d\\e");
+
+    std::string escaped = "a b";
+    escape_string(&escaped, " ");
+    ASSERT_EQ(escaped, "a\\ b");
+
+    std::string joined;
+    split_and_join(&joined, "a::b", ",", false, ":", false);
+    ASSERT_EQ(joined, "a,,b");
+    return 0;
+}
+
+int test_resolve_plus_minus_and_pkgpath_helpers() {
+    WordSet resolved;
+    ASSERT_TRUE(resolve_plus_minus(&resolved, "foo bar -foo -baz", NULLPTR));
+    ASSERT_TRUE(resolved.find("bar") != resolved.end());
+    ASSERT_TRUE(resolved.find("foo") == resolved.end());
+
+    ASSERT_TRUE(is_valid_pkgpath('_'));
+    ASSERT_TRUE(is_valid_pkgpath('/'));
+    ASSERT_TRUE(!is_valid_pkgpath('!'));
+
+    ASSERT_EQ(std::string(first_alnum("...x")), "x");
+    ASSERT_EQ(std::string(first_not_alnum_or_ok("abc-_.", "-_")), ".");
+    return 0;
+}
+
 int main() {
     int failed = 0;
     if (test_trim() != 0) failed++;
@@ -97,6 +181,11 @@ int main() {
     if (test_natcmp() != 0) failed++;
     if (test_split_string() != 0) failed++;
     if (test_unescape_string() != 0) failed++;
+    if (test_trimall_and_optional_append() != 0) failed++;
+    if (test_slot_subslot_helpers() != 0) failed++;
+    if (test_explode_atom_splitters() != 0) failed++;
+    if (test_escape_split_and_join() != 0) failed++;
+    if (test_resolve_plus_minus_and_pkgpath_helpers() != 0) failed++;
     
     if (failed == 0) {
         std::cout << "All stringutils tests passed!" << std::endl;

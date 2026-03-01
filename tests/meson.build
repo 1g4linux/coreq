@@ -123,6 +123,14 @@ test_version = executable('test_version',
 
 test('version', test_version)
 
+test_corepkg_version = executable('test_corepkg_version',
+    'test_corepkg_version.cc',
+    include_directories : [incdir, include_directories('..')],
+    link_with : [version_lib, corepkg_lib, coreqtk_lib, basicversion_lib, stringutils_lib],
+)
+
+test('corepkg_version', test_corepkg_version)
+
 test_package = executable('test_package',
     'test_package.cc',
     include_directories : [incdir, include_directories('..')],
