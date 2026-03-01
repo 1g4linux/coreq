@@ -211,6 +211,14 @@ test_db_header = executable('test_db_header',
 
 test('db_header', test_db_header)
 
+test_database_io = executable('test_database_io',
+    'test_database_io.cc',
+    include_directories : [incdir, include_directories('..')],
+    link_with : [database_lib, header_lib, corepkg_lib, coreqtk_lib, filenames_lib, stringutils_lib, version_lib, basicversion_lib],
+)
+
+test('database_io', test_database_io)
+
 test_cache_base = executable('test_cache_base',
     'test_cache_base.cc',
     include_directories : [incdir, include_directories('..')],

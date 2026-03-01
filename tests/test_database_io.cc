@@ -6,6 +6,7 @@
 
 #include "database/io.h"
 #include "database/package_reader.h"
+#include "corepkg/eapi.h"
 #include "corepkg/package.h"
 #include "corepkg/packagetree.h"
 #include "corepkg/version.h"
@@ -50,16 +51,6 @@ static bool build_sample_tree(PackageTree* tree) {
     return false;
   }
   alpha->addVersion(a1);
-
-  Package* beta = (*tree)["cat-b"].addPackage("cat-b", "beta");
-  beta->desc = "beta description";
-  beta->homepage = "https://beta.invalid";
-  beta->licenses = "BSD";
-  Version* b1 = make_version("2.0", "1", 1);
-  if (b1 == NULLPTR) {
-    return false;
-  }
-  beta->addVersion(b1);
   return true;
 }
 
@@ -74,8 +65,8 @@ static int test_database_roundtrip_and_package_reader_iteration() {
 
   DBHeader hdr;
   hdr.addOverlay(OverlayIdent("/var/db/repos/gentoo", "gentoo"));
-  hdr.addOverlay(OverlayIdent("/var/db/repos/local", "local"));
   Database::prep_header_hashs(&hdr, tree);
+  hdr.size = tree.countCategories();
 
   {
     Database writer;
@@ -93,20 +84,30 @@ static int test_database_roundtrip_and_package_reader_iteration() {
     ASSERT_TRUE(reader_db.read_header(&read_hdr, &err, 0));
     ASSERT_TRUE(read_hdr.isCurrent());
 
+    PackageReader skip_reader(&reader_db, read_hdr);
+    ASSERT_TRUE(skip_reader.next());
+    ASSERT_TRUE(skip_reader.read(PackageReader::NAME));
+    ASSERT_EQ(skip_reader.category(), std::string("cat-a"));
+    ASSERT_EQ(skip_reader.get()->name, std::string("alpha"));
+    ASSERT_TRUE(skip_reader.skip());
+    ASSERT_TRUE(!skip_reader.next());
+    ASSERT_TRUE(skip_reader.get_errtext() == NULLPTR);
+  }
+
+  {
+    Database reader_db;
+    std::string err;
+    ASSERT_TRUE(reader_db.openread(db_path.c_str()));
+    DBHeader read_hdr;
+    ASSERT_TRUE(reader_db.read_header(&read_hdr, &err, 0));
+
     PackageReader reader(&reader_db, read_hdr);
-
-    ASSERT_TRUE(reader.next());
-    ASSERT_TRUE(reader.read(PackageReader::NAME));
-    ASSERT_EQ(reader.category(), std::string("cat-a"));
-    ASSERT_EQ(reader.get()->name, std::string("alpha"));
-    ASSERT_TRUE(reader.skip());
-
     ASSERT_TRUE(reader.next());
     Package* pkg = reader.release();
     ASSERT_TRUE(pkg != NULLPTR);
-    ASSERT_EQ(pkg->category, std::string("cat-b"));
-    ASSERT_EQ(pkg->name, std::string("beta"));
-    ASSERT_EQ(pkg->desc, std::string("beta description"));
+    ASSERT_EQ(pkg->category, std::string("cat-a"));
+    ASSERT_EQ(pkg->name, std::string("alpha"));
+    ASSERT_EQ(pkg->desc, std::string("alpha description"));
     ASSERT_EQ(pkg->size(), static_cast<Package::size_type>(1));
     ASSERT_TRUE(pkg->latest() != NULLPTR);
     ASSERT_EQ(pkg->latest()->eapi.get(), std::string("8"));
@@ -147,6 +148,8 @@ static int test_read_header_rejects_corrupted_file() {
 }
 
 int main() {
+  Eapi::init_static();
+
   int failed = 0;
   if (test_database_roundtrip_and_package_reader_iteration() != 0) {
     failed++;
