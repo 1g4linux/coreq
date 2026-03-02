@@ -33,6 +33,10 @@ out=$(run_capture acl --help)
 assert_contains "$out" "Usage: q [options] EXPRESSION"
 assert_not_contains "$out" "Unknown subcommand:"
 
+# Unknown token without --help must still be parsed as a coreq expression.
+out=$(run_capture glib)
+assert_not_contains "$out" "Unknown subcommand:"
+
 # Another unknown token should behave the same.
 out=$(run_capture zzxxyy --help)
 assert_contains "$out" "Usage: q [options] EXPRESSION"
