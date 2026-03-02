@@ -1,4 +1,4 @@
-option('tests', type : 'boolean', value : true,
+option('tests', type : 'boolean', value : false,
 	description : 'build and run tests')
 option('jumbo-build', type : 'boolean', value : true,
 	description : 'use jumbo build')
