@@ -279,10 +279,9 @@ class SubcommandRegen : public Subcommand {
     Depend dep;
     reader.get_keywords_slot_iuse_restrict(md5_path, &eapi, &keywords, &slot, &iuse, &req_use, &restr, &props, &dep, &src_uri);
     
-    if (src_uri.empty()) return false;
-    
-    extract_distfiles(src_uri, expected);
-    return true;
+    if (src_uri.empty()) return true;
+
+    return extract_distfiles(src_uri, expected);
   }
 
   bool parse_ebuild_src_uri(const std::string& path, const std::string& pn, const std::string& pv, std::set<std::string>& expected) {
@@ -294,7 +293,7 @@ class SubcommandRegen : public Subcommand {
     std::string err;
     VarsReader reader(VarsReader::SUBST_VARS | VarsReader::INTO_MAP);
     reader.useMap(&env);
-    if (!reader.read(path.c_str(), &err, false)) return true;
+    if (!reader.read(path.c_str(), &err, false)) return false;
     
     const std::string* src_uri = reader.find("SRC_URI");
     if (!src_uri) return true;
@@ -303,41 +302,37 @@ class SubcommandRegen : public Subcommand {
   }
 
   bool extract_distfiles(const std::string& src_uri, std::set<std::string>& files) {
+    // Gentoo conditionals are control tokens like "foo?" / "!foo?".
+    // URLs may also contain '?', so only treat a trailing '?' token as conditional.
+    static const std::string operators[] = { "||", "^^", "??" };
+
     WordVec parts = split_string(src_uri);
     bool complete = true;
     for (size_t i = 0; i < parts.size(); ++i) {
-        if (parts[i].find("?") != std::string::npos) {
-            // Found a conditional. We want to skip the next part (usually '(') and everything until its ')'
-            if (i + 1 < parts.size() && parts[i+1] == "(") {
-                int depth = 1;
-                i += 2; // Move past 'use?' and '('
-                while (i < parts.size() && depth > 0) {
-                    if (parts[i] == "(") depth++;
-                    else if (parts[i] == ")") depth--;
-                    i++;
-                }
-                i--; // Back off to current ')' so the loop increment handles it
-            } else {
-                // Single part conditional like 'use? http://url'
-                i++;
-            }
+        const std::string& token = parts[i];
+        if (token == "(" || token == ")") continue;
+        if (token.find("://") == std::string::npos && !token.empty() && token[token.size() - 1] == '?') continue;
+        if (token == operators[0] || token == operators[1] || token == operators[2]) {
             continue;
         }
-        
-        if (parts[i] == "(" || parts[i] == ")") continue;
 
         std::string filename;
-        if (parts[i] == "->") {
+        if (token == "->") {
             if (i + 1 < parts.size()) {
                 filename = parts[i+1];
                 i++;
             }
-        } else if (parts[i].find("://") != std::string::npos) {
+        } else if (token.find("://") != std::string::npos) {
             // It's a URL. If NOT followed by ->, use basename
             if (i + 1 >= parts.size() || parts[i+1] != "->") {
-                size_t last_slash = parts[i].find_last_of('/');
+                std::string clean_token = token;
+                size_t trim_pos = clean_token.find_first_of("?#");
+                if (trim_pos != std::string::npos) {
+                    clean_token.erase(trim_pos);
+                }
+                size_t last_slash = clean_token.find_last_of('/');
                 if (last_slash != std::string::npos) {
-                    filename = parts[i].substr(last_slash + 1);
+                    filename = clean_token.substr(last_slash + 1);
                 }
             }
         }
