@@ -244,6 +244,15 @@ test_cache_readers = executable('test_cache_readers',
 
 test('cache_readers', test_cache_readers)
 
+test_regen_fastpath = executable('test_regen_fastpath',
+    'test_regen_fastpath.cc',
+    include_directories : [incdir, include_directories('..')],
+    dependencies : coreq_dep,
+    link_with : coreq_link_with,
+)
+
+test('regen_fastpath', test_regen_fastpath)
+
 test_levenshtein = executable('test_levenshtein',
     'test_levenshtein.cc',
     join_paths('..', 'src', 'search', 'levenshtein.cc'),
